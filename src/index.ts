@@ -60,7 +60,10 @@ export default async function createIntervalHost(config: InternalConfig) {
     await ws.connect();
     console.log("Connected!");
 
-    const loggedIn = await caller.client("LOGIN", { apiKey: config.apiKey });
+    const loggedIn = await caller.client("INITIALIZE", {
+      apiKey: config.apiKey,
+      callableActionNames: ["Hello world", "Delete account"],
+    });
     if (!loggedIn) throw new Error("The provided API key is not valid");
   }
 
