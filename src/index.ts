@@ -9,9 +9,7 @@ interface InternalConfig {
 
 export default async function createIntervalHost(config: InternalConfig) {
   console.log("Create Interval Host :)", config);
-  const ws = new ISocket(new WebSocket("ws://localhost:2023"), {
-    timeout: 3000,
-  });
+  const ws = new ISocket(new WebSocket("ws://localhost:2023"));
 
   await ws.connect();
 
@@ -21,8 +19,8 @@ export default async function createIntervalHost(config: InternalConfig) {
   });
   ws.on("message", (m) => caller.replyHandler(m));
 
-  const lo = await caller.client("LOGIN", { apiKey: config.apiKey });
-  console.log("Login response:", lo);
+  const loggedIn = await caller.client("LOGIN", { apiKey: config.apiKey });
+  if (!loggedIn) throw new Error("The provided API key is not valid");
 
   return true;
 }
