@@ -1,7 +1,7 @@
 import { WebSocket } from 'ws'
-import ISocket from '../../common/ISocket'
-import { createCaller } from '../../common/rpc'
-import { internalRpcSchema } from '../../common/internalRpcSchema'
+import ISocket from '../../common/src/ISocket'
+import { createCaller } from '../../common/src/rpc'
+import { internalRpcSchema } from '../../common/src/internalRpcSchema'
 
 interface InternalConfig {
   apiKey: string
@@ -60,7 +60,7 @@ export default async function createIntervalHost(config: InternalConfig) {
     await ws.connect()
     console.log('Connected!')
 
-    const loggedIn = await caller.client('INITIALIZE', {
+    const loggedIn = await caller.client('INITIALIZE_HOST', {
       apiKey: config.apiKey,
       callableActionNames: ['Hello world', 'Delete account'],
     })

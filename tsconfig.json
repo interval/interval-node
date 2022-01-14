@@ -9,6 +9,6 @@
     "strict": true,
     "strictNullChecks": true
   },
-  "include": ["src"],
+  "include": ["src", "../common"],
   "exclude": ["node_modules"]
 }
