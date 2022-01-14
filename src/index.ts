@@ -1,7 +1,7 @@
 import { WebSocket } from 'ws'
-import ISocket from '../../common/src/ISocket'
-import { createCaller } from '../../common/src/rpc'
-import { internalRpcSchema } from '../../common/src/internalRpcSchema'
+import ISocket from './ISocket'
+import { createCaller } from './rpc'
+import { internalRpcSchema } from './internalRpcSchema'
 
 interface InternalConfig {
   apiKey: string
