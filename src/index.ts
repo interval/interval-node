@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws'
 import ISocket from './ISocket'
-import { createCaller } from './rpc'
+import { createCaller, createResponder } from './rpc'
 import { internalRpcSchema } from './internalRpcSchema'
 
 interface InternalConfig {
@@ -52,7 +52,7 @@ export default async function createIntervalHost(config: InternalConfig) {
     })
 
     const caller = createCaller({
-      schema: internalRpcSchema,
+      methods: internalRpcSchema,
       send: rawInput => ws.send(rawInput),
     })
     ws.on('message', m => caller.replyHandler(m))
@@ -64,6 +64,7 @@ export default async function createIntervalHost(config: InternalConfig) {
       apiKey: config.apiKey,
       callableActionNames: ['Hello world', 'Delete account'],
     })
+
     if (!loggedIn) throw new Error('The provided API key is not valid')
   }
 
