@@ -1,7 +1,7 @@
 import { WebSocket } from 'ws'
 import ISocket from './ISocket'
-import { createCaller, createResponder } from './rpc'
-import { internalRpcSchema } from './internalRpcSchema'
+import { createDuplexRPCClient } from './rpc'
+import { wsServerSchema, hostSchema } from './internalRpcSchema'
 
 interface InternalConfig {
   apiKey: string
@@ -51,16 +51,25 @@ export default async function createIntervalHost(config: InternalConfig) {
       // auto retry connect here?
     })
 
-    const caller = createCaller({
-      methods: internalRpcSchema,
-      send: rawInput => ws.send(rawInput),
-    })
-    ws.on('message', m => caller.replyHandler(m))
-
     await ws.connect()
     console.log('Connected!')
 
-    const loggedIn = await caller.client('INITIALIZE_HOST', {
+    const client = createDuplexRPCClient({
+      communicator: ws,
+      canCall: wsServerSchema,
+      canRespondTo: hostSchema,
+      handlers: {
+        START_TRANSACTION: async inputs => {
+          console.log('action called', inputs)
+          return
+        },
+        IO_RESPONSE: async inputs => {
+          console.log('inputs', inputs)
+        },
+      },
+    })
+
+    const loggedIn = await client('INITIALIZE_HOST', {
       apiKey: config.apiKey,
       callableActionNames: ['Hello world', 'Delete account'],
     })

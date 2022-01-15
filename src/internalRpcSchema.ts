@@ -10,7 +10,6 @@ export const wsServerSchema = {
   RESPOND_TO_IO_CALL: {
     inputs: z.object({
       transactionId: z.string(),
-      callId: z.string(),
       ioResponse: z.string(),
     }),
     returns: z.boolean(),
@@ -56,7 +55,6 @@ export const clientSchema = {
   },
   RENDER: {
     inputs: z.object({
-      id: z.string(),
       toRender: z.string(),
     }),
     returns: z.void(),
@@ -66,8 +64,14 @@ export const clientSchema = {
 export const hostSchema = {
   IO_RESPONSE: {
     inputs: z.object({
-      callId: z.string(),
       value: z.string(),
+    }),
+    returns: z.void(),
+  },
+  START_TRANSACTION: {
+    inputs: z.object({
+      transactionId: z.string(),
+      actionName: z.string(),
     }),
     returns: z.void(),
   },
