@@ -20,7 +20,7 @@ interface Communicator {
   send: (data: string) => Promise<any>
 }
 
-const DUPLEX_MESSAGE_SCHEMA = z.object({
+export const DUPLEX_MESSAGE_SCHEMA = z.object({
   id: z.string(),
   methodName: z.string(),
   data: z.any(),
@@ -28,6 +28,20 @@ const DUPLEX_MESSAGE_SCHEMA = z.object({
 })
 
 type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
+
+export function packageResponse({
+  id,
+  methodName,
+  data,
+}: Omit<DuplexMessage, 'kind'>) {
+  const preparedResponseText: DuplexMessage = {
+    id: id,
+    kind: 'RESPONSE',
+    methodName: methodName,
+    data,
+  }
+  return JSON.stringify(preparedResponseText)
+}
 
 export function createDuplexRPCClient<
   CallerSchema extends MethodDef,
@@ -74,14 +88,13 @@ export function createDuplexRPCClient<
 
     const returnValue = await handler(inputs)
 
-    const preparedResponseText: DuplexMessage = {
+    const preparedResponseText = packageResponse({
       id: parsed.id,
-      kind: 'RESPONSE',
       methodName: methodName as string, //??
       data: returnValue,
-    }
+    })
 
-    await communicator.send(JSON.stringify(preparedResponseText))
+    await communicator.send(preparedResponseText)
 
     return
   }
