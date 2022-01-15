@@ -57,7 +57,7 @@ export const clientSchema = {
     inputs: z.object({
       toRender: z.string(),
     }),
-    returns: z.void(),
+    returns: z.boolean(),
   },
 }
 
