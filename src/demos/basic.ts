@@ -7,6 +7,11 @@ createIntervalHost({
       console.log("Let's say hello...")
       const name = await io('ASK_TEXT', { label: 'What is your name?' })
       console.log(`Hello, ${name}`)
+
+      const feeling = await io('ASK_TEXT', {
+        label: `How are you feeling, ${name}?`,
+      })
+      console.log(feeling)
     },
   },
 })
