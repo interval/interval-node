@@ -1,11 +1,5 @@
 import { z } from 'zod'
 
-export const MESSAGE_META = z.object({
-  id: z.string(),
-  methodName: z.string(),
-  kind: z.enum(['CALL', 'RESPONSE']),
-})
-
 let count = 0
 function generateId() {
   count = count + 1
@@ -21,97 +15,113 @@ interface MethodDef {
 
 type OnReplyFn = (anyObject: any) => void
 
-type SendFn = (rawInput: string) => void
-
-const completeMessageSchema = z.intersection(
-  MESSAGE_META,
-  z.object({ response: z.any() })
-)
-
-export function createCaller<Methods extends MethodDef>({
-  methods,
-  send,
-}: {
-  methods: Methods
-  send: SendFn
-}) {
-  const pending = new Map<string, OnReplyFn>()
-
-  return {
-    replyHandler(rawReply: string) {
-      const parsed = completeMessageSchema.parse(JSON.parse(rawReply))
-      if (parsed.kind !== 'RESPONSE') return
-      const onReplyFn = pending.get(parsed.id)
-      if (!onReplyFn) return
-
-      onReplyFn(parsed.response)
-      pending.delete(parsed.id)
-    },
-    client<MethodName extends keyof Methods>(
-      methodName: MethodName,
-      inputs: z.infer<typeof methods[MethodName]['inputs']>
-    ) {
-      const id = generateId()
-
-      const msg = JSON.stringify({
-        id,
-        kind: 'CALL',
-        inputs,
-        methodName: methodName,
-      })
-
-      type ReturnType = z.infer<typeof methods[MethodName]['returns']>
-
-      return new Promise<ReturnType>(resolve => {
-        pending.set(id, (anyObject: string) => {
-          const parsed = methods[methodName]['returns'].parse(anyObject)
-          return resolve(parsed)
-        })
-        send(msg)
-      })
-    },
-  }
+interface Communicator {
+  on: (kind: string, handler: (...args: unknown[]) => void) => void
+  send: (data: string) => Promise<any>
 }
 
-export function createResponder<Methods extends MethodDef>({
-  methods,
+const DUPLEX_MESSAGE_SCHEMA = z.object({
+  id: z.string(),
+  methodName: z.string(),
+  data: z.any(),
+  kind: z.enum(['CALL', 'RESPONSE']),
+})
+
+type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
+
+export function createDuplexRPCClient<
+  CallerSchema extends MethodDef,
+  ResponderSchema extends MethodDef
+>({
+  communicator,
+  canCall,
+  canRespondTo,
   handlers,
 }: {
-  methods: Methods
+  communicator: Communicator
+  canCall: CallerSchema
+  canRespondTo: ResponderSchema
   handlers: {
-    [Property in keyof Methods]: (
-      inputs: z.infer<Methods[Property]['inputs']>
-    ) => Promise<z.infer<Methods[Property]['returns']>>
+    [Property in keyof ResponderSchema]: (
+      inputs: z.infer<ResponderSchema[Property]['inputs']>
+    ) => Promise<z.infer<ResponderSchema[Property]['returns']>>
   }
 }) {
-  return async function respond(rawInput: string) {
-    const completeMessageSchema = z.intersection(
-      MESSAGE_META,
-      z.object({ inputs: z.any() })
-    )
+  const pendingCalls = new Map<string, OnReplyFn>()
 
-    const inputParsed = completeMessageSchema.parse(JSON.parse(rawInput))
+  function handleReceivedResponse(parsed: DuplexMessage) {
+    const onReplyFn = pendingCalls.get(parsed.id)
+    if (!onReplyFn) return
 
-    type MethodKeys = keyof typeof methods
+    onReplyFn(parsed.data)
+    pendingCalls.delete(parsed.id)
+  }
 
-    const methodName = inputParsed.methodName as MethodKeys
-    const method: typeof methods[MethodKeys] | undefined = methods[methodName]
+  async function handleReceivedCall(parsed: DuplexMessage) {
+    type MethodKeys = keyof typeof canRespondTo
+
+    const methodName = parsed.methodName as MethodKeys
+    const method: typeof canRespondTo[MethodKeys] | undefined =
+      canRespondTo[methodName]
 
     if (!method) {
-      throw new Error(`There is no method for ${inputParsed.methodName}`)
+      throw new Error(`There is no method for ${parsed.methodName}`)
     }
 
     // struggling to get real inference here
-    const inputs = method.inputs.parse(inputParsed.inputs)
+    const inputs = method.inputs.parse(parsed.data)
     const handler = handlers[methodName]
 
-    const output = await handler(inputs)
+    const returnValue = await handler(inputs)
 
-    return JSON.stringify({
-      id: inputParsed.id,
+    const preparedResponseText: DuplexMessage = {
+      id: parsed.id,
       kind: 'RESPONSE',
-      methodName,
-      response: output,
+      methodName: methodName as string, //??
+      data: returnValue,
+    }
+
+    await communicator.send(JSON.stringify(preparedResponseText))
+
+    return
+  }
+
+  communicator.on('message', data => {
+    const txt = data as string
+    const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
+
+    if (inputParsed.kind === 'RESPONSE') {
+      return handleReceivedResponse(inputParsed)
+    }
+
+    if (inputParsed.kind === 'CALL') {
+      return handleReceivedCall(inputParsed)
+    }
+  })
+
+  return function client<MethodName extends keyof CallerSchema>(
+    methodName: MethodName,
+    inputs: z.infer<typeof canCall[MethodName]['inputs']>
+  ) {
+    const id = generateId()
+
+    const callerData: DuplexMessage = {
+      id,
+      kind: 'CALL',
+      data: inputs,
+      methodName: methodName as string, // ??
+    }
+
+    const msg = JSON.stringify(callerData)
+
+    type ReturnType = z.infer<typeof canCall[MethodName]['returns']>
+
+    return new Promise<ReturnType>(resolve => {
+      pendingCalls.set(id, (rawResponseText: string) => {
+        const parsed = canCall[methodName]['returns'].parse(rawResponseText)
+        return resolve(parsed)
+      })
+      communicator.send(msg)
     })
   }
 }
