@@ -65,6 +65,7 @@ export const hostSchema = {
   IO_RESPONSE: {
     inputs: z.object({
       value: z.string(),
+      transactionId: z.string(),
     }),
     returns: z.void(),
   },

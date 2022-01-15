@@ -1,6 +1,7 @@
 import { WebSocket } from 'ws'
+import { EventEmitter as EE } from 'ee-ts'
 import ISocket from './ISocket'
-import { createDuplexRPCClient } from './rpc'
+import { createCaller, createDuplexRPCClient } from './rpc'
 import { wsServerSchema, hostSchema } from './internalRpcSchema'
 import { ioSchema } from './ioSchema'
 import { z } from 'zod'
@@ -62,6 +63,8 @@ interface InternalConfig {
 export default async function createIntervalHost(config: InternalConfig) {
   console.log('Create Interval Host :)', config)
 
+  const inProgressTransactions = new Map<string, (value: string) => void>()
+
   async function setup() {
     const ws = new ISocket(new WebSocket('ws://localhost:2023'))
 
@@ -89,31 +92,34 @@ export default async function createIntervalHost(config: InternalConfig) {
             return
           }
 
-          const io = createDuplexRPCClient({
-            communicator: {
-              on: () => {
-                /**/
-              },
-              send: async (text: string) => {
-                console.log('emitting', text)
-                await serverRpc('SEND_IO_CALL', {
-                  transactionId: inputs.transactionId,
-                  ioCall: text,
-                })
-                console.log('sent')
-              },
+          const io = createCaller({
+            schema: ioSchema,
+            send: async (text: string) => {
+              console.log('emitting', text)
+              await serverRpc('SEND_IO_CALL', {
+                transactionId: inputs.transactionId,
+                ioCall: text,
+              })
+              console.log('sent')
             },
-            canCall: ioSchema,
-            canRespondTo: {},
-            handlers: {},
           })
 
-          fn(io)
+          inProgressTransactions.set(inputs.transactionId, io.replyHandler)
+
+          fn(io.client)
 
           return
         },
         IO_RESPONSE: async inputs => {
           console.log('got io response', inputs)
+
+          const replyHandler = inProgressTransactions.get(inputs.transactionId)
+          if (!replyHandler) {
+            console.log('Missing reply handler for', inputs.transactionId)
+            return
+          }
+
+          replyHandler(inputs.value)
         },
       },
     })
