@@ -58,23 +58,37 @@ type ActionFunction = (io: typeof ioShape) => any
 interface InternalConfig {
   apiKey: string
   actions: Record<string, ActionFunction>
+  endpoint?: string
+  logLevel?: 'prod' | 'debug'
 }
 
 export default async function createIntervalHost(config: InternalConfig) {
-  console.log('Create Interval Host :)', config)
+  const log = {
+    prod: (...args: any[]) => {
+      console.log('[Interval] ', ...args)
+    },
+    debug: (...args: any[]) => {
+      if (config.logLevel === 'debug') {
+        console.log(...args)
+      }
+    },
+  }
+
+  log.debug('Create Interval Host :)', config)
 
   const inProgressTransactions = new Map<string, (value: string) => void>()
 
   async function setup() {
-    const ws = new ISocket(new WebSocket('ws://localhost:2023'))
+    const ws = new ISocket(
+      new WebSocket(config.endpoint || 'ws://localhost:3001')
+    )
 
     ws.on('close', () => {
-      console.log('Closed')
+      log.debug('Closed')
       // auto retry connect here?
     })
 
     await ws.connect()
-    console.log('Connected!')
 
     const serverRpc = createDuplexRPCClient({
       communicator: ws,
@@ -82,25 +96,25 @@ export default async function createIntervalHost(config: InternalConfig) {
       canRespondTo: hostSchema,
       handlers: {
         START_TRANSACTION: async inputs => {
-          console.log('action called', inputs)
+          log.debug('action called', inputs)
 
           const fn = config.actions[inputs.actionName]
-          console.log(fn)
+          log.debug(fn)
 
           if (!fn) {
-            console.log('No fn called', inputs.actionName)
+            log.debug('No fn called', inputs.actionName)
             return
           }
 
           const io = createCaller({
             schema: ioSchema,
             send: async (text: string) => {
-              console.log('emitting', text)
+              log.debug('emitting', text)
               await serverRpc('SEND_IO_CALL', {
                 transactionId: inputs.transactionId,
                 ioCall: text,
               })
-              console.log('sent')
+              log.debug('sent')
             },
           })
 
@@ -111,11 +125,11 @@ export default async function createIntervalHost(config: InternalConfig) {
           return
         },
         IO_RESPONSE: async inputs => {
-          console.log('got io response', inputs)
+          log.debug('got io response', inputs)
 
           const replyHandler = inProgressTransactions.get(inputs.transactionId)
           if (!replyHandler) {
-            console.log('Missing reply handler for', inputs.transactionId)
+            log.debug('Missing reply handler for', inputs.transactionId)
             return
           }
 
@@ -130,6 +144,8 @@ export default async function createIntervalHost(config: InternalConfig) {
     })
 
     if (!loggedIn) throw new Error('The provided API key is not valid')
+
+    log.prod(`🔗 Connected! Access your actions at: ${loggedIn.dashboardUrl}`)
   }
 
   setup()

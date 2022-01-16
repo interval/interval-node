@@ -32,7 +32,12 @@ export const wsServerSchema = {
       apiKey: z.string(),
       callableActionNames: z.array(z.string()),
     }),
-    returns: z.boolean(),
+    returns: z.union([
+      z.null(),
+      z.object({
+        dashboardUrl: z.string(),
+      }),
+    ]),
   },
 }
 
