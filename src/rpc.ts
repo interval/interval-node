@@ -188,6 +188,7 @@ export function createDuplexRPCClient<
         const parsed = canCall[methodName]['returns'].parse(rawResponseText)
         return resolve(parsed)
       })
+      // tbd but I think you should await this
       communicator.send(msg)
     })
   }
