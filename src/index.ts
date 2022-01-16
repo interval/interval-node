@@ -53,7 +53,7 @@ const ioShape = createDuplexRPCClient({
   handlers: {},
 })
 
-type ActionFunction = (io: typeof ioShape) => any
+type ActionFunction = (io: typeof ioShape) => Promise<any>
 
 interface InternalConfig {
   apiKey: string
@@ -120,7 +120,11 @@ export default async function createIntervalHost(config: InternalConfig) {
 
           inProgressTransactions.set(inputs.transactionId, io.replyHandler)
 
-          fn(io.client)
+          fn(io.client).then(() =>
+            serverRpc('MARK_TRANSACTION_COMPLETE', {
+              transactionId: inputs.transactionId,
+            })
+          )
 
           return
         },

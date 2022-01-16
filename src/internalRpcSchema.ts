@@ -46,7 +46,7 @@ export const clientSchema = {
     inputs: z.undefined(),
     returns: z.void(),
   },
-  MARK_TRANSACTION_COMPLETE: {
+  TRANSACTION_COMPLETED: {
     inputs: z.undefined(),
     returns: z.void(),
   },
