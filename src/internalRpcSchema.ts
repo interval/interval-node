@@ -4,6 +4,7 @@ export const wsServerSchema = {
   CONNECT_TO_TRANSACTION_AS_CLIENT: {
     inputs: z.object({
       transactionId: z.string(),
+      oneTimeKey: z.string(),
     }),
     returns: z.boolean(),
   },
