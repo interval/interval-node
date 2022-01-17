@@ -84,7 +84,23 @@ export default function createIOClient(
     return result[0]
   }
 
-  return { inputGroup, input, component }
+  async function forEach<T>(arr: T[], fn: (value: T) => Promise<any>) {
+    input(
+      component('DISPLAY_HEADING', {
+        label: `Loading... 0/${arr.length}`,
+      })
+    )
+    for (const [idx, item] of arr.entries()) {
+      await fn(item)
+      input(
+        component('DISPLAY_HEADING', {
+          label: `Loading... ${idx}/${arr.length}`,
+        })
+      )
+    }
+  }
+
+  return { inputGroup, input, component, forEach }
 }
 
 export type IOClient = ReturnType<typeof createIOClient>
