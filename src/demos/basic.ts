@@ -6,8 +6,8 @@ createIntervalHost({
     'Say hello': async io => {
       console.log("Let's say hello...")
 
-      let [first, last] = await io.inputGroup([
-        // io.component('DISPLAY_HEADING', { label: 'Welcome' }),
+      let [, first, last] = await io.inputGroup([
+        io.component('DISPLAY_HEADING', { label: 'Welcome' }),
         // io.component('ASK_CONFIRM', { question: 'how are you' }),
         io.component('ASK_TEXT', { label: 'First name' }),
         io.component('ASK_TEXT', { label: 'Last name' }),

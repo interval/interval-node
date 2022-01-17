@@ -29,7 +29,7 @@ export const DUPLEX_MESSAGE_SCHEMA = z.object({
 
 type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
 
-export function packageResponse({
+function packageResponse({
   id,
   methodName,
   data,

@@ -11,7 +11,7 @@ export const ioSchema = {
     inputs: z.object({
       label: z.string(),
     }),
-    returns: z.void(),
+    returns: z.null(),
   },
   ASK_CONFIRM: {
     inputs: z.object({
