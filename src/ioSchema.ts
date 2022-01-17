@@ -7,6 +7,12 @@ export const ioSchema = {
     }),
     returns: z.string(),
   },
+  DISPLAY_HEADING: {
+    inputs: z.object({
+      label: z.string(),
+    }),
+    returns: z.void(),
+  },
   ASK_CONFIRM: {
     inputs: z.object({
       question: z.string(),

@@ -5,13 +5,28 @@ createIntervalHost({
   actions: {
     'Say hello': async io => {
       console.log("Let's say hello...")
-      const name = await io('ASK_TEXT', { label: 'What is your name?' })
-      console.log(`Hello, ${name}`)
 
-      const feeling = await io('ASK_TEXT', {
-        label: `How are you feeling, ${name}?`,
-      })
-      console.log(feeling)
+      let [first, last] = await io.inputGroup([
+        // io.component('DISPLAY_HEADING', { label: 'Welcome' }),
+        // io.component('ASK_CONFIRM', { question: 'how are you' }),
+        io.component('ASK_TEXT', { label: 'First name' }),
+        io.component('ASK_TEXT', { label: 'Last name' }),
+      ])
+
+      while (first.includes(' ')) {
+        first = await io.input(
+          io.component('ASK_TEXT', {
+            label: 'First names cannot include spaces, try again?',
+          })
+        )
+      }
+
+      console.log('result', first, last)
+      const areYouSure = await io.input(
+        io.component('ASK_TEXT', { label: 'How are you?' })
+      )
+
+      console.log('u sure?', areYouSure)
     },
   },
 })
