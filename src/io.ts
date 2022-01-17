@@ -39,13 +39,6 @@ export const IO_RESPONSE = z.object({
 export type IOCall = z.infer<typeof IO_CALL>
 export type IOResponse = z.infer<typeof IO_RESPONSE>
 
-function aliasMethodName<MethodName extends keyof typeof ioSchema>(
-  methodName: MethodName
-) {
-  return (inputs: z.infer<typeof ioSchema[MethodName]['inputs']>) =>
-    component(methodName, inputs)
-}
-
 export default function createIOClient(
   sendFn: (callToSend: IOCall) => Promise<IOResponse>
 ) {
@@ -93,28 +86,60 @@ export default function createIOClient(
     return result[0]
   }
 
-  async function forEach<T>(arr: T[], fn: (value: T) => Promise<any>) {
+  type ItemWithLabel =
+    | {
+        label: string
+      }
+    | string
+
+  async function progressThroughList<T extends ItemWithLabel>(
+    arr: T[],
+    fn: (value: T) => Promise<string | void>
+  ) {
+    type ProgressList = z.infer<
+      typeof ioSchema['DISPLAY_PROGRESS_THROUGH_LIST']['inputs']
+    >['items']
+
+    const progressItems: ProgressList = arr.map(item => {
+      return {
+        label: typeof item === 'string' ? item : item['label'],
+        isComplete: false,
+        resultDescription: null,
+      }
+    })
+
     input(
-      component('DISPLAY_HEADING', {
-        label: `Loading... 0/${arr.length}`,
+      component('DISPLAY_PROGRESS_THROUGH_LIST', {
+        label: `Creating user accounts...`,
+        items: progressItems,
       })
     )
     for (const [idx, item] of arr.entries()) {
-      await fn(item)
+      const resp = await fn(item)
+      progressItems[idx].isComplete = true
+      progressItems[idx].resultDescription = resp || null
       input(
-        component('DISPLAY_HEADING', {
-          label: `Loading... ${idx}/${arr.length}`,
+        component('DISPLAY_PROGRESS_THROUGH_LIST', {
+          label: `Creating user accounts...`,
+          items: progressItems,
         })
       )
     }
   }
 
+  function aliasMethodName<MethodName extends keyof typeof ioSchema>(
+    methodName: MethodName
+  ) {
+    return (inputs: z.infer<typeof ioSchema[MethodName]['inputs']>) =>
+      component(methodName, inputs)
+  }
+
   return {
     inputGroup,
     input,
-    forEach,
     display: {
       heading: aliasMethodName('DISPLAY_HEADING'),
+      progressThroughList,
     },
     ask: {
       forText: aliasMethodName('ASK_TEXT'),
