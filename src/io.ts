@@ -14,6 +14,7 @@ type ComponentFn = <MethodName extends keyof typeof ioSchema>(
 }
 
 const component: ComponentFn = (methodName, inputs) => {
+  console.log('comp')
   return {
     methodName,
     inputs,
@@ -38,6 +39,13 @@ export const IO_RESPONSE = z.object({
 export type IOCall = z.infer<typeof IO_CALL>
 export type IOResponse = z.infer<typeof IO_RESPONSE>
 
+function aliasMethodName<MethodName extends keyof typeof ioSchema>(
+  methodName: MethodName
+) {
+  return (inputs: z.infer<typeof ioSchema[MethodName]['inputs']>) =>
+    component(methodName, inputs)
+}
+
 export default function createIOClient(
   sendFn: (callToSend: IOCall) => Promise<IOResponse>
 ) {
@@ -48,6 +56,7 @@ export default function createIOClient(
     -readonly // @ts-ignore
     [P in keyof A]: ReturnType<A[P]['returnValidator']>
   }> {
+    console.log('ig')
     const methods: IOCall['toRender'] = []
     for (const item of arr) {
       methods.push({
@@ -100,7 +109,18 @@ export default function createIOClient(
     }
   }
 
-  return { inputGroup, input, component, forEach }
+  return {
+    inputGroup,
+    input,
+    forEach,
+    display: {
+      heading: aliasMethodName('DISPLAY_HEADING'),
+    },
+    ask: {
+      forText: aliasMethodName('ASK_TEXT'),
+      forConfirmation: aliasMethodName('ASK_CONFIRM'),
+    },
+  }
 }
 
 export type IOClient = ReturnType<typeof createIOClient>
