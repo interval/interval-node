@@ -18,37 +18,49 @@ interface Events {
   message: (message: string) => void
   open: () => void
   error: (error: Error) => void
-  close: () => void
+  close: (code: number, reason: string) => void
+  authenticated: () => void
 }
 
 interface ISocketConfig {
-  timeout?: number
+  connectTimeout?: number
+  sendTimeout?: number
   id?: string // manually specifying ids is helpful for debugging
 }
 
 export default class ISocket extends EE<Events> {
   private ws: WebSocket | NodeWebSocket
-  private timeout: number
+  private connectTimeout: number
+  private sendTimeout: number
+  private isAuthenticated: boolean
   id: string
 
   private pendingMessages = new Map<string, PendingMessage>()
 
   connect() {
     return new Promise<void>((resolve, reject) => {
-      if (this.ws.readyState === this.ws.OPEN) {
+      if (this.ws.readyState === this.ws.OPEN && this.isAuthenticated) {
         return resolve()
       }
 
       const failTimeout = setTimeout(
         () => reject('Socket did not connect on time'),
-        this.timeout
+        this.connectTimeout
       )
 
-      this.on('open', () => {
+      this.on('authenticated', () => {
         clearTimeout(failTimeout)
         return resolve()
       })
+
+      this.on('close', () => {
+        clearTimeout(failTimeout)
+      })
     })
+  }
+
+  async confirmAuthentication() {
+    await this.send('authenticated')
   }
 
   send(data: string) {
@@ -57,8 +69,12 @@ export default class ISocket extends EE<Events> {
 
       const failTimeout = setTimeout(
         () => reject('Socket did not respond on time'),
-        this.timeout
+        this.sendTimeout
       )
+
+      this.on('close', () => {
+        clearTimeout(failTimeout)
+      })
 
       this.pendingMessages.set(id, {
         data,
@@ -67,6 +83,7 @@ export default class ISocket extends EE<Events> {
           resolve()
         },
       })
+      console.log('sending', { id, data })
       this.ws.send(JSON.stringify({ id, data, type: 'MESSAGE' }))
     })
   }
@@ -83,14 +100,16 @@ export default class ISocket extends EE<Events> {
     this.ws = ws
 
     this.id = config?.id || v4()
-    this.timeout = config?.timeout || 3000
+    this.connectTimeout = config?.connectTimeout || 15_000
+    this.sendTimeout = config?.sendTimeout || 3000
+    this.isAuthenticated = false
 
     this.ws.onopen = () => {
       this.emit('open')
     }
 
-    this.ws.onclose = () => {
-      this.emit('close')
+    this.ws.onclose = (ev: CloseEvent) => {
+      this.emit('close', ev.code, ev.reason)
     }
 
     this.ws.onmessage = (evt: MessageEvent) => {
@@ -101,6 +120,8 @@ export default class ISocket extends EE<Events> {
       const data = JSON.parse(evt.data.toString())
       const meta = MESSAGE_META.parse(data)
 
+      console.log('message', meta);
+
       if (meta.type === 'ACK') {
         const pm = this.pendingMessages.get(meta.id)
         if (pm) {
@@ -110,6 +131,11 @@ export default class ISocket extends EE<Events> {
       }
       if (meta.type === 'MESSAGE') {
         ws.send(JSON.stringify({ type: 'ACK', id: meta.id }))
+        if (meta.data === 'authenticated') {
+          this.isAuthenticated = true
+          this.emit('authenticated')
+          return
+        }
         this.emit('message', meta.data)
       }
     }

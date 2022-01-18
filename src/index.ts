@@ -80,11 +80,18 @@ export default async function createIntervalHost(config: InternalConfig) {
 
   async function setup() {
     const ws = new ISocket(
-      new WebSocket(config.endpoint || 'ws://localhost:3001')
+      new WebSocket('ws://localhost:3001/path?foo=bar', {
+        headers: {
+          'x-api-key': config.apiKey,
+        },
+      })
     )
 
-    ws.on('close', () => {
-      log.debug('Closed')
+    ws.on('close', (code, reason) => {
+      log.prod(
+        `❗️ Could not connect to Interval (code ${code}). Reason:`,
+        reason
+      )
       // auto retry connect here?
     })
 
@@ -142,6 +149,7 @@ export default async function createIntervalHost(config: InternalConfig) {
       },
     })
 
+    console.log('> initializing host');
     const loggedIn = await serverRpc('INITIALIZE_HOST', {
       apiKey: config.apiKey,
       callableActionNames: Object.keys(config.actions),
