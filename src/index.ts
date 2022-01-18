@@ -2,7 +2,8 @@ import { WebSocket } from 'ws'
 import ISocket from './ISocket'
 import { createDuplexRPCClient } from './rpc'
 import { wsServerSchema, hostSchema } from './internalRpcSchema'
-import createIOClient, { IOClient, IOResponse, IO_RESPONSE } from './io'
+import { IOResponse, IO_RESPONSE } from './ioSchema'
+import createIOClient, { IOClient } from './io'
 
 type ActionFunction = (io: IOClient) => Promise<any>
 

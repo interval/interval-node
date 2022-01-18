@@ -1,5 +1,14 @@
 import { z } from 'zod'
 
+export const DUPLEX_MESSAGE_SCHEMA = z.object({
+  id: z.string(),
+  methodName: z.string(),
+  data: z.any(),
+  kind: z.enum(['CALL', 'RESPONSE']),
+})
+
+export type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
+
 export const wsServerSchema = {
   CONNECT_TO_TRANSACTION_AS_CLIENT: {
     inputs: z.object({

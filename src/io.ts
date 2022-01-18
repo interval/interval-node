@@ -1,6 +1,7 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
 import { ioSchema } from './ioSchema'
+import type { IOCall, IOResponse } from './ioSchema'
 
 type ComponentFn = <MethodName extends keyof typeof ioSchema>(
   methodName: MethodName,
@@ -23,21 +24,6 @@ const component: ComponentFn = (methodName, inputs) => {
     },
   }
 }
-
-export const IO_CALL = z.object({
-  id: z.string(),
-  toRender: z.array(z.object({ methodName: z.string(), inputs: z.any() })),
-  kind: z.literal('CALL'),
-})
-
-export const IO_RESPONSE = z.object({
-  id: z.string(),
-  responseValues: z.array(z.any()),
-  kind: z.literal('RESPONSE'),
-})
-
-export type IOCall = z.infer<typeof IO_CALL>
-export type IOResponse = z.infer<typeof IO_RESPONSE>
 
 export default function createIOClient(
   sendFn: (callToSend: IOCall) => Promise<IOResponse>

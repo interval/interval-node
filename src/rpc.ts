@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import type { DuplexMessage } from './internalRpcSchema'
+import { DUPLEX_MESSAGE_SCHEMA } from './internalRpcSchema'
 
 let count = 0
 function generateId() {
@@ -19,15 +21,6 @@ interface Communicator {
   on: (kind: string, handler: (...args: unknown[]) => void) => void
   send: (data: string) => Promise<any>
 }
-
-export const DUPLEX_MESSAGE_SCHEMA = z.object({
-  id: z.string(),
-  methodName: z.string(),
-  data: z.any(),
-  kind: z.enum(['CALL', 'RESPONSE']),
-})
-
-type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
 
 function packageResponse({
   id,
