@@ -7,6 +7,25 @@ export const ioSchema = {
     }),
     returns: z.string(),
   },
+  DISPLAY_HEADING: {
+    inputs: z.object({
+      label: z.string(),
+    }),
+    returns: z.null(),
+  },
+  DISPLAY_PROGRESS_THROUGH_LIST: {
+    inputs: z.object({
+      label: z.string(),
+      items: z.array(
+        z.object({
+          label: z.string(),
+          isComplete: z.boolean(),
+          resultDescription: z.union([z.null(), z.string()]),
+        })
+      ),
+    }),
+    returns: z.null(),
+  },
   ASK_CONFIRM: {
     inputs: z.object({
       question: z.string(),
