@@ -19,8 +19,13 @@ export const ioSchema = {
   ASK_TEXT: {
     inputs: z.object({
       label: z.string(),
-      type: z.optional(z.enum(['text', 'email'])),
       prepend: z.optional(z.string()),
+    }),
+    returns: z.string(),
+  },
+  ASK_EMAIL: {
+    inputs: z.object({
+      label: z.string(),
     }),
     returns: z.string(),
   },

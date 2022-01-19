@@ -70,7 +70,7 @@ createIntervalHost({
       const [first, last, email] = await io.inputGroup([
         io.ask.forText({ label: 'First name' }),
         io.ask.forText({ label: 'Last name' }),
-        io.ask.forText({ label: 'Email address', type: 'email' }),
+        io.ask.forEmail({ label: 'Email address' }),
         io.ask.forSingle({
           label: 'Role',
           options: [

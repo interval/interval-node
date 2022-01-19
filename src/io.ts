@@ -136,6 +136,7 @@ export default function createIOClient(
     },
     ask: {
       forText: aliasMethodName('ASK_TEXT'),
+      forEmail: aliasMethodName('ASK_EMAIL'),
       forNumber: aliasMethodName('ASK_NUMBER'),
       forCheckbox: aliasMethodName('ASK_CHECKBOX'),
       forConfirmation: aliasMethodName('ASK_CONFIRM'),
