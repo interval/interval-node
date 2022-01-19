@@ -31,10 +31,12 @@ export default function createIOClient(
   // This function isn't statically type safe, so we need to be careful
   async function inputGroup<A extends readonly ReturnType<ComponentFn>[] | []>(
     arr: A
-  ): Promise<{
-    -readonly // @ts-ignore
-    [P in keyof A]: ReturnType<A[P]['returnValidator']>
-  }> {
+  ): Promise<
+    {
+      -readonly // @ts-ignore
+      [P in keyof A]: ReturnType<A[P]['returnValidator']>
+    }
+  > {
     console.log('ig')
     const methods: IOCall['toRender'] = []
     for (const item of arr) {
@@ -132,6 +134,9 @@ export default function createIOClient(
       forNumber: aliasMethodName('ASK_NUMBER'),
       forCheckbox: aliasMethodName('ASK_CHECKBOX'),
       forConfirmation: aliasMethodName('ASK_CONFIRM'),
+    },
+    select: {
+      fromTabularData: aliasMethodName('SELECT_FROM_TABULAR_DATA'),
     },
   }
 }

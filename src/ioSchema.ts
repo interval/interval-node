@@ -47,14 +47,17 @@ export const ioSchema = {
     }),
     returns: z.boolean(),
   },
-  // SELECT_FROM_TABULAR_DATA: {
-  //   inputs: z.object({
-  //     data: z.array(
-  //       z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
-  //     ),
-  //   }),
-  //   returns: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])),
-  // },
+  SELECT_FROM_TABULAR_DATA: {
+    inputs: z.object({
+      label: z.optional(z.string()),
+      data: z.array(
+        z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+      ),
+    }),
+    returns: z.array(
+      z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    ),
+  },
   ASK_NUMBER: {
     inputs: z.object({
       min: z.number(),
