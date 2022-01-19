@@ -63,6 +63,14 @@ export const ioSchema = {
     }),
     returns: z.number(),
   },
+  ASK_CHECKBOX: {
+    inputs: z.object({
+      label: z.string(),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(z.boolean()),
+    }),
+    returns: z.boolean(),
+  },
   // ASK_MULTIPLE: {
   //   inputs: z.object({
   //     label: z.string(),

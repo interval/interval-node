@@ -23,6 +23,10 @@ createIntervalHost({
       const [first, last] = await io.inputGroup([
         io.ask.forText({ label: 'First' }),
         io.ask.forText({ label: 'Last' }),
+        io.ask.forCheckbox({
+          label: 'Subscribe to mailing list',
+          defaultValue: true,
+        }),
       ])
 
       await io.input(
