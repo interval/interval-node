@@ -31,10 +31,12 @@ export default function createIOClient(
   // This function isn't statically type safe, so we need to be careful
   async function inputGroup<A extends readonly ReturnType<ComponentFn>[] | []>(
     arr: A
-  ): Promise<{
-    -readonly // @ts-ignore
-    [P in keyof A]: ReturnType<A[P]['returnValidator']>
-  }> {
+  ): Promise<
+    {
+      -readonly // @ts-ignore
+      [P in keyof A]: ReturnType<A[P]['returnValidator']>
+    }
+  > {
     console.log('ig')
     const methods: IOCall['toRender'] = []
     for (const item of arr) {
@@ -78,15 +80,20 @@ export default function createIOClient(
       }
     | string
 
+  type ProgressThroughListOptions<T> = {
+    label: string
+    items: T[]
+    itemHandler: (value: T) => Promise<string | void>
+  }
+
   async function progressThroughList<T extends ItemWithLabel>(
-    arr: T[],
-    fn: (value: T) => Promise<string | void>
+    props: ProgressThroughListOptions<T>
   ) {
     type ProgressList = z.infer<
       typeof ioSchema['DISPLAY_PROGRESS_THROUGH_LIST']['inputs']
     >['items']
 
-    const progressItems: ProgressList = arr.map(item => {
+    const progressItems: ProgressList = props.items.map(item => {
       return {
         label: typeof item === 'string' ? item : item['label'],
         isComplete: false,
@@ -96,17 +103,17 @@ export default function createIOClient(
 
     input(
       component('DISPLAY_PROGRESS_THROUGH_LIST', {
-        label: `Creating user accounts...`,
+        label: props.label,
         items: progressItems,
       })
     )
-    for (const [idx, item] of arr.entries()) {
-      const resp = await fn(item)
+    for (const [idx, item] of props.items.entries()) {
+      const resp = await props.itemHandler(item)
       progressItems[idx].isComplete = true
       progressItems[idx].resultDescription = resp || null
       input(
         component('DISPLAY_PROGRESS_THROUGH_LIST', {
-          label: `Creating user accounts...`,
+          label: props.label,
           items: progressItems,
         })
       )
@@ -129,8 +136,15 @@ export default function createIOClient(
     },
     ask: {
       forText: aliasMethodName('ASK_TEXT'),
+      forEmail: aliasMethodName('ASK_EMAIL'),
       forNumber: aliasMethodName('ASK_NUMBER'),
       forConfirmation: aliasMethodName('ASK_CONFIRM'),
+      forSingle: aliasMethodName('ASK_SINGLE'),
+      forMultiple: aliasMethodName('ASK_MULTIPLE'),
+      forBoolean: aliasMethodName('ASK_BOOLEAN'),
+    },
+    select: {
+      fromTabularData: aliasMethodName('SELECT_FROM_TABULAR_DATA'),
     },
   }
 }

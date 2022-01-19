@@ -12,11 +12,23 @@ export const IO_RESPONSE = z.object({
   kind: z.literal('RESPONSE'),
 })
 
+const labelValue = z.object({
+  label: z.string(),
+  value: z.string(),
+})
+
 export type IOCall = z.infer<typeof IO_CALL>
 export type IOResponse = z.infer<typeof IO_RESPONSE>
 
 export const ioSchema = {
   ASK_TEXT: {
+    inputs: z.object({
+      label: z.string(),
+      prepend: z.optional(z.string()),
+    }),
+    returns: z.string(),
+  },
+  ASK_EMAIL: {
     inputs: z.object({
       label: z.string(),
     }),
@@ -47,32 +59,49 @@ export const ioSchema = {
     }),
     returns: z.boolean(),
   },
-  // SELECT_FROM_TABULAR_DATA: {
-  //   inputs: z.object({
-  //     data: z.array(
-  //       z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
-  //     ),
-  //   }),
-  //   returns: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])),
-  // },
+  SELECT_FROM_TABULAR_DATA: {
+    inputs: z.object({
+      label: z.optional(z.string()),
+      data: z.array(
+        z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+      ),
+    }),
+    returns: z.array(
+      z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    ),
+  },
   ASK_NUMBER: {
     inputs: z.object({
-      min: z.number(),
-      max: z.number(),
+      min: z.optional(z.number()),
+      max: z.optional(z.number()),
+      prepend: z.optional(z.string()),
       label: z.string(),
     }),
     returns: z.number(),
   },
-  // ASK_MULTIPLE: {
-  //   inputs: z.object({
-  //     label: z.string(),
-  //     options: z.array(
-  //       z.union([
-  //         z.string(),
-  //         z.object({ label: z.string(), value: z.string() }),
-  //       ])
-  //     ),
-  //   }),
-  //   returns: z.string(),
-  // },
+  ASK_BOOLEAN: {
+    inputs: z.object({
+      label: z.string(),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(z.boolean()),
+    }),
+    returns: z.boolean(),
+  },
+  ASK_SINGLE: {
+    inputs: z.object({
+      label: z.string(),
+      options: z.array(labelValue),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(labelValue),
+    }),
+    returns: labelValue,
+  },
+  ASK_MULTIPLE: {
+    inputs: z.object({
+      label: z.string(),
+      options: z.array(labelValue),
+      defaultValue: z.optional(z.array(labelValue)),
+    }),
+    returns: z.array(labelValue),
+  },
 }
