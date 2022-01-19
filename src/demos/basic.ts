@@ -5,6 +5,7 @@ function sleep(ms: number) {
 }
 
 createIntervalHost({
+  endpoint: 'ws://localhost:3001',
   apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
   actions: {
     'For loop demo': async io => {
