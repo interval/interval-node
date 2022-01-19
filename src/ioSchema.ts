@@ -21,14 +21,14 @@ export type IOCall = z.infer<typeof IO_CALL>
 export type IOResponse = z.infer<typeof IO_RESPONSE>
 
 export const ioSchema = {
-  ASK_TEXT: {
+  INPUT_TEXT: {
     inputs: z.object({
       label: z.string(),
       prepend: z.optional(z.string()),
     }),
     returns: z.string(),
   },
-  ASK_EMAIL: {
+  INPUT_EMAIL: {
     inputs: z.object({
       label: z.string(),
     }),
@@ -53,13 +53,7 @@ export const ioSchema = {
     }),
     returns: z.null(),
   },
-  ASK_CONFIRM: {
-    inputs: z.object({
-      question: z.string(),
-    }),
-    returns: z.boolean(),
-  },
-  SELECT_FROM_TABULAR_DATA: {
+  SELECT_TABLE: {
     inputs: z.object({
       label: z.optional(z.string()),
       data: z.array(
@@ -70,7 +64,7 @@ export const ioSchema = {
       z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
     ),
   },
-  ASK_NUMBER: {
+  INPUT_NUMBER: {
     inputs: z.object({
       min: z.optional(z.number()),
       max: z.optional(z.number()),
@@ -79,7 +73,7 @@ export const ioSchema = {
     }),
     returns: z.number(),
   },
-  ASK_BOOLEAN: {
+  INPUT_BOOLEAN: {
     inputs: z.object({
       label: z.string(),
       helpText: z.optional(z.string()),
@@ -87,7 +81,7 @@ export const ioSchema = {
     }),
     returns: z.boolean(),
   },
-  ASK_SINGLE: {
+  SELECT_SINGLE: {
     inputs: z.object({
       label: z.string(),
       options: z.array(labelValue),
@@ -96,7 +90,7 @@ export const ioSchema = {
     }),
     returns: labelValue,
   },
-  ASK_MULTIPLE: {
+  SELECT_MULTIPLE: {
     inputs: z.object({
       label: z.string(),
       options: z.array(labelValue),

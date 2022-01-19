@@ -135,15 +135,15 @@ export default function createIOClient(
       progressThroughList,
     },
     input: {
-      text: aliasMethodName('ASK_TEXT'),
-      email: aliasMethodName('ASK_EMAIL'),
-      number: aliasMethodName('ASK_NUMBER'),
-      boolean: aliasMethodName('ASK_BOOLEAN'),
+      text: aliasMethodName('INPUT_TEXT'),
+      email: aliasMethodName('INPUT_EMAIL'),
+      number: aliasMethodName('INPUT_NUMBER'),
+      boolean: aliasMethodName('INPUT_BOOLEAN'),
     },
     select: {
-      single: aliasMethodName('ASK_SINGLE'),
-      multiple: aliasMethodName('ASK_MULTIPLE'),
-      table: aliasMethodName('SELECT_FROM_TABULAR_DATA'),
+      single: aliasMethodName('SELECT_SINGLE'),
+      multiple: aliasMethodName('SELECT_MULTIPLE'),
+      table: aliasMethodName('SELECT_TABLE'),
     },
   }
 }
