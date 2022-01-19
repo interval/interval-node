@@ -38,12 +38,12 @@ createIntervalHost({
   logLevel: 'debug',
   actions: {
     'Tabular data demo': async io => {
-      const selected = await io.input(
-        io.select.fromTabularData({ label: 'Select users:', data: users })
+      const selected = await io.render(
+        io.select.table({ label: 'Select users:', data: users })
       )
 
-      const amount = await io.input(
-        io.ask.forNumber({ label: 'Credit amount to apply:', prepend: '$' })
+      const amount = await io.render(
+        io.input.number({ label: 'Credit amount to apply:', prepend: '$' })
       )
 
       const names = selected.map(eng => String(eng.name))
@@ -69,11 +69,11 @@ createIntervalHost({
       })
     },
     'Create a user account': async io => {
-      const [first, last, email] = await io.inputGroup([
-        io.ask.forText({ label: 'First name' }),
-        io.ask.forText({ label: 'Last name' }),
-        io.ask.forEmail({ label: 'Email address' }),
-        io.ask.forSingle({
+      const [first, last, email, role, isSubscribed] = await io.renderGroup([
+        io.input.text({ label: 'First name' }),
+        io.input.text({ label: 'Last name' }),
+        io.input.email({ label: 'Email address' }),
+        io.select.single({
           label: 'Role',
           options: [
             {
@@ -90,13 +90,13 @@ createIntervalHost({
             },
           ],
         }),
-        io.ask.forBoolean({
+        io.input.boolean({
           label: 'Subscribe to mailing list',
           defaultValue: true,
         }),
       ])
 
-      io.input(
+      io.render(
         io.display.heading({
           label: `User created: ${first} ${last} (${email}).`,
         })

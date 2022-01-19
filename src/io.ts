@@ -29,7 +29,7 @@ export default function createIOClient(
   sendFn: (callToSend: IOCall) => Promise<IOResponse>
 ) {
   // This function isn't statically type safe, so we need to be careful
-  async function inputGroup<A extends readonly ReturnType<ComponentFn>[] | []>(
+  async function renderGroup<A extends readonly ReturnType<ComponentFn>[] | []>(
     arr: A
   ): Promise<
     {
@@ -69,8 +69,8 @@ export default function createIOClient(
     }
   }
 
-  async function input<A extends ReturnType<ComponentFn>>(component: A) {
-    const result = await inputGroup([component])
+  async function render<A extends ReturnType<ComponentFn>>(component: A) {
+    const result = await renderGroup([component])
     return result[0]
   }
 
@@ -101,7 +101,7 @@ export default function createIOClient(
       }
     })
 
-    input(
+    render(
       component('DISPLAY_PROGRESS_THROUGH_LIST', {
         label: props.label,
         items: progressItems,
@@ -111,7 +111,7 @@ export default function createIOClient(
       const resp = await props.itemHandler(item)
       progressItems[idx].isComplete = true
       progressItems[idx].resultDescription = resp || null
-      input(
+      render(
         component('DISPLAY_PROGRESS_THROUGH_LIST', {
           label: props.label,
           items: progressItems,
@@ -128,23 +128,22 @@ export default function createIOClient(
   }
 
   return {
-    inputGroup,
-    input,
+    render,
+    renderGroup,
     display: {
       heading: aliasMethodName('DISPLAY_HEADING'),
       progressThroughList,
     },
-    ask: {
-      forText: aliasMethodName('ASK_TEXT'),
-      forEmail: aliasMethodName('ASK_EMAIL'),
-      forNumber: aliasMethodName('ASK_NUMBER'),
-      forConfirmation: aliasMethodName('ASK_CONFIRM'),
-      forSingle: aliasMethodName('ASK_SINGLE'),
-      forMultiple: aliasMethodName('ASK_MULTIPLE'),
-      forBoolean: aliasMethodName('ASK_BOOLEAN'),
+    input: {
+      text: aliasMethodName('ASK_TEXT'),
+      email: aliasMethodName('ASK_EMAIL'),
+      number: aliasMethodName('ASK_NUMBER'),
+      boolean: aliasMethodName('ASK_BOOLEAN'),
     },
     select: {
-      fromTabularData: aliasMethodName('SELECT_FROM_TABULAR_DATA'),
+      single: aliasMethodName('ASK_SINGLE'),
+      multiple: aliasMethodName('ASK_MULTIPLE'),
+      table: aliasMethodName('SELECT_FROM_TABULAR_DATA'),
     },
   }
 }
