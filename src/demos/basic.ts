@@ -42,7 +42,7 @@ createIntervalHost({
 
       const selectedNames = engineers.map(eng => eng.name).join(', ')
 
-      await io.input(
+      io.input(
         io.display.heading({
           label: `You selected: ${selectedNames}.`,
         })
@@ -54,10 +54,31 @@ createIntervalHost({
       await io.display.progressThroughList(
         ['Alex', 'Dan', 'Kyle', 'Ryan', 'Jacob'],
         async item => {
-          const time = 5000 * item.length
+          const time = 1000 * item.length
           await sleep(time)
           return `Completed in ${time}ms`
         }
+      )
+    },
+    'Single select demo': async io => {
+      await io.input(
+        io.ask.forSingle({
+          label: 'Role',
+          options: [
+            {
+              label: 'Admin',
+              value: 'admin',
+            },
+            {
+              label: 'Editor',
+              value: 'editor',
+            },
+            {
+              label: 'Viewer',
+              value: 'viewer',
+            },
+          ],
+        })
       )
     },
     'Create a user account': async io => {
@@ -70,7 +91,7 @@ createIntervalHost({
         }),
       ])
 
-      await io.input(
+      io.input(
         io.display.heading({
           label: `You created a user with name ${first} ${last}.`,
         })

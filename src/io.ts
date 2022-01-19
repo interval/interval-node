@@ -134,6 +134,7 @@ export default function createIOClient(
       forNumber: aliasMethodName('ASK_NUMBER'),
       forCheckbox: aliasMethodName('ASK_CHECKBOX'),
       forConfirmation: aliasMethodName('ASK_CONFIRM'),
+      forSingle: aliasMethodName('ASK_SINGLE_CHOICE'),
     },
     select: {
       fromTabularData: aliasMethodName('SELECT_FROM_TABULAR_DATA'),

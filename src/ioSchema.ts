@@ -74,6 +74,23 @@ export const ioSchema = {
     }),
     returns: z.boolean(),
   },
+  ASK_SINGLE_CHOICE: {
+    inputs: z.object({
+      label: z.string(),
+      options: z.array(
+        z.object({
+          label: z.string(),
+          value: z.string(),
+        })
+      ),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(z.boolean()),
+    }),
+    returns: z.object({
+      label: z.string(),
+      value: z.string(),
+    }),
+  },
   // ASK_MULTIPLE: {
   //   inputs: z.object({
   //     label: z.string(),
