@@ -36,21 +36,22 @@ createIntervalHost({
   apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
   actions: {
     'Tabular data demo': async io => {
-      const engineers = await io.input(
+      const selected = await io.input(
         io.select.fromTabularData({ label: 'Select users:', data: users })
       )
 
-      const selectedNames = engineers.map(eng => eng.name).join(', ')
-
-      io.input(
-        io.display.heading({
-          label: `You selected: ${selectedNames}.`,
-        })
+      const amount = await io.input(
+        io.ask.forNumber({ label: 'Credit amount to apply:', prepend: '$' })
       )
+
+      const names = selected.map(eng => String(eng.name))
+
+      await io.display.progressThroughList(names, async item => {
+        await sleep(2000)
+        return `Applied $${amount} credit`
+      })
     },
     'For loop demo': async io => {
-      console.log("Let's say hello...")
-
       await io.display.progressThroughList(
         ['Alex', 'Dan', 'Kyle', 'Ryan', 'Jacob'],
         async item => {
@@ -60,8 +61,11 @@ createIntervalHost({
         }
       )
     },
-    'Single select demo': async io => {
-      await io.input(
+    'Create a user account': async io => {
+      const [first, last, email] = await io.inputGroup([
+        io.ask.forText({ label: 'First name' }),
+        io.ask.forText({ label: 'Last name' }),
+        io.ask.forText({ label: 'Email address', type: 'email' }),
         io.ask.forSingle({
           label: 'Role',
           options: [
@@ -78,13 +82,7 @@ createIntervalHost({
               value: 'viewer',
             },
           ],
-        })
-      )
-    },
-    'Create a user account': async io => {
-      const [first, last] = await io.inputGroup([
-        io.ask.forText({ label: 'First' }),
-        io.ask.forText({ label: 'Last' }),
+        }),
         io.ask.forCheckbox({
           label: 'Subscribe to mailing list',
           defaultValue: true,
@@ -93,7 +91,7 @@ createIntervalHost({
 
       io.input(
         io.display.heading({
-          label: `You created a user with name ${first} ${last}.`,
+          label: `User created: ${first} ${last} (${email}).`,
         })
       )
     },

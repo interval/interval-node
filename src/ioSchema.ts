@@ -19,6 +19,8 @@ export const ioSchema = {
   ASK_TEXT: {
     inputs: z.object({
       label: z.string(),
+      type: z.optional(z.enum(['text', 'email'])),
+      prepend: z.optional(z.string()),
     }),
     returns: z.string(),
   },
@@ -60,8 +62,9 @@ export const ioSchema = {
   },
   ASK_NUMBER: {
     inputs: z.object({
-      min: z.number(),
-      max: z.number(),
+      min: z.optional(z.number()),
+      max: z.optional(z.number()),
+      prepend: z.optional(z.string()),
       label: z.string(),
     }),
     returns: z.number(),
