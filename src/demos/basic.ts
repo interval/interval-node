@@ -21,19 +21,16 @@ createIntervalHost({
       )
     },
     'Create a user account': async io => {
-      const name = await io.input(io.ask.forText({ label: 'Last' }))
-      console.log('name', name)
-
       const [first, last] = await io.inputGroup([
         io.ask.forText({ label: 'First' }),
         io.ask.forText({ label: 'Last' }),
       ])
 
-      // await io.input(
-      //   io.display.heading({
-      //     label: `You've created a user with name ${first} ${last}`,
-      //   })
-      //)
+      await io.input(
+        io.display.heading({
+          label: `You created a user with name ${first} ${last}.`,
+        })
+      )
     },
   },
 })

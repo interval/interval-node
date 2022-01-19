@@ -55,14 +55,14 @@ export const ioSchema = {
   //   }),
   //   returns: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])),
   // },
-  // ASK_NUMBER: {
-  //   inputs: z.object({
-  //     min: z.number(),
-  //     max: z.number(),
-  //     label: z.string(),
-  //   }),
-  //   returns: z.number(),
-  // },
+  ASK_NUMBER: {
+    inputs: z.object({
+      min: z.number(),
+      max: z.number(),
+      label: z.string(),
+    }),
+    returns: z.number(),
+  },
   // ASK_MULTIPLE: {
   //   inputs: z.object({
   //     label: z.string(),
