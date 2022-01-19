@@ -88,7 +88,7 @@ createIntervalHost({
             },
           ],
         }),
-        io.ask.forCheckbox({
+        io.ask.forBoolean({
           label: 'Subscribe to mailing list',
           defaultValue: true,
         }),

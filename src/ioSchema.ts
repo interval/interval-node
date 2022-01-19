@@ -12,6 +12,11 @@ export const IO_RESPONSE = z.object({
   kind: z.literal('RESPONSE'),
 })
 
+const labelValue = z.object({
+  label: z.string(),
+  value: z.string(),
+})
+
 export type IOCall = z.infer<typeof IO_CALL>
 export type IOResponse = z.infer<typeof IO_RESPONSE>
 
@@ -74,7 +79,7 @@ export const ioSchema = {
     }),
     returns: z.number(),
   },
-  ASK_CHECKBOX: {
+  ASK_BOOLEAN: {
     inputs: z.object({
       label: z.string(),
       helpText: z.optional(z.string()),
@@ -82,33 +87,21 @@ export const ioSchema = {
     }),
     returns: z.boolean(),
   },
-  ASK_SINGLE_CHOICE: {
+  ASK_SINGLE: {
     inputs: z.object({
       label: z.string(),
-      options: z.array(
-        z.object({
-          label: z.string(),
-          value: z.string(),
-        })
-      ),
+      options: z.array(labelValue),
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(z.boolean()),
+      defaultValue: z.optional(labelValue),
     }),
-    returns: z.object({
-      label: z.string(),
-      value: z.string(),
-    }),
+    returns: labelValue,
   },
-  // ASK_MULTIPLE: {
-  //   inputs: z.object({
-  //     label: z.string(),
-  //     options: z.array(
-  //       z.union([
-  //         z.string(),
-  //         z.object({ label: z.string(), value: z.string() }),
-  //       ])
-  //     ),
-  //   }),
-  //   returns: z.string(),
-  // },
+  ASK_MULTIPLE: {
+    inputs: z.object({
+      label: z.string(),
+      options: z.array(labelValue),
+      defaultValue: z.optional(z.array(labelValue)),
+    }),
+    returns: z.array(labelValue),
+  },
 }

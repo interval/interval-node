@@ -138,9 +138,10 @@ export default function createIOClient(
       forText: aliasMethodName('ASK_TEXT'),
       forEmail: aliasMethodName('ASK_EMAIL'),
       forNumber: aliasMethodName('ASK_NUMBER'),
-      forCheckbox: aliasMethodName('ASK_CHECKBOX'),
       forConfirmation: aliasMethodName('ASK_CONFIRM'),
-      forSingle: aliasMethodName('ASK_SINGLE_CHOICE'),
+      forSingle: aliasMethodName('ASK_SINGLE'),
+      forMultiple: aliasMethodName('ASK_MULTIPLE'),
+      forBoolean: aliasMethodName('ASK_BOOLEAN'),
     },
     select: {
       fromTabularData: aliasMethodName('SELECT_FROM_TABULAR_DATA'),
