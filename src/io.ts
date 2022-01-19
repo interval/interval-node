@@ -80,15 +80,20 @@ export default function createIOClient(
       }
     | string
 
+  type ProgressThroughListOptions<T> = {
+    label: string
+    items: T[]
+    itemHandler: (value: T) => Promise<string | void>
+  }
+
   async function progressThroughList<T extends ItemWithLabel>(
-    arr: T[],
-    fn: (value: T) => Promise<string | void>
+    props: ProgressThroughListOptions<T>
   ) {
     type ProgressList = z.infer<
       typeof ioSchema['DISPLAY_PROGRESS_THROUGH_LIST']['inputs']
     >['items']
 
-    const progressItems: ProgressList = arr.map(item => {
+    const progressItems: ProgressList = props.items.map(item => {
       return {
         label: typeof item === 'string' ? item : item['label'],
         isComplete: false,
@@ -98,17 +103,17 @@ export default function createIOClient(
 
     input(
       component('DISPLAY_PROGRESS_THROUGH_LIST', {
-        label: `Creating user accounts...`,
+        label: props.label,
         items: progressItems,
       })
     )
-    for (const [idx, item] of arr.entries()) {
-      const resp = await fn(item)
+    for (const [idx, item] of props.items.entries()) {
+      const resp = await props.itemHandler(item)
       progressItems[idx].isComplete = true
       progressItems[idx].resultDescription = resp || null
       input(
         component('DISPLAY_PROGRESS_THROUGH_LIST', {
-          label: `Creating user accounts...`,
+          label: props.label,
           items: progressItems,
         })
       )

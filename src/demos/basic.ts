@@ -46,20 +46,25 @@ createIntervalHost({
 
       const names = selected.map(eng => String(eng.name))
 
-      await io.display.progressThroughList(names, async item => {
-        await sleep(2000)
-        return `Applied $${amount} credit`
+      await io.display.progressThroughList({
+        label: 'Applying credit...',
+        items: names,
+        itemHandler: async item => {
+          await sleep(2000)
+          return `Applied $${amount} credit`
+        },
       })
     },
     'For loop demo': async io => {
-      await io.display.progressThroughList(
-        ['Alex', 'Dan', 'Kyle', 'Ryan', 'Jacob'],
-        async item => {
+      await io.display.progressThroughList({
+        label: 'Loading users',
+        items: ['Alex', 'Dan', 'Kyle', 'Ryan', 'Jacob'],
+        itemHandler: async item => {
           const time = 1000 * item.length
           await sleep(time)
           return `Completed in ${time}ms`
-        }
-      )
+        },
+      })
     },
     'Create a user account': async io => {
       const [first, last, email] = await io.inputGroup([
