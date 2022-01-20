@@ -59,8 +59,10 @@ export default class ISocket extends EE<Events> {
     })
   }
 
-  async confirmAuthentication() {
-    await this.send('authenticated')
+  confirmAuthentication() {
+    this.send('authenticated')
+      .then(() => console.log('Client knows it is authenticated'))
+      .catch(e => console.log('client does not know its authenticated'))
   }
 
   send(data: string) {
@@ -119,8 +121,6 @@ export default class ISocket extends EE<Events> {
       }
       const data = JSON.parse(evt.data.toString())
       const meta = MESSAGE_META.parse(data)
-
-      console.log('message', meta);
 
       if (meta.type === 'ACK') {
         const pm = this.pendingMessages.get(meta.id)
