@@ -153,8 +153,6 @@ export function createDuplexRPCClient<
     const txt = data as string
     const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
 
-    console.debug({ txt, inputParsed })
-
     if (inputParsed.kind === 'RESPONSE') {
       return handleReceivedResponse(inputParsed)
     }

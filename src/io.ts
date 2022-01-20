@@ -15,7 +15,6 @@ type ComponentFn = <MethodName extends keyof typeof ioSchema>(
 }
 
 const component: ComponentFn = (methodName, inputs) => {
-  console.log('comp')
   return {
     methodName,
     inputs,
@@ -37,7 +36,6 @@ export default function createIOClient(
       [P in keyof A]: ReturnType<A[P]['returnValidator']>
     }
   > {
-    console.log('ig')
     const methods: IOCall['toRender'] = []
     for (const item of arr) {
       methods.push({
@@ -53,8 +51,6 @@ export default function createIOClient(
     }
 
     const result = await sendFn(packed)
-
-    console.log('packed', packed, result)
 
     if (result.responseValues.length !== arr.length) {
       throw new Error('Mismatch in return array length')

@@ -109,7 +109,6 @@ export default async function createIntervalHost(config: InternalConfig) {
       },
     })
 
-    console.log('> initializing host')
     const loggedIn = await serverRpc('INITIALIZE_HOST', {
       apiKey: config.apiKey,
       callableActionNames: Object.keys(config.actions),

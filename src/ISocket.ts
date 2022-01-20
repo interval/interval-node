@@ -61,8 +61,8 @@ export default class ISocket extends EE<Events> {
 
   confirmAuthentication() {
     this.send('authenticated')
-      .then(() => console.log('Client knows it is authenticated'))
-      .catch(e => console.log('client does not know its authenticated'))
+    // .then(() => console.log('Client knows it is authenticated'))
+    // .catch(e => console.log('client does not know its authenticated'))
   }
 
   send(data: string) {
@@ -85,7 +85,6 @@ export default class ISocket extends EE<Events> {
           resolve()
         },
       })
-      console.log('sending', { id, data })
       this.ws.send(JSON.stringify({ id, data, type: 'MESSAGE' }))
     })
   }
