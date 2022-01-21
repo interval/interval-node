@@ -1,7 +1,7 @@
 import createIntervalHost from '../index'
 
 createIntervalHost({
-  apiKey: '',
+  apiKey: 'AGy14UV98fb8ZpKuRfKEqYFBIGjbVpbtH1Sq1Zsw39ybZnbJ',
   actions: {
     'Hello world': async io => {
       const [first, last] = await io.renderGroup([

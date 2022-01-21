@@ -1,6 +1,6 @@
 {
   "name": "interval-js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "license": "MIT",
   "engines": {
@@ -9,6 +9,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "tar": "yarn pack",
     "build": "tsc",
     "demo:basic": "node ./dist/demos/basic.js",
     "dev": "nodemon --watch src --exec \"yarn build && yarn demo:basic\" -e ts"
@@ -27,5 +28,8 @@
     "ts-node": "^10.4.0",
     "typescript": "^4.5.4"
   },
-  "files": ["dist/*.js", "dist/*.ts"]
+  "files": [
+    "dist/*.js",
+    "dist/*.ts"
+  ]
 }
