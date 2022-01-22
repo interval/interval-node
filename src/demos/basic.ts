@@ -6,27 +6,27 @@ function sleep(ms: number) {
 
 const users = [
   {
-    id: 1,
+    id: '1',
     name: 'Alex Arena',
     email: 'alex@interval.com',
   },
   {
-    id: 2,
+    id: '2',
     name: 'Dan Philibin',
     email: 'dan@interval.com',
   },
   {
-    id: 3,
+    id: '3',
     name: 'Jacob Mischka',
     email: 'jacob@interval.com',
   },
   {
-    id: 4,
+    id: '4',
     name: 'Ryan Coppolo',
     email: 'ryan@interval.com',
   },
   {
-    id: 5,
+    id: '5',
     name: 'Kyle Sanok',
     email: 'kyle@interval.com',
   },
@@ -38,6 +38,13 @@ createIntervalHost({
   logLevel: 'debug',
   actions: {
     'Tabular data demo': async io => {
+      await io.render(
+        io.select.user({
+          label: 'Find a user',
+          data: users.map(name => ({ ...name, imageUrl: '' })),
+        })
+      )
+
       const selected = await io.render(
         io.select.table({ label: 'Select users:', data: users })
       )

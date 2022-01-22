@@ -140,6 +140,7 @@ export default function createIOClient(
       single: aliasMethodName('SELECT_SINGLE'),
       multiple: aliasMethodName('SELECT_MULTIPLE'),
       table: aliasMethodName('SELECT_TABLE'),
+      user: aliasMethodName('SELECT_USER'),
     },
   }
 }

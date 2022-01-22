@@ -64,6 +64,25 @@ export const ioSchema = {
       z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
     ),
   },
+  SELECT_USER: {
+    inputs: z.object({
+      label: z.optional(z.string()),
+      data: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          email: z.string(),
+          imageUrl: z.string(),
+        })
+      ),
+    }),
+    returns: z.object({
+      id: z.string(),
+      name: z.string(),
+      email: z.string(),
+      imageUrl: z.string(),
+    }),
+  },
   INPUT_NUMBER: {
     inputs: z.object({
       min: z.optional(z.number()),
