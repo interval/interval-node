@@ -1,146 +1,104 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
-import { ioSchema } from './ioSchema'
-import type { IOCall, IOResponse } from './ioSchema'
+import { T_IO_METHOD, T_IO_METHOD_NAMES } from './ioSchema'
+import type { T_IO_RENDER, T_IO_RESPONSE } from './ioSchema'
+import component from './component'
+import progressThroughList from './components/progressThroughList'
+import findAndSelectUser from './components/selectUser'
 
-type ComponentFn = <MethodName extends keyof typeof ioSchema>(
-  methodName: MethodName,
-  inputs: z.infer<typeof ioSchema[MethodName]['inputs']>
-) => {
-  inputs: typeof inputs
-  methodName: typeof methodName
-  returnValidator: (
-    rawReturn: any
-  ) => z.infer<typeof ioSchema[MethodName]['returns']>
-}
-
-const component: ComponentFn = (methodName, inputs) => {
-  return {
-    methodName,
-    inputs,
-    returnValidator: value => {
-      return ioSchema[methodName]['returns'].parse(value)
-    },
-  }
-}
-
-export default function createIOClient(
-  sendFn: (callToSend: IOCall) => Promise<IOResponse>
+function aliasComponentName<MethodName extends T_IO_METHOD_NAMES>(
+  methodName: MethodName
 ) {
-  // This function isn't statically type safe, so we need to be careful
-  async function renderGroup<A extends readonly ReturnType<ComponentFn>[] | []>(
-    arr: A
-  ): Promise<
-    {
-      -readonly // @ts-ignore
-      [P in keyof A]: ReturnType<A[P]['returnValidator']>
-    }
-  > {
-    const methods: IOCall['toRender'] = []
-    for (const item of arr) {
-      methods.push({
-        methodName: item.methodName,
-        inputs: item.inputs,
-      })
-    }
+  return (props: T_IO_METHOD<MethodName, 'props'>) =>
+    component(methodName, props)
+}
 
-    const packed: IOCall = {
-      id: v4(),
-      toRender: methods,
-      kind: 'CALL',
-    }
+interface ClientConfig {
+  send: (ioToRender: T_IO_RENDER) => Promise<void>
+}
 
-    const result = await sendFn(packed)
+export default function createIOClient(clientConfig: ClientConfig) {
+  type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
+  let onResponseHandler: ResponseHandlerFn | null = null
 
-    if (result.responseValues.length !== arr.length) {
-      throw new Error('Mismatch in return array length')
-    }
-
-    // Be careful!
-    return arr.map((el, i) =>
-      el.returnValidator(result.responseValues[i])
-    ) as unknown as {
-      -readonly // @ts-ignore
-      [P in keyof A]: ReturnType<A[P]['returnValidator']>
-    }
-  }
-
-  async function render<A extends ReturnType<ComponentFn>>(component: A) {
-    const result = await renderGroup([component])
-    return result[0]
-  }
-
-  type ItemWithLabel =
-    | {
-        label: string
-      }
-    | string
-
-  type ProgressThroughListOptions<T> = {
-    label: string
-    items: T[]
-    itemHandler: (value: T) => Promise<string | void>
-  }
-
-  async function progressThroughList<T extends ItemWithLabel>(
-    props: ProgressThroughListOptions<T>
+  function inputGroup<Instance extends ReturnType<typeof component>[] | []>(
+    componentInstances: Instance
   ) {
-    type ProgressList = z.infer<
-      typeof ioSchema['DISPLAY_PROGRESS_THROUGH_LIST']['inputs']
-    >['items']
+    const inputGroupKey = v4()
 
-    const progressItems: ProgressList = props.items.map(item => {
-      return {
-        label: typeof item === 'string' ? item : item['label'],
-        isComplete: false,
-        resultDescription: null,
-      }
-    })
-
-    render(
-      component('DISPLAY_PROGRESS_THROUGH_LIST', {
-        label: props.label,
-        items: progressItems,
-      })
-    )
-    for (const [idx, item] of props.items.entries()) {
-      const resp = await props.itemHandler(item)
-      progressItems[idx].isComplete = true
-      progressItems[idx].resultDescription = resp || null
-      render(
-        component('DISPLAY_PROGRESS_THROUGH_LIST', {
-          label: props.label,
-          items: progressItems,
-        })
-      )
+    type ReturnValues = {
+      //@ts-ignore
+      [Idx in keyof Instance]: z.infer<Instance[Idx]['schema']['returns']>
     }
-  }
 
-  function aliasMethodName<MethodName extends keyof typeof ioSchema>(
-    methodName: MethodName
-  ) {
-    return (inputs: z.infer<typeof ioSchema[MethodName]['inputs']>) =>
-      component(methodName, inputs)
+    async function render() {
+      const packed: T_IO_RENDER = {
+        id: v4(),
+        inputGroupKey: inputGroupKey,
+        toRender: componentInstances.map(inst => inst.getRenderInfo()),
+        kind: 'RENDER',
+      }
+
+      await clientConfig.send(packed)
+    }
+
+    onResponseHandler = async result => {
+      console.log('handle resp', result)
+
+      if (result.values.length !== componentInstances.length) {
+        throw new Error('Mismatch in return array length')
+      }
+
+      if (result.kind === 'RETURN') {
+        result.values.map((v, index) =>
+          componentInstances[index].setReturnValue(v)
+        )
+
+        return
+      }
+
+      if (result.kind === 'SET_STATE') {
+        for (const [index, newState] of result.values.entries()) {
+          const prevState = componentInstances[index].getInstance().state
+
+          if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
+            console.log(`New state at ${index}`, newState)
+            await componentInstances[index].setState(newState)
+          }
+        }
+        render()
+      }
+    }
+
+    for (const c of componentInstances) {
+      // every time any component changes their state, we call render (again)
+      c.onStateChange(render)
+    }
+
+    // Initial render
+    render()
+
+    return Promise.all(
+      componentInstances.map(comp => comp.returnValue)
+    ) as unknown as Promise<ReturnValues>
   }
 
   return {
-    render,
-    renderGroup,
-    display: {
-      heading: aliasMethodName('DISPLAY_HEADING'),
-      progressThroughList,
+    io: {
+      renderGroup: inputGroup,
+      findAndSelectUser,
+      input: {
+        text: aliasComponentName('ASK_TEXT'),
+      },
+      display: {
+        heading: aliasComponentName('DISPLAY_HEADING'),
+        progressThroughList,
+      },
     },
-    input: {
-      text: aliasMethodName('INPUT_TEXT'),
-      email: aliasMethodName('INPUT_EMAIL'),
-      number: aliasMethodName('INPUT_NUMBER'),
-      boolean: aliasMethodName('INPUT_BOOLEAN'),
-    },
-    select: {
-      single: aliasMethodName('SELECT_SINGLE'),
-      multiple: aliasMethodName('SELECT_MULTIPLE'),
-      table: aliasMethodName('SELECT_TABLE'),
-      user: aliasMethodName('SELECT_USER'),
+    onResponse: (result: T_IO_RESPONSE) => {
+      if (onResponseHandler) {
+        onResponseHandler?.(result)
+      }
     },
   }
 }

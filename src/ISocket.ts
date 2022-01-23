@@ -89,6 +89,10 @@ export default class ISocket extends EE<Events> {
     })
   }
 
+  close() {
+    return this.ws.close()
+  }
+
   constructor(ws: WebSocket | NodeWebSocket, config?: ISocketConfig) {
     super()
 
