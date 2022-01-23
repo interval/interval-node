@@ -86,6 +86,7 @@ createIntervalHost({
           },
         }),
         io.input.text({ label: 'Enter their new email' }),
+        io.input.number({ label: 'Enter an amount' }),
       ])
       io.renderGroup([
         io.display.heading({

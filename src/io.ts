@@ -89,6 +89,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       findAndSelectUser,
       input: {
         text: aliasComponentName('ASK_TEXT'),
+        number: aliasComponentName('INPUT_NUMBER'),
       },
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),

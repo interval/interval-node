@@ -103,15 +103,16 @@ export const ioSchema = {
   //     imageUrl: z.string(),
   //   }),
   // },
-  // INPUT_NUMBER: {
-  //   inputs: z.object({
-  //     min: z.optional(z.number()),
-  //     max: z.optional(z.number()),
-  //     prepend: z.optional(z.string()),
-  //     label: z.string(),
-  //   }),
-  //   returns: z.number(),
-  // },
+  INPUT_NUMBER: {
+    props: z.object({
+      min: z.optional(z.number()),
+      max: z.optional(z.number()),
+      prepend: z.optional(z.string()),
+      label: z.string(),
+    }),
+    state: z.null(),
+    returns: z.number(),
+  },
   // INPUT_BOOLEAN: {
   //   inputs: z.object({
   //     label: z.string(),
