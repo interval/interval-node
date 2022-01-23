@@ -44,6 +44,13 @@ createIntervalHost({
       io.renderGroup([io.display.heading({ label: 'I do nothing :(' })])
       console.log('done!')
     },
+    'Hello current user': async (io, ctx) => {
+      io.renderGroup([
+        io.display.heading({
+          label: `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`,
+        }),
+      ])
+    },
     'Update email for user': async io => {
       console.log("Let's say hello...")
 

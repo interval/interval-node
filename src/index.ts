@@ -2,10 +2,15 @@ import { WebSocket } from 'ws'
 import ISocket from './ISocket'
 import { createDuplexRPCClient } from './rpc'
 import { wsServerSchema, hostSchema } from './internalRpcSchema'
-import { IO_RESPONSE, T_IO_RESPONSE } from './ioSchema'
+import { IO_RESPONSE, T_IO_RESPONSE, T_IO_METHOD } from './ioSchema'
 import createIOClient, { IOClient } from './io'
+import { z } from 'zod'
 
-type ActionFunction = (io: IOClient['io']) => Promise<any>
+interface ActionCtx {
+  user: z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>['user']
+}
+
+type ActionFunction = (io: IOClient['io'], ctx: ActionCtx) => Promise<any>
 
 interface InternalConfig {
   apiKey: string
@@ -78,7 +83,11 @@ export default async function createIntervalHost(config: InternalConfig) {
 
           ioResponseHandlers.set(inputs.transactionId, client.onResponse)
 
-          fn(client.io).then(() =>
+          const ctx: ActionCtx = {
+            user: inputs.user,
+          }
+
+          fn(client.io, ctx).then(() =>
             serverRpc('MARK_TRANSACTION_COMPLETE', {
               transactionId: inputs.transactionId,
             })
