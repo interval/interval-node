@@ -1,47 +1,40 @@
 import { z } from 'zod'
 
-export const IO_CALL = z.object({
+export const IO_RENDER = z.object({
   id: z.string(),
-  toRender: z.array(z.object({ methodName: z.string(), inputs: z.any() })),
-  kind: z.literal('CALL'),
+  inputGroupKey: z.string(),
+  toRender: z.array(z.object({ methodName: z.string(), props: z.any() })),
+  kind: z.literal('RENDER'),
 })
 
 export const IO_RESPONSE = z.object({
   id: z.string(),
-  responseValues: z.array(z.any()),
-  kind: z.literal('RESPONSE'),
+  transactionId: z.string(),
+  kind: z.union([z.literal('RETURN'), z.literal('SET_STATE')]),
+  values: z.array(z.any()),
 })
 
-const labelValue = z.object({
-  label: z.string(),
-  value: z.string(),
-})
-
-export type IOCall = z.infer<typeof IO_CALL>
-export type IOResponse = z.infer<typeof IO_RESPONSE>
+export type T_IO_RENDER = z.infer<typeof IO_RENDER>
+export type T_IO_RESPONSE = z.infer<typeof IO_RESPONSE>
+export type T_IO_RESPONSE_KIND = T_IO_RESPONSE['kind']
 
 export const ioSchema = {
-  INPUT_TEXT: {
-    inputs: z.object({
-      label: z.string(),
-      prepend: z.optional(z.string()),
-    }),
-    returns: z.string(),
-  },
-  INPUT_EMAIL: {
-    inputs: z.object({
+  ASK_TEXT: {
+    props: z.object({
       label: z.string(),
     }),
+    state: z.null(),
     returns: z.string(),
   },
   DISPLAY_HEADING: {
-    inputs: z.object({
+    props: z.object({
       label: z.string(),
     }),
+    state: z.null(),
     returns: z.null(),
   },
   DISPLAY_PROGRESS_THROUGH_LIST: {
-    inputs: z.object({
+    props: z.object({
       label: z.string(),
       items: z.array(
         z.object({
@@ -51,70 +44,105 @@ export const ioSchema = {
         })
       ),
     }),
+    state: z.null(),
     returns: z.null(),
   },
-  SELECT_TABLE: {
-    inputs: z.object({
-      label: z.optional(z.string()),
-      data: z.array(
-        z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
-      ),
-    }),
-    returns: z.array(
-      z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
-    ),
-  },
-  SELECT_USER: {
-    inputs: z.object({
-      label: z.optional(z.string()),
-      data: z.array(
+  ASK_FOR_USER: {
+    props: z.object({
+      label: z.string(),
+      userList: z.array(
         z.object({
-          id: z.string(),
+          id: z.union([z.string(), z.number()]),
           name: z.string(),
-          email: z.string(),
-          imageUrl: z.string(),
+          email: z.string().optional(),
+          imageUrl: z.string().optional(),
         })
       ),
     }),
+    state: z.object({ queryTerm: z.string() }),
     returns: z.object({
-      id: z.string(),
+      id: z.union([z.string(), z.number()]),
       name: z.string(),
-      email: z.string(),
-      imageUrl: z.string(),
+      email: z.string().optional(),
+      imageUrl: z.string().optional(),
     }),
   },
-  INPUT_NUMBER: {
-    inputs: z.object({
-      min: z.optional(z.number()),
-      max: z.optional(z.number()),
-      prepend: z.optional(z.string()),
-      label: z.string(),
-    }),
-    returns: z.number(),
-  },
-  INPUT_BOOLEAN: {
-    inputs: z.object({
-      label: z.string(),
-      helpText: z.optional(z.string()),
-      defaultValue: z.optional(z.boolean()),
-    }),
-    returns: z.boolean(),
-  },
-  SELECT_SINGLE: {
-    inputs: z.object({
-      label: z.string(),
-      options: z.array(labelValue),
-      helpText: z.optional(z.string()),
-      defaultValue: z.optional(labelValue),
-    }),
-    returns: labelValue,
-  },
-  SELECT_MULTIPLE: {
-    inputs: z.object({
-      label: z.string(),
-      options: z.array(labelValue),
-      defaultValue: z.optional(z.array(labelValue)),
-    }),
-    returns: z.array(labelValue),
-  },
+  // INPUT_EMAIL: {
+  //   inputs: z.object({
+  //     label: z.string(),
+  //   }),
+  //   returns: z.string(),
+  // },
+  // SELECT_TABLE: {
+  //   inputs: z.object({
+  //     label: z.optional(z.string()),
+  //     data: z.array(
+  //       z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+  //     ),
+  //   }),
+  //   returns: z.array(
+  //     z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+  //   ),
+  // },
+  // SELECT_USER: {
+  //   inputs: z.object({
+  //     label: z.optional(z.string()),
+  //     data: z.array(
+  //       z.object({
+  //         id: z.string(),
+  //         name: z.string(),
+  //         email: z.string(),
+  //         imageUrl: z.string(),
+  //       })
+  //     ),
+  //   }),
+  //   returns: z.object({
+  //     id: z.string(),
+  //     name: z.string(),
+  //     email: z.string(),
+  //     imageUrl: z.string(),
+  //   }),
+  // },
+  // INPUT_NUMBER: {
+  //   inputs: z.object({
+  //     min: z.optional(z.number()),
+  //     max: z.optional(z.number()),
+  //     prepend: z.optional(z.string()),
+  //     label: z.string(),
+  //   }),
+  //   returns: z.number(),
+  // },
+  // INPUT_BOOLEAN: {
+  //   inputs: z.object({
+  //     label: z.string(),
+  //     helpText: z.optional(z.string()),
+  //     defaultValue: z.optional(z.boolean()),
+  //   }),
+  //   returns: z.boolean(),
+  // },
+  // SELECT_SINGLE: {
+  //   inputs: z.object({
+  //     label: z.string(),
+  //     options: z.array(labelValue),
+  //     helpText: z.optional(z.string()),
+  //     defaultValue: z.optional(labelValue),
+  //   }),
+  //   returns: labelValue,
+  // },
+  // SELECT_MULTIPLE: {
+  //   inputs: z.object({
+  //     label: z.string(),
+  //     options: z.array(labelValue),
+  //     defaultValue: z.optional(z.array(labelValue)),
+  //   }),
+  //   returns: z.array(labelValue),
+  // },
 }
+
+export type T_IO_Schema = typeof ioSchema
+export type T_IO_METHOD_NAMES = keyof T_IO_Schema
+
+type T_Fields = 'props' | 'state' | 'returns'
+
+export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
+  z.infer<T_IO_Schema[MN][Field]>

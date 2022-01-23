@@ -1,113 +1,93 @@
 import createIntervalHost from '../index'
+import fakeUsers from './fakeUsers'
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-const users = [
-  {
-    id: '1',
-    name: 'Alex Arena',
-    email: 'alex@interval.com',
-  },
-  {
-    id: '2',
-    name: 'Dan Philibin',
-    email: 'dan@interval.com',
-  },
-  {
-    id: '3',
-    name: 'Jacob Mischka',
-    email: 'jacob@interval.com',
-  },
-  {
-    id: '4',
-    name: 'Ryan Coppolo',
-    email: 'ryan@interval.com',
-  },
-  {
-    id: '5',
-    name: 'Kyle Sanok',
-    email: 'kyle@interval.com',
-  },
-]
+const fakeDb = (function fakeDb() {
+  const data = fakeUsers
+
+  return {
+    async find(input: string) {
+      await sleep(500)
+      const inputLower = input.toLowerCase()
+      return data
+        .filter(v => {
+          const searchStr = (v.email + v.first_name + v.last_name).toLowerCase()
+          return searchStr.includes(inputLower)
+        })
+        .slice(0, 10)
+    },
+  }
+})()
 
 createIntervalHost({
-  endpoint: 'ws://localhost:3001',
   apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
   logLevel: 'debug',
+  endpoint: 'ws://localhost:3001',
   actions: {
-    'Tabular data demo': async io => {
-      await io.render(
-        io.select.user({
-          label: 'Find a user',
-          data: users.map(name => ({ ...name, imageUrl: '' })),
-        })
-      )
-
-      const selected = await io.render(
-        io.select.table({ label: 'Select users:', data: users })
-      )
-
-      const amount = await io.render(
-        io.input.number({ label: 'Credit amount to apply:', prepend: '$' })
-      )
-
-      const names = selected.map(eng => String(eng.name))
-
-      await io.display.progressThroughList({
-        label: 'Applying credit...',
-        items: names,
-        itemHandler: async item => {
-          await sleep(2000)
-          return `Applied $${amount} credit`
-        },
-      })
+    'Progress through long list': async io => {
+      const [resp] = await io.renderGroup([
+        io.display.progressThroughList(
+          ['Dan', 'Alex', 'Jacob'],
+          async person => {
+            await sleep(1000)
+            return `Hi, ${person}!`
+          },
+          { label: 'Here are some items' }
+        ),
+      ])
+      console.log('done!', resp)
     },
-    'For loop demo': async io => {
-      await io.display.progressThroughList({
-        label: 'Loading users',
-        items: ['Alex', 'Dan', 'Kyle', 'Ryan', 'Jacob'],
-        itemHandler: async item => {
-          const time = 1000 * item.length
-          await sleep(time)
-          return `Completed in ${time}ms`
-        },
-      })
+    'No interactive elements': async io => {
+      io.renderGroup([io.display.heading({ label: 'I do nothing :(' })])
+      console.log('done!')
     },
-    'Create a user account': async io => {
-      const [first, last, email, role, isSubscribed] = await io.renderGroup([
-        io.input.text({ label: 'First name' }),
-        io.input.text({ label: 'Last name' }),
-        io.input.email({ label: 'Email address' }),
-        io.select.single({
-          label: 'Role',
-          options: [
-            {
-              label: 'Admin',
-              value: 'admin',
-            },
-            {
-              label: 'Editor',
-              value: 'editor',
-            },
-            {
-              label: 'Viewer',
-              value: 'viewer',
-            },
-          ],
+    'Update email for user': async io => {
+      console.log("Let's say hello...")
+
+      const initialUsers = await fakeDb.find('')
+
+      function toIntervalUser(inputUser: {
+        first_name: string
+        last_name: string
+        email: string
+        username: string
+      }) {
+        const name = `${inputUser.first_name} ${inputUser.last_name}`
+        return {
+          id: inputUser.username,
+          name: name,
+          email: inputUser.email,
+          imageUrl: `https://avatars.dicebear.com/api/pixel-art/${encodeURIComponent(
+            name
+          )}.svg?scale=96&translateY=10`,
+        }
+      }
+
+      const resp = await io.renderGroup([
+        io.display.heading({
+          label: 'Edit email address for user',
         }),
-        io.input.boolean({
-          label: 'Subscribe to mailing list',
-          defaultValue: true,
+        io.findAndSelectUser({
+          label: 'Select a user',
+          userList: initialUsers.map(toIntervalUser),
+          onSearch: async query => {
+            const resp = await fakeDb.find(query)
+            return resp.map(toIntervalUser)
+          },
+        }),
+        io.input.text({ label: 'Enter their new email' }),
+      ])
+      io.renderGroup([
+        io.display.heading({
+          label: 'You successfully edited email for ' + resp[1].name,
         }),
       ])
 
-      io.render(
-        io.display.heading({
-          label: `User created: ${first} ${last} (${email}).`,
-        })
-      )
+      console.log('the user is', resp[1].name)
+      console.log('the text is', resp[2])
     },
   },
 })
