@@ -91,6 +91,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
         text: aliasComponentName('ASK_TEXT'),
         boolean: aliasComponentName('INPUT_BOOLEAN'),
         number: aliasComponentName('INPUT_NUMBER'),
+        email: aliasComponentName('INPUT_EMAIL'),
       },
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),

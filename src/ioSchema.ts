@@ -67,12 +67,13 @@ export const ioSchema = {
       imageUrl: z.string().optional(),
     }),
   },
-  // INPUT_EMAIL: {
-  //   inputs: z.object({
-  //     label: z.string(),
-  //   }),
-  //   returns: z.string(),
-  // },
+  INPUT_EMAIL: {
+    props: z.object({
+      label: z.string(),
+    }),
+    state: z.null(),
+    returns: z.string(),
+  },
   // SELECT_TABLE: {
   //   inputs: z.object({
   //     label: z.optional(z.string()),

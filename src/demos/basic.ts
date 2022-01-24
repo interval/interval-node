@@ -85,7 +85,8 @@ createIntervalHost({
             return resp.map(toIntervalUser)
           },
         }),
-        io.input.text({ label: 'Enter their new email' }),
+        io.input.text({ label: 'Enter their new name' }),
+        io.input.email({ label: 'Enter their new email' }),
         io.input.number({ label: 'Enter an amount' }),
         io.input.boolean({ label: 'Are you sure?' }),
       ])
