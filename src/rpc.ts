@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { DuplexMessage } from './internalRpcSchema'
 import { DUPLEX_MESSAGE_SCHEMA } from './internalRpcSchema'
+import ISocket from './ISocket'
 
 let count = 0
 function generateId() {
@@ -16,11 +17,6 @@ interface MethodDef {
 }
 
 type OnReplyFn = (anyObject: any) => void
-
-interface Communicator {
-  on: (kind: string, handler: (...args: unknown[]) => void) => void
-  send: (data: string) => Promise<any>
-}
 
 function packageResponse({
   id,
@@ -93,6 +89,13 @@ export function createCaller<Methods extends MethodDef>({
   }
 }
 
+export type RPCCaller<CallerSchema extends MethodDef> = <
+  MethodName extends keyof CallerSchema
+>(
+  methodName: MethodName,
+  inputs: z.infer<CallerSchema[MethodName]['inputs']>
+) => Promise<z.infer<CallerSchema[MethodName]['returns']>>
+
 export function createDuplexRPCClient<
   CallerSchema extends MethodDef,
   ResponderSchema extends MethodDef
@@ -102,7 +105,7 @@ export function createDuplexRPCClient<
   canRespondTo,
   handlers,
 }: {
-  communicator: Communicator
+  communicator: ISocket
   canCall: CallerSchema
   canRespondTo: ResponderSchema
   handlers: {
@@ -149,7 +152,7 @@ export function createDuplexRPCClient<
     return
   }
 
-  communicator.on('message', data => {
+  communicator.onMessage.attach(data => {
     const txt = data as string
     const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
 

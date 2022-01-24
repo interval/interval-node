@@ -1,5 +1,5 @@
 import type { WebSocket as NodeWebSocket } from 'ws'
-import { EventEmitter as EE } from 'ee-ts'
+import { Evt, to } from 'evt'
 import { v4 } from 'uuid'
 import { z } from 'zod'
 
@@ -14,25 +14,22 @@ interface PendingMessage {
   onAckReceived: () => void
 }
 
-interface Events {
-  message: (message: string) => void
-  open: () => void
-  error: (error: Error) => void
-  close: (code: number, reason: string) => void
-  authenticated: () => void
-}
-
 interface ISocketConfig {
   connectTimeout?: number
   sendTimeout?: number
   id?: string // manually specifying ids is helpful for debugging
 }
 
-export default class ISocket extends EE<Events> {
+export default class ISocket {
   private ws: WebSocket | NodeWebSocket
   private connectTimeout: number
   private sendTimeout: number
   private isAuthenticated: boolean
+  onMessage: Evt<string>
+  onOpen: Evt<void>
+  onError: Evt<Error>
+  onClose: Evt<[number, string]>
+  onAuthenticated: Evt<void>
   id: string
 
   private pendingMessages = new Map<string, PendingMessage>()
@@ -48,12 +45,12 @@ export default class ISocket extends EE<Events> {
         this.connectTimeout
       )
 
-      this.on('authenticated', () => {
+      this.onAuthenticated.attach(() => {
         clearTimeout(failTimeout)
         return resolve()
       })
 
-      this.on('close', () => {
+      this.onClose.attach(() => {
         clearTimeout(failTimeout)
       })
     })
@@ -74,7 +71,8 @@ export default class ISocket extends EE<Events> {
         this.sendTimeout
       )
 
-      this.on('close', () => {
+      // FIXME: This adds a new handler every time data is sent, not sustainable
+      this.onClose.attach(() => {
         clearTimeout(failTimeout)
       })
 
@@ -90,13 +88,17 @@ export default class ISocket extends EE<Events> {
   }
 
   constructor(ws: WebSocket | NodeWebSocket, config?: ISocketConfig) {
-    super()
-
     // this works but on("error") does not. No idea why ¯\_(ツ)_/¯
     // will emit "closed" regardless
     // this.ws.addEventListener('error', e => {
     //   this.dispatchEvent(e)
     // })
+
+    this.onMessage = new Evt<string>()
+    this.onOpen = new Evt<void>()
+    this.onError = new Evt<Error>()
+    this.onClose = new Evt<[number, string]>()
+    this.onAuthenticated = new Evt<void>()
 
     this.ws = ws
 
@@ -106,11 +108,11 @@ export default class ISocket extends EE<Events> {
     this.isAuthenticated = false
 
     this.ws.onopen = () => {
-      this.emit('open')
+      this.onOpen.post()
     }
 
     this.ws.onclose = (ev: CloseEvent) => {
-      this.emit('close', ev.code, ev.reason)
+      this.onClose.post([ev.code, ev.reason])
     }
 
     this.ws.onmessage = (evt: MessageEvent) => {
@@ -132,10 +134,10 @@ export default class ISocket extends EE<Events> {
         ws.send(JSON.stringify({ type: 'ACK', id: meta.id }))
         if (meta.data === 'authenticated') {
           this.isAuthenticated = true
-          this.emit('authenticated')
+          this.onAuthenticated.post()
           return
         }
-        this.emit('message', meta.data)
+        this.onMessage.post(meta.data)
       }
     }
   }

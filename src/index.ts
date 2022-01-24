@@ -39,7 +39,7 @@ export default async function createIntervalHost(config: InternalConfig) {
       })
     )
 
-    ws.on('close', (code, reason) => {
+    ws.onClose.attach(([code, reason]) => {
       log.prod(
         `❗️ Could not connect to Interval (code ${code}). Reason:`,
         reason
