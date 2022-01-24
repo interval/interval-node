@@ -52,7 +52,7 @@ export const ioSchema = {
     state: z.null(),
     returns: z.null(),
   },
-  ASK_FOR_USER: {
+  SELECT_USER: {
     props: z.object({
       label: z.string(),
       userList: z.array(
@@ -91,25 +91,6 @@ export const ioSchema = {
       z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
     ),
   },
-  // SELECT_USER: {
-  //   inputs: z.object({
-  //     label: z.optional(z.string()),
-  //     data: z.array(
-  //       z.object({
-  //         id: z.string(),
-  //         name: z.string(),
-  //         email: z.string(),
-  //         imageUrl: z.string(),
-  //       })
-  //     ),
-  //   }),
-  //   returns: z.object({
-  //     id: z.string(),
-  //     name: z.string(),
-  //     email: z.string(),
-  //     imageUrl: z.string(),
-  //   }),
-  // },
   INPUT_NUMBER: {
     props: z.object({
       min: z.optional(z.number()),
