@@ -103,6 +103,13 @@ createIntervalHost({
             { label: 'B', value: 'b' },
           ],
         }),
+        io.select.table({
+          label: 'Select from this table',
+          data: [
+            { label: 'A', value: 'a' },
+            { label: 'B', value: 'b' },
+          ],
+        }),
       ])
       io.renderGroup([
         io.display.heading({

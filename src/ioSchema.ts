@@ -79,17 +79,18 @@ export const ioSchema = {
     state: z.null(),
     returns: z.string(),
   },
-  // SELECT_TABLE: {
-  //   inputs: z.object({
-  //     label: z.optional(z.string()),
-  //     data: z.array(
-  //       z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
-  //     ),
-  //   }),
-  //   returns: z.array(
-  //     z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
-  //   ),
-  // },
+  SELECT_TABLE: {
+    props: z.object({
+      label: z.optional(z.string()),
+      data: z.array(
+        z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+      ),
+    }),
+    state: z.null(),
+    returns: z.array(
+      z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    ),
+  },
   // SELECT_USER: {
   //   inputs: z.object({
   //     label: z.optional(z.string()),
