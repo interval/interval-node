@@ -1,5 +1,5 @@
 import type { WebSocket as NodeWebSocket } from 'ws'
-import { Evt, to } from 'evt'
+import { Evt } from 'evt'
 import { v4 } from 'uuid'
 import { z } from 'zod'
 
@@ -25,6 +25,7 @@ export default class ISocket {
   private connectTimeout: number
   private sendTimeout: number
   private isAuthenticated: boolean
+  private timeouts: Set<NodeJS.Timeout>
   onMessage: Evt<string>
   onOpen: Evt<void>
   onError: Evt<Error>
@@ -45,13 +46,12 @@ export default class ISocket {
         this.connectTimeout
       )
 
+      this.timeouts.add(failTimeout)
+
       this.onAuthenticated.attach(() => {
         clearTimeout(failTimeout)
+        this.timeouts.delete(failTimeout)
         return resolve()
-      })
-
-      this.onClose.attach(() => {
-        clearTimeout(failTimeout)
       })
     })
   }
@@ -71,15 +71,11 @@ export default class ISocket {
         this.sendTimeout
       )
 
-      // FIXME: This adds a new handler every time data is sent, not sustainable
-      this.onClose.attach(() => {
-        clearTimeout(failTimeout)
-      })
-
       this.pendingMessages.set(id, {
         data,
         onAckReceived: () => {
           clearTimeout(failTimeout)
+          this.timeouts.delete(failTimeout)
           resolve()
         },
       })
@@ -99,6 +95,7 @@ export default class ISocket {
     this.onError = new Evt<Error>()
     this.onClose = new Evt<[number, string]>()
     this.onAuthenticated = new Evt<void>()
+    this.timeouts = new Set()
 
     this.ws = ws
 
@@ -106,6 +103,13 @@ export default class ISocket {
     this.connectTimeout = config?.connectTimeout || 15_000
     this.sendTimeout = config?.sendTimeout || 3000
     this.isAuthenticated = false
+
+    this.onClose.attach(() => {
+      for (const timeout of this.timeouts) {
+        clearTimeout(timeout)
+      }
+      this.timeouts.clear()
+    })
 
     this.ws.onopen = () => {
       this.onOpen.post()
