@@ -113,14 +113,15 @@ export const ioSchema = {
     state: z.null(),
     returns: z.number(),
   },
-  // INPUT_BOOLEAN: {
-  //   inputs: z.object({
-  //     label: z.string(),
-  //     helpText: z.optional(z.string()),
-  //     defaultValue: z.optional(z.boolean()),
-  //   }),
-  //   returns: z.boolean(),
-  // },
+  INPUT_BOOLEAN: {
+    props: z.object({
+      label: z.string(),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(z.boolean()),
+    }),
+    state: z.null(),
+    returns: z.boolean(),
+  },
   // SELECT_SINGLE: {
   //   inputs: z.object({
   //     label: z.string(),

@@ -87,6 +87,7 @@ createIntervalHost({
         }),
         io.input.text({ label: 'Enter their new email' }),
         io.input.number({ label: 'Enter an amount' }),
+        io.input.boolean({ label: 'Are you sure?' }),
       ])
       io.renderGroup([
         io.display.heading({
@@ -94,8 +95,7 @@ createIntervalHost({
         }),
       ])
 
-      console.log('the user is', resp[1].name)
-      console.log('the text is', resp[2])
+      console.log('Resp', resp)
     },
   },
 })
