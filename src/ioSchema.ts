@@ -138,14 +138,15 @@ export const ioSchema = {
     state: z.null(),
     returns: labelValue,
   },
-  // SELECT_MULTIPLE: {
-  //   inputs: z.object({
-  //     label: z.string(),
-  //     options: z.array(labelValue),
-  //     defaultValue: z.optional(z.array(labelValue)),
-  //   }),
-  //   returns: z.array(labelValue),
-  // },
+  SELECT_MULTIPLE: {
+    props: z.object({
+      label: z.string(),
+      options: z.array(labelValue),
+      defaultValue: z.optional(z.array(labelValue)),
+    }),
+    state: z.null(),
+    returns: z.array(labelValue),
+  },
 }
 
 export type T_IO_Schema = typeof ioSchema

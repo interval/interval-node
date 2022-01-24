@@ -96,6 +96,13 @@ createIntervalHost({
             { label: 'B', value: 'b' },
           ],
         }),
+        io.select.multiple({
+          label: 'Select some opts',
+          options: [
+            { label: 'A', value: 'a' },
+            { label: 'B', value: 'b' },
+          ],
+        }),
       ])
       io.renderGroup([
         io.display.heading({

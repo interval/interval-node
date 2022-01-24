@@ -95,6 +95,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       },
       select: {
         single: aliasComponentName('SELECT_SINGLE'),
+        multiple: aliasComponentName('SELECT_MULTIPLE'),
       },
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),
