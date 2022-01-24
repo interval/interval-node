@@ -93,6 +93,9 @@ export default function createIOClient(clientConfig: ClientConfig) {
         number: aliasComponentName('INPUT_NUMBER'),
         email: aliasComponentName('INPUT_EMAIL'),
       },
+      select: {
+        single: aliasComponentName('SELECT_SINGLE'),
+      },
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),
         progressThroughList,

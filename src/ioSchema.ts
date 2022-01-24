@@ -18,6 +18,11 @@ export type T_IO_RENDER = z.infer<typeof IO_RENDER>
 export type T_IO_RESPONSE = z.infer<typeof IO_RESPONSE>
 export type T_IO_RESPONSE_KIND = T_IO_RESPONSE['kind']
 
+const labelValue = z.object({
+  label: z.string(),
+  value: z.string(),
+})
+
 export const ioSchema = {
   ASK_TEXT: {
     props: z.object({
@@ -123,15 +128,16 @@ export const ioSchema = {
     state: z.null(),
     returns: z.boolean(),
   },
-  // SELECT_SINGLE: {
-  //   inputs: z.object({
-  //     label: z.string(),
-  //     options: z.array(labelValue),
-  //     helpText: z.optional(z.string()),
-  //     defaultValue: z.optional(labelValue),
-  //   }),
-  //   returns: labelValue,
-  // },
+  SELECT_SINGLE: {
+    props: z.object({
+      label: z.string(),
+      options: z.array(labelValue),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(labelValue),
+    }),
+    state: z.null(),
+    returns: labelValue,
+  },
   // SELECT_MULTIPLE: {
   //   inputs: z.object({
   //     label: z.string(),

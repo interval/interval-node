@@ -89,6 +89,13 @@ createIntervalHost({
         io.input.email({ label: 'Enter their new email' }),
         io.input.number({ label: 'Enter an amount' }),
         io.input.boolean({ label: 'Are you sure?' }),
+        io.select.single({
+          label: 'Select an opt',
+          options: [
+            { label: 'A', value: 'a' },
+            { label: 'B', value: 'b' },
+          ],
+        }),
       ])
       io.renderGroup([
         io.display.heading({
