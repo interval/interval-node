@@ -45,9 +45,11 @@ createIntervalHost({
       console.log('done!')
     },
     'Unique ID tester': async io => {
-      const name = await io.renderGroup([io.input.text({ label: 'Your name' })])
+      const name = await io.renderGroup([
+        io.input.boolean({ label: 'Your name' }),
+      ])
       const name2 = await io.renderGroup([
-        io.input.text({ label: 'Your name' }),
+        io.input.boolean({ label: 'Your name' }),
       ])
 
       console.log(name, name2)
