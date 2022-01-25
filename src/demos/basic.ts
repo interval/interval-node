@@ -28,26 +28,23 @@ createIntervalHost({
   endpoint: 'ws://localhost:3001',
   actions: {
     'Progress through long list': async io => {
-      const [resp] = await io.renderGroup([
-        io.display.progressThroughList(
-          ['Dan', 'Alex', 'Jacob'],
-          async person => {
-            await sleep(1000)
-            return `Hi, ${person}!`
-          },
-          { label: 'Here are some items' }
-        ),
-      ])
+      const resp = await io.display.progressThroughList(
+        ['Dan', 'Alex', 'Jacob'],
+        async person => {
+          await sleep(1000)
+          return `Hi, ${person}!`
+        },
+        { label: 'Here are some items' }
+      )
+
       console.log('done!', resp)
     },
     'No interactive elements': async io => {
-      console.log(io.display.heading)
-      io.display.heading({ label: 'I do nothing :(' })
-      io.renderGroup([])
+      io.display.heading({ label: 'I do nothing :(' }).then(() => {})
       console.log('done!')
     },
     'Unique ID tester': async io => {
-      const shouldContinue = await io.render(io.input.number({ label: 'hi' }))
+      const shouldContinue = await io.input.number({ label: 'hi' })
 
       const [name, id] = await io.renderGroup([
         io.input.text({ label: 'Your name' }),
@@ -55,11 +52,11 @@ createIntervalHost({
       ])
     },
     'Hello current user': async (io, ctx) => {
-      io.render(
-        io.display.heading({
+      io.display
+        .heading({
           label: `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`,
         })
-      )
+        .then(() => {})
     },
     'Update email for user': async io => {
       console.log("Let's say hello...")
