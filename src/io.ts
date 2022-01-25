@@ -2,7 +2,7 @@ import { v4 } from 'uuid'
 import { z } from 'zod'
 import { T_IO_METHOD, T_IO_METHOD_NAMES } from './ioSchema'
 import type { T_IO_RENDER, T_IO_RESPONSE } from './ioSchema'
-import component, { ComponentType } from './component'
+import component, { AnyComponentType, ComponentType } from './component'
 import progressThroughList from './components/progressThroughList'
 import findAndSelectUser from './components/selectUser'
 
@@ -16,18 +16,6 @@ function aliasComponentName<MethodName extends T_IO_METHOD_NAMES>(
 interface ClientConfig {
   send: (ioToRender: T_IO_RENDER) => Promise<void>
 }
-
-type AnyComponentType =
-  | ComponentType<'INPUT_TEXT'>
-  | ComponentType<'DISPLAY_HEADING'>
-  | ComponentType<'DISPLAY_PROGRESS_THROUGH_LIST'>
-  | ComponentType<'SELECT_USER'>
-  | ComponentType<'INPUT_EMAIL'>
-  | ComponentType<'SELECT_TABLE'>
-  | ComponentType<'INPUT_NUMBER'>
-  | ComponentType<'INPUT_BOOLEAN'>
-  | ComponentType<'SELECT_SINGLE'>
-  | ComponentType<'SELECT_MULTIPLE'>
 
 export default function createIOClient(clientConfig: ClientConfig) {
   type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
