@@ -56,8 +56,9 @@ const component = <MN extends keyof IoSchema>(
     return instance
   }
 
-  // TODO: can we get a type for newProps
-  function setProps(newProps: any) {
+  function setProps<MN extends keyof IoSchema>(
+    newProps: z.infer<IoSchema[MN]['props']>
+  ) {
     instance.props = newProps
     onStateChangeHandler && onStateChangeHandler()
   }
