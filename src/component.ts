@@ -30,18 +30,11 @@ export type ComponentReturnValue<MN extends keyof IoSchema> = z.infer<
   IoSchema[MN]['returns']
 >
 
-// Is there a better way to write this, like with mapped types?
-export type AnyComponentType =
-  | ComponentType<'INPUT_TEXT'>
-  | ComponentType<'DISPLAY_HEADING'>
-  | ComponentType<'DISPLAY_PROGRESS_THROUGH_LIST'>
-  | ComponentType<'SELECT_USER'>
-  | ComponentType<'INPUT_EMAIL'>
-  | ComponentType<'SELECT_TABLE'>
-  | ComponentType<'INPUT_NUMBER'>
-  | ComponentType<'INPUT_BOOLEAN'>
-  | ComponentType<'SELECT_SINGLE'>
-  | ComponentType<'SELECT_MULTIPLE'>
+export type ComponentTypeMap = {
+  [MethodName in keyof IoSchema]: ComponentType<MethodName>
+}
+
+export type AnyComponentType = ComponentTypeMap[keyof IoSchema]
 
 const component = <MN extends keyof IoSchema>(
   methodName: MN,
