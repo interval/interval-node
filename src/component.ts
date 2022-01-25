@@ -8,40 +8,60 @@ export interface ComponentInstance<MN extends keyof IoSchema> {
   state: z.infer<IoSchema[MN]['state']>
 }
 
+export interface ComponentType<MN extends keyof IoSchema> {
+  onStateChange: (fn: () => void) => void
+  schema: IoSchema[MN]
+  getInstance: () => ComponentInstance<MN>
+  getRenderInfo: () => ComponentRenderInfo<MN>
+  returnValue: Promise<ComponentReturnValue<MN>>
+  setState: (
+    newState: z.infer<IoSchema[MN]['state']>
+  ) => Promise<ComponentInstance<MN>>
+  setProps: (newProps: z.infer<IoSchema[MN]['props']>) => void
+  setReturnValue: (value: z.infer<IoSchema[MN]['returns']>) => void
+}
+
+export type ComponentRenderInfo<MN extends keyof IoSchema> = Pick<
+  ComponentInstance<MN>,
+  'methodName' | 'props'
+>
+
+export type ComponentReturnValue<MN extends keyof IoSchema> = z.infer<
+  IoSchema[MN]['returns']
+>
+
 const component = <MN extends keyof IoSchema>(
   methodName: MN,
   initialProps: z.infer<IoSchema[MN]['props']>,
   handleStateChange?: (
     incomingState: z.infer<IoSchema[MN]['state']>
   ) => Promise<z.infer<IoSchema[MN]['props']>>
-) => {
+): ComponentType<MN> => {
   const instance: ComponentInstance<MN> = {
     methodName,
     props: initialProps,
     state: null,
   }
 
-  type RenderInfo = Pick<typeof instance, 'methodName' | 'props'>
-
   let onStateChangeHandler: (() => void) | null = null
 
-  type ReturnValue = z.infer<typeof schema['returns']>
-
-  let resolver: ((v: ReturnValue) => void) | null = null
-  const returnValue = new Promise<ReturnValue>(resolve => {
+  let resolver: ((v: ComponentReturnValue<MN>) => void) | null = null
+  const returnValue = new Promise<ComponentReturnValue<MN>>(resolve => {
     resolver = resolve
   })
 
   const schema = ioSchema[methodName]
 
-  function setReturnValue(value: any) {
+  function setReturnValue(value: z.infer<IoSchema[MN]['returns']>) {
     const parsed = schema.returns.parse(value)
     if (resolver) {
       resolver(parsed)
     }
   }
 
-  async function setState(newState: any) {
+  async function setState(
+    newState: z.infer<IoSchema[MN]['state']>
+  ): Promise<ComponentInstance<MN>> {
     const parsedState = schema.state.parse(newState)
     if (handleStateChange) {
       instance.props = await handleStateChange(parsedState)
@@ -56,9 +76,7 @@ const component = <MN extends keyof IoSchema>(
     return instance
   }
 
-  function setProps<MN extends keyof IoSchema>(
-    newProps: z.infer<IoSchema[MN]['props']>
-  ) {
+  function setProps(newProps: z.infer<IoSchema[MN]['props']>) {
     instance.props = newProps
     onStateChangeHandler && onStateChangeHandler()
   }
@@ -67,7 +85,7 @@ const component = <MN extends keyof IoSchema>(
     return instance
   }
 
-  function getRenderInfo(): RenderInfo {
+  function getRenderInfo(): ComponentRenderInfo<MN> {
     return {
       methodName: instance.methodName,
       props: instance.props,

@@ -41,18 +41,16 @@ createIntervalHost({
       console.log('done!', resp)
     },
     'No interactive elements': async io => {
-      io.renderGroup([io.display.heading({ label: 'I do nothing :(' })])
+      console.log(io.display.heading)
+      io.display.heading({ label: 'I do nothing :(' })
+      io.renderGroup([])
       console.log('done!')
     },
     'Unique ID tester': async io => {
-      const name = await io.renderGroup([
-        io.input.boolean({ label: 'Your name' }),
+      const [name, id] = await io.renderGroup([
+        io.input.text({ label: 'Your name' }),
+        io.input.number({ label: 'Pick a number' }),
       ])
-      const name2 = await io.renderGroup([
-        io.input.boolean({ label: 'Your name' }),
-      ])
-
-      console.log(name, name2)
     },
     'Hello current user': async (io, ctx) => {
       io.renderGroup([

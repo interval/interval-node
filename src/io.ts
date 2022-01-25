@@ -2,13 +2,13 @@ import { v4 } from 'uuid'
 import { z } from 'zod'
 import { T_IO_METHOD, T_IO_METHOD_NAMES } from './ioSchema'
 import type { T_IO_RENDER, T_IO_RESPONSE } from './ioSchema'
-import component from './component'
+import component, { ComponentType } from './component'
 import progressThroughList from './components/progressThroughList'
 import findAndSelectUser from './components/selectUser'
 
 function aliasComponentName<MethodName extends T_IO_METHOD_NAMES>(
   methodName: MethodName
-) {
+): (props: T_IO_METHOD<MethodName, 'props'>) => ComponentType<MethodName> {
   return (props: T_IO_METHOD<MethodName, 'props'>) =>
     component(methodName, props)
 }
@@ -17,18 +17,30 @@ interface ClientConfig {
   send: (ioToRender: T_IO_RENDER) => Promise<void>
 }
 
+type AnyComponentType =
+  | ComponentType<'INPUT_TEXT'>
+  | ComponentType<'DISPLAY_HEADING'>
+  | ComponentType<'DISPLAY_PROGRESS_THROUGH_LIST'>
+  | ComponentType<'SELECT_USER'>
+  | ComponentType<'INPUT_EMAIL'>
+  | ComponentType<'SELECT_TABLE'>
+  | ComponentType<'INPUT_NUMBER'>
+  | ComponentType<'INPUT_BOOLEAN'>
+  | ComponentType<'SELECT_SINGLE'>
+  | ComponentType<'SELECT_MULTIPLE'>
+
 export default function createIOClient(clientConfig: ClientConfig) {
   type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
   let onResponseHandler: ResponseHandlerFn | null = null
 
-  function inputGroup<Instance extends ReturnType<typeof component>[] | []>(
-    componentInstances: Instance
+  function inputGroup<Instances extends readonly AnyComponentType[] | []>(
+    componentInstances: Instances
   ) {
     const inputGroupKey = v4()
 
     type ReturnValues = {
-      //@ts-ignore
-      [Idx in keyof Instance]: z.infer<Instance[Idx]['schema']['returns']>
+      -readonly // @ts-ignore
+      [Idx in keyof Instances]: z.infer<Instances[Idx]['schema']['returns']>
     }
 
     async function render() {
@@ -51,6 +63,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
       if (result.kind === 'RETURN') {
         result.values.map((v, index) =>
+          // @ts-ignore
           componentInstances[index].setReturnValue(v)
         )
 
@@ -63,6 +76,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
           if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
             console.log(`New state at ${index}`, newState)
+            // @ts-ignore
             await componentInstances[index].setState(newState)
           }
         }
