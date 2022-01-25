@@ -24,7 +24,7 @@ const labelValue = z.object({
 })
 
 export const ioSchema = {
-  ASK_TEXT: {
+  INPUT_TEXT: {
     props: z.object({
       label: z.string(),
     }),

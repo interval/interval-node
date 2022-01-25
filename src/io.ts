@@ -88,7 +88,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       renderGroup: inputGroup,
       findAndSelectUser,
       input: {
-        text: aliasComponentName('ASK_TEXT'),
+        text: aliasComponentName('INPUT_TEXT'),
         boolean: aliasComponentName('INPUT_BOOLEAN'),
         number: aliasComponentName('INPUT_NUMBER'),
         email: aliasComponentName('INPUT_EMAIL'),
