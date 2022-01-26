@@ -47,17 +47,19 @@ createIntervalHost({
       console.log('done!')
     },
     'Unique ID tester': async io => {
+      const shouldContinue = await io.render(io.input.number({ label: 'hi' }))
+
       const [name, id] = await io.renderGroup([
         io.input.text({ label: 'Your name' }),
         io.input.number({ label: 'Pick a number' }),
       ])
     },
     'Hello current user': async (io, ctx) => {
-      io.renderGroup([
+      io.render(
         io.display.heading({
           label: `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`,
-        }),
-      ])
+        })
+      )
     },
     'Update email for user': async io => {
       console.log("Let's say hello...")

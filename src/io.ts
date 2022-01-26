@@ -85,9 +85,14 @@ export default function createIOClient(clientConfig: ClientConfig) {
     ) as unknown as Promise<ReturnValues>
   }
 
+  function input<Instance extends AnyComponentType>(instance: Instance) {
+    return inputGroup([instance]).then(r => r[0])
+  }
+
   return {
     io: {
       renderGroup: inputGroup,
+      render: input,
       findAndSelectUser,
       input: {
         text: aliasComponentName('INPUT_TEXT'),
