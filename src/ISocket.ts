@@ -83,6 +83,10 @@ export default class ISocket {
     })
   }
 
+  close() {
+    return this.ws.close()
+  }
+
   constructor(ws: WebSocket | NodeWebSocket, config?: ISocketConfig) {
     // this works but on("error") does not. No idea why ¯\_(ツ)_/¯
     // will emit "closed" regardless

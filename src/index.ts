@@ -2,10 +2,15 @@ import { WebSocket } from 'ws'
 import ISocket from './ISocket'
 import { createDuplexRPCClient } from './rpc'
 import { wsServerSchema, hostSchema } from './internalRpcSchema'
-import { IOResponse, IO_RESPONSE } from './ioSchema'
+import { IO_RESPONSE, T_IO_RESPONSE, T_IO_METHOD } from './ioSchema'
 import createIOClient, { IOClient } from './io'
+import { z } from 'zod'
 
-type ActionFunction = (io: IOClient) => Promise<any>
+interface ActionCtx {
+  user: z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>['user']
+}
+
+type ActionFunction = (io: IOClient['io'], ctx: ActionCtx) => Promise<any>
 
 interface InternalConfig {
   apiKey: string
@@ -28,7 +33,7 @@ export default async function createIntervalHost(config: InternalConfig) {
 
   log.debug('Create Interval Host :)', config)
 
-  const pendingIO = new Map<string, (value: IOResponse) => void>()
+  const ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
 
   async function setup() {
     const ws = new ISocket(
@@ -65,22 +70,24 @@ export default async function createIntervalHost(config: InternalConfig) {
             return
           }
 
-          const client = createIOClient(async callToSend => {
-            log.debug('emitting', callToSend)
-            await serverRpc('SEND_IO_CALL', {
-              transactionId: inputs.transactionId,
-              ioCall: JSON.stringify(callToSend),
-            })
-            log.debug('sent')
-
-            return new Promise(resolve => {
-              pendingIO.set(callToSend.id, resp => {
-                resolve(resp)
+          const client = createIOClient({
+            send: async ioRenderInstruction => {
+              log.debug('emitting', ioRenderInstruction)
+              await serverRpc('SEND_IO_CALL', {
+                transactionId: inputs.transactionId,
+                ioCall: JSON.stringify(ioRenderInstruction),
               })
-            })
+              log.debug('sent')
+            },
           })
 
-          fn(client).then(() =>
+          ioResponseHandlers.set(inputs.transactionId, client.onResponse)
+
+          const ctx: ActionCtx = {
+            user: inputs.user,
+          }
+
+          fn(client.io, ctx).then(() =>
             serverRpc('MARK_TRANSACTION_COMPLETE', {
               transactionId: inputs.transactionId,
             })
@@ -91,20 +98,16 @@ export default async function createIntervalHost(config: InternalConfig) {
         IO_RESPONSE: async inputs => {
           log.debug('got io response', inputs)
 
-          const parsed = IO_RESPONSE.parse(JSON.parse(inputs.value))
-          const replyHandler = pendingIO.get(parsed.id)
+          const ioResp = IO_RESPONSE.parse(JSON.parse(inputs.value))
+          const replyHandler = ioResponseHandlers.get(ioResp.transactionId)
 
           if (!replyHandler) {
-            log.debug(
-              'Missing reply handler for',
-              parsed.id,
-              inputs.transactionId
-            )
+            log.debug('Missing reply handler for', inputs.transactionId)
             return
           }
 
-          replyHandler(parsed)
-          pendingIO.delete(parsed.id)
+          replyHandler(ioResp)
+          ioResponseHandlers.delete(ioResp.id)
         },
       },
     })
