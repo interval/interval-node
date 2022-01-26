@@ -1,7 +1,6 @@
 import { T_IO_METHOD } from '../ioSchema'
-import component, { ComponentType } from '../component'
-import { IOPromise } from '../io'
-import type { Executor } from '../io'
+import component from '../component'
+import type { IOPromiseConstructor } from '../io'
 
 type ProgressibleItem =
   | {
@@ -15,9 +14,7 @@ type ProgressList = T_IO_METHOD<
 >['items']
 
 export default function progressThroughList(
-  executor: (
-    c: ComponentType<'DISPLAY_PROGRESS_THROUGH_LIST'>
-  ) => Executor<'DISPLAY_PROGRESS_THROUGH_LIST'>
+  constructor: IOPromiseConstructor<'DISPLAY_PROGRESS_THROUGH_LIST'>
 ) {
   return <T extends ProgressibleItem>(
     items: T[],
@@ -51,6 +48,6 @@ export default function progressThroughList(
     }
     loop()
 
-    return new IOPromise(executor(c), c)
+    return constructor(c)
   }
 }

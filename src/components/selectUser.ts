@@ -1,10 +1,9 @@
-import component, { ComponentType } from '../component'
+import component from '../component'
 import type { T_IO_METHOD } from '../ioSchema'
-import { IOPromise } from '../io'
-import type { Executor } from '../io'
+import type { IOPromiseConstructor } from '../io'
 
 export default function findAndSelectUser(
-  executor: (c: ComponentType<'SELECT_USER'>) => Executor<'SELECT_USER'>
+  constructor: IOPromiseConstructor<'SELECT_USER'>
 ) {
   return (
     props: T_IO_METHOD<'SELECT_USER', 'props'> & {
@@ -22,6 +21,6 @@ export default function findAndSelectUser(
       }
     )
 
-    return new IOPromise(executor(c), c)
+    return constructor(c)
   }
 }

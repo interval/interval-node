@@ -10,19 +10,13 @@ import component, {
 import progressThroughList from './components/progressThroughList'
 import findAndSelectUser from './components/selectUser'
 
-export class IOPromise<MethodName extends T_IO_METHOD_NAMES> extends Promise<
-  ComponentReturnValue<MethodName>
-> {
+export type IOPromiseConstructor<MethodName extends T_IO_METHOD_NAMES> = (
+  c: ComponentType<MethodName>
+) => IOPromise<MethodName>
+
+export interface IOPromise<MethodName extends T_IO_METHOD_NAMES> {
   component: ComponentType<MethodName>
-
-  constructor(
-    executor: Executor<MethodName>,
-    component: ComponentType<MethodName>
-  ) {
-    super((resolve, reject) => executor(resolve, reject))
-
-    this.component = component
-  }
+  then: Executor<MethodName>
 }
 
 interface ClientConfig {
@@ -31,7 +25,7 @@ interface ClientConfig {
 
 export type Executor<MethodName extends T_IO_METHOD_NAMES> = (
   resolve: (input: ComponentReturnValue<MethodName>) => void,
-  reject: () => void
+  reject?: () => void
 ) => void
 
 type IOPromiseMap = {
@@ -128,19 +122,20 @@ export default function createIOClient(clientConfig: ClientConfig) {
     ) as unknown as Promise<ReturnValues>
   }
 
-  function executor<MethodName extends T_IO_METHOD_NAMES>(
+  function ioPromiseConstructor<MethodName extends T_IO_METHOD_NAMES>(
     component: ComponentType<MethodName>
-  ): Executor<MethodName> {
-    return (resolve: (input: ComponentReturnValue<MethodName>) => void) => {
-      const componentInstances = [component] as unknown as Readonly<
-        AnyComponentType[]
-      >
+  ): IOPromise<MethodName> {
+    return {
+      component,
+      then(resolve) {
+        const componentInstances = [component] as unknown as Readonly<
+          AnyComponentType[]
+        >
 
-      console.log('executor')
-
-      renderComponents(componentInstances).then(([result]) => {
-        resolve(result)
-      })
+        renderComponents(componentInstances).then(([result]) => {
+          resolve(result)
+        })
+      },
     }
   }
 
@@ -149,14 +144,14 @@ export default function createIOClient(clientConfig: ClientConfig) {
   ): (props: T_IO_METHOD<MethodName, 'props'>) => IOPromise<MethodName> {
     return (props: T_IO_METHOD<MethodName, 'props'>) => {
       const c = component(methodName, props)
-      return new IOPromise(executor(c), c)
+      return ioPromiseConstructor(c)
     }
   }
 
   return {
     io: {
       renderGroup,
-      findAndSelectUser: findAndSelectUser(executor),
+      findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
       input: {
         text: aliasComponentName('INPUT_TEXT'),
         boolean: aliasComponentName('INPUT_BOOLEAN'),
@@ -170,7 +165,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       },
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),
-        progressThroughList: progressThroughList(executor),
+        progressThroughList: progressThroughList(ioPromiseConstructor),
       },
     },
     onResponse: (result: T_IO_RESPONSE) => {
