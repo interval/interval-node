@@ -38,24 +38,6 @@ export default function createIOClient(clientConfig: ClientConfig) {
   type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
   let onResponseHandler: ResponseHandlerFn | null = null
 
-  async function renderGroup<
-    PromiseInstances extends readonly AnyIOPromise[] | [],
-    ComponentInstances extends readonly AnyComponentType[] | []
-  >(promiseInstances: PromiseInstances) {
-    const componentInstances = promiseInstances.map(
-      pi => pi.component
-    ) as ComponentInstances
-
-    type ReturnValues = {
-      -readonly [Idx in keyof PromiseInstances]: z.infer<
-        // @ts-ignore
-        PromiseInstances[Idx]['component']['schema']['returns']
-      >
-    }
-
-    return renderComponents(componentInstances) as unknown as ReturnValues
-  }
-
   async function renderComponents<
     Instances extends readonly AnyComponentType[] | []
   >(componentInstances: Instances) {
@@ -120,6 +102,24 @@ export default function createIOClient(clientConfig: ClientConfig) {
     return Promise.all(
       componentInstances.map(comp => comp.returnValue)
     ) as unknown as Promise<ReturnValues>
+  }
+
+  async function renderGroup<
+    PromiseInstances extends readonly AnyIOPromise[] | [],
+    ComponentInstances extends readonly AnyComponentType[] | []
+  >(promiseInstances: PromiseInstances) {
+    const componentInstances = promiseInstances.map(
+      pi => pi.component
+    ) as ComponentInstances
+
+    type ReturnValues = {
+      -readonly [Idx in keyof PromiseInstances]: z.infer<
+        // @ts-ignore
+        PromiseInstances[Idx]['component']['schema']['returns']
+      >
+    }
+
+    return renderComponents(componentInstances) as unknown as ReturnValues
   }
 
   function ioPromiseConstructor<MethodName extends T_IO_METHOD_NAMES>(
