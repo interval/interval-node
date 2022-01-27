@@ -28,7 +28,7 @@ createIntervalHost({
   endpoint: 'ws://localhost:3001',
   actions: {
     'Progress through long list': async io => {
-      const resp = await io.display.progressThroughList(
+      const resp = await io.experimental.progressThroughList(
         ['Dan', 'Alex', 'Jacob'],
         async person => {
           await sleep(1000)
@@ -84,7 +84,7 @@ createIntervalHost({
         io.display.heading({
           label: 'Edit email address for user',
         }),
-        io.findAndSelectUser({
+        io.experimental.findAndSelectUser({
           label: 'Select a user',
           userList: initialUsers.map(toIntervalUser),
           onSearch: async query => {

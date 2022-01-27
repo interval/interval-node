@@ -151,7 +151,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
   return {
     io: {
       renderGroup,
-      findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
+
       input: {
         text: aliasComponentName('INPUT_TEXT'),
         boolean: aliasComponentName('INPUT_BOOLEAN'),
@@ -165,6 +165,9 @@ export default function createIOClient(clientConfig: ClientConfig) {
       },
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),
+      },
+      experimental: {
+        findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
         progressThroughList: progressThroughList(ioPromiseConstructor),
       },
     },
