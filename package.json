@@ -1,6 +1,6 @@
 {
   "name": "interval-js",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "license": "MIT",
   "engines": {
@@ -12,6 +12,7 @@
     "tar": "yarn pack",
     "build": "tsc",
     "demo:basic": "node ./dist/demos/basic.js",
+    "demo:prod": "node ./dist/demos/prodDemo.js",
     "dev": "nodemon --watch src --exec \"yarn build && yarn demo:basic\" -e ts"
   },
   "dependencies": {
