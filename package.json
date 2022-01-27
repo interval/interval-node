@@ -12,6 +12,7 @@
     "tar": "yarn pack",
     "build": "tsc",
     "demo:basic": "node ./dist/demos/basic.js",
+    "demo:prod": "node ./dist/demos/prodDemo.js",
     "dev": "nodemon --watch src --exec \"yarn build && yarn demo:basic\" -e ts"
   },
   "dependencies": {
