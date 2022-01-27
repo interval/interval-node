@@ -62,8 +62,6 @@ export default function createIOClient(clientConfig: ClientConfig) {
     }
 
     onResponseHandler = async result => {
-      console.log('handle resp', result)
-
       if (result.values.length !== componentInstances.length) {
         throw new Error('Mismatch in return array length')
       }
