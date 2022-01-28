@@ -20,6 +20,16 @@ export type T_IO_RENDER = z.infer<typeof IO_RENDER>
 export type T_IO_RESPONSE = z.infer<typeof IO_RESPONSE>
 export type T_IO_RESPONSE_KIND = T_IO_RESPONSE['kind']
 
+export const typeValue = z.enum([
+  'string',
+  'string?',
+  'number',
+  'number?',
+  'boolean',
+  'boolean?',
+])
+export type TypeValue = z.infer<typeof typeValue>
+
 const labelValue = z.object({
   label: z.string(),
   value: z.string(),
@@ -60,6 +70,24 @@ export const ioSchema = {
     }),
     state: z.null(),
     returns: z.boolean(),
+  },
+  INPUT_SPREADSHEET: {
+    props: z.object({
+      helpText: z.string().optional(),
+      columns: z.array(
+        z.union([
+          z.string(),
+          z.object({
+            name: z.string(),
+            type: typeValue,
+          }),
+        ])
+      ),
+    }),
+    state: z.null(),
+    returns: z.array(
+      z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    ),
   },
   SELECT_TABLE: {
     props: z.object({

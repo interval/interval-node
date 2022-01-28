@@ -9,6 +9,7 @@ import component, {
 } from './component'
 import progressThroughList from './components/progressThroughList'
 import findAndSelectUser from './components/selectUser'
+import spreadsheet from './components/spreadsheet'
 
 export type IOPromiseConstructor<MethodName extends T_IO_METHOD_NAMES> = (
   c: ComponentType<MethodName>
@@ -170,6 +171,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       experimental: {
         findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
         progressThroughList: progressThroughList(ioPromiseConstructor),
+        spreadsheet: spreadsheet(renderComponents),
       },
     },
     onResponse: (result: T_IO_RESPONSE) => {

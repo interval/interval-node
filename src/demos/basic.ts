@@ -37,5 +37,10 @@ createIntervalHost({
         .then(() => {})
     },
     'Update email for user': editEmailForUser,
+    'Upload spreadsheet': async io => {
+      const records = await io.experimental.spreadsheet('Spreadsheet!', {
+        columns: ['firstName', 'lastName', 'age'],
+      })
+    },
   },
 })
