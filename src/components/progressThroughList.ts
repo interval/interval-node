@@ -1,5 +1,6 @@
 import { T_IO_METHOD } from '../ioSchema'
 import component from '../component'
+import type { IOPromiseConstructor } from '../io'
 
 type ProgressibleItem =
   | {
@@ -12,37 +13,41 @@ type ProgressList = T_IO_METHOD<
   'props'
 >['items']
 
-export default function progressThroughList<T extends ProgressibleItem>(
-  items: T[],
-  eachItemFn: (item: T) => Promise<string>,
-  props: { label: string }
+export default function progressThroughList(
+  constructor: IOPromiseConstructor<'DISPLAY_PROGRESS_THROUGH_LIST'>
 ) {
-  const progressItems: ProgressList = items.map(item => {
-    return {
-      label: typeof item === 'string' ? item : item['label'],
-      isComplete: false,
-      resultDescription: null,
+  return <T extends ProgressibleItem>(
+    items: T[],
+    eachItemFn: (item: T) => Promise<string>,
+    props: { label: string }
+  ) => {
+    const progressItems: ProgressList = items.map(item => {
+      return {
+        label: typeof item === 'string' ? item : item['label'],
+        isComplete: false,
+        resultDescription: null,
+      }
+    })
+
+    const c = component('DISPLAY_PROGRESS_THROUGH_LIST', {
+      label: props.label,
+      items: progressItems,
+    })
+
+    async function loop() {
+      for (const [idx, item] of items.entries()) {
+        console.log('Iterating...', idx)
+        const resultText = await eachItemFn(item)
+
+        progressItems[idx].resultDescription = resultText
+        progressItems[idx].isComplete = true
+
+        c.setProps({ items: progressItems, label: props.label })
+      }
+      c.setReturnValue(null)
     }
-  })
+    loop()
 
-  const c = component('DISPLAY_PROGRESS_THROUGH_LIST', {
-    label: props.label,
-    items: progressItems,
-  })
-
-  async function loop() {
-    for (const [idx, item] of items.entries()) {
-      console.log('Iterating...', idx)
-      const resultText = await eachItemFn(item)
-
-      progressItems[idx].resultDescription = resultText
-      progressItems[idx].isComplete = true
-
-      c.setProps({ items: progressItems, label: props.label })
-    }
-    c.setReturnValue(null)
+    return constructor(c)
   }
-  loop()
-
-  return c
 }

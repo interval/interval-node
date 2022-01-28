@@ -10,11 +10,14 @@ interface ActionCtx {
   user: z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>['user']
 }
 
-type ActionFunction = (io: IOClient['io'], ctx: ActionCtx) => Promise<any>
+export type IntervalActionHandler = (
+  io: IOClient['io'],
+  ctx: ActionCtx
+) => Promise<any>
 
 interface InternalConfig {
   apiKey: string
-  actions: Record<string, ActionFunction>
+  actions: Record<string, IntervalActionHandler>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
 }

@@ -31,26 +31,62 @@ export const ioSchema = {
     state: z.null(),
     returns: z.string(),
   },
-  DISPLAY_HEADING: {
+  INPUT_EMAIL: {
     props: z.object({
       label: z.string(),
     }),
     state: z.null(),
-    returns: z.null(),
+    returns: z.string(),
   },
-  DISPLAY_PROGRESS_THROUGH_LIST: {
+  INPUT_NUMBER: {
+    props: z.object({
+      min: z.optional(z.number()),
+      max: z.optional(z.number()),
+      prepend: z.optional(z.string()),
+      label: z.string(),
+    }),
+    state: z.null(),
+    returns: z.number(),
+  },
+  INPUT_BOOLEAN: {
     props: z.object({
       label: z.string(),
-      items: z.array(
-        z.object({
-          label: z.string(),
-          isComplete: z.boolean(),
-          resultDescription: z.union([z.null(), z.string()]),
-        })
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(z.boolean()),
+    }),
+    state: z.null(),
+    returns: z.boolean(),
+  },
+  SELECT_TABLE: {
+    props: z.object({
+      label: z.optional(z.string()),
+      data: z.array(
+        z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
       ),
     }),
     state: z.null(),
-    returns: z.null(),
+    returns: z.array(
+      z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    ),
+  },
+  SELECT_SINGLE: {
+    props: z.object({
+      label: z.string(),
+      options: z.array(labelValue),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(labelValue),
+    }),
+    state: z.null(),
+    returns: labelValue,
+  },
+  SELECT_MULTIPLE: {
+    props: z.object({
+      label: z.string(),
+      options: z.array(labelValue),
+      defaultValue: z.optional(z.array(labelValue)),
+    }),
+    state: z.null(),
+    returns: z.array(labelValue),
   },
   SELECT_USER: {
     props: z.object({
@@ -72,62 +108,26 @@ export const ioSchema = {
       imageUrl: z.string().optional(),
     }),
   },
-  INPUT_EMAIL: {
+  DISPLAY_HEADING: {
     props: z.object({
       label: z.string(),
     }),
     state: z.null(),
-    returns: z.string(),
+    returns: z.null(),
   },
-  SELECT_TABLE: {
+  DISPLAY_PROGRESS_THROUGH_LIST: {
     props: z.object({
-      label: z.optional(z.string()),
-      data: z.array(
-        z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+      label: z.string(),
+      items: z.array(
+        z.object({
+          label: z.string(),
+          isComplete: z.boolean(),
+          resultDescription: z.union([z.null(), z.string()]),
+        })
       ),
     }),
     state: z.null(),
-    returns: z.array(
-      z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
-    ),
-  },
-  INPUT_NUMBER: {
-    props: z.object({
-      min: z.optional(z.number()),
-      max: z.optional(z.number()),
-      prepend: z.optional(z.string()),
-      label: z.string(),
-    }),
-    state: z.null(),
-    returns: z.number(),
-  },
-  INPUT_BOOLEAN: {
-    props: z.object({
-      label: z.string(),
-      helpText: z.optional(z.string()),
-      defaultValue: z.optional(z.boolean()),
-    }),
-    state: z.null(),
-    returns: z.boolean(),
-  },
-  SELECT_SINGLE: {
-    props: z.object({
-      label: z.string(),
-      options: z.array(labelValue),
-      helpText: z.optional(z.string()),
-      defaultValue: z.optional(labelValue),
-    }),
-    state: z.null(),
-    returns: labelValue,
-  },
-  SELECT_MULTIPLE: {
-    props: z.object({
-      label: z.string(),
-      options: z.array(labelValue),
-      defaultValue: z.optional(z.array(labelValue)),
-    }),
-    state: z.null(),
-    returns: z.array(labelValue),
+    returns: z.null(),
   },
 }
 
