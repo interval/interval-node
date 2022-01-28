@@ -27,6 +27,8 @@ export const ioSchema = {
   INPUT_TEXT: {
     props: z.object({
       label: z.string(),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(z.string()),
     }),
     state: z.null(),
     returns: z.string(),
@@ -34,6 +36,8 @@ export const ioSchema = {
   INPUT_EMAIL: {
     props: z.object({
       label: z.string(),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(z.string()),
     }),
     state: z.null(),
     returns: z.string(),
@@ -44,6 +48,8 @@ export const ioSchema = {
       max: z.optional(z.number()),
       prepend: z.optional(z.string()),
       label: z.string(),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(z.number()),
     }),
     state: z.null(),
     returns: z.number(),
@@ -60,6 +66,12 @@ export const ioSchema = {
   SELECT_TABLE: {
     props: z.object({
       label: z.optional(z.string()),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(
+        z.array(
+          z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+        )
+      ),
       data: z.array(
         z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
       ),
@@ -71,8 +83,8 @@ export const ioSchema = {
   },
   SELECT_SINGLE: {
     props: z.object({
-      label: z.string(),
       options: z.array(labelValue),
+      label: z.string(),
       helpText: z.optional(z.string()),
       defaultValue: z.optional(labelValue),
     }),
@@ -81,8 +93,9 @@ export const ioSchema = {
   },
   SELECT_MULTIPLE: {
     props: z.object({
-      label: z.string(),
       options: z.array(labelValue),
+      label: z.string(),
+      helpText: z.optional(z.string()),
       defaultValue: z.optional(z.array(labelValue)),
     }),
     state: z.null(),
