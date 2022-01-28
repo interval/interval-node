@@ -1,6 +1,6 @@
 {
   "name": "interval-js",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "private": true,
   "license": "MIT",
   "engines": {
@@ -30,7 +30,6 @@
     "typescript": "^4.5.4"
   },
   "files": [
-    "dist/*.js",
-    "dist/*.ts"
+    "dist/*"
   ]
 }
