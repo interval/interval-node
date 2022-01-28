@@ -40,7 +40,7 @@ export default async function createIntervalHost(config: InternalConfig) {
 
   async function setup() {
     const ws = new ISocket(
-      new WebSocket(config.endpoint || 'wss://intervalkit.com:3002', {
+      new WebSocket(config.endpoint || 'wss://intervalkit.com:3003', {
         headers: {
           'x-api-key': config.apiKey,
         },
