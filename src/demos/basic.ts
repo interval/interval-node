@@ -5,7 +5,6 @@ import { sleep } from './helpers'
 createIntervalHost({
   apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
   logLevel: 'debug',
-  // endpoint: 'wss://intervalkit.com:3003',
   endpoint: 'ws://localhost:3002',
   actions: {
     'Progress through long list': async io => {

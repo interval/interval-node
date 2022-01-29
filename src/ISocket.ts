@@ -109,9 +109,9 @@ export default class ISocket extends EE<Events> {
     this.sendTimeout = config?.sendTimeout || 3000
     this.isAuthenticated = false
 
-    // this.ws.onopen = () => {
-    //   this.emit('open')
-    // }
+    this.ws.onopen = () => {
+      this.emit('open')
+    }
 
     this.ws.onclose = (ev: CloseEvent) => {
       this.emit('close', ev.code, ev.reason)
