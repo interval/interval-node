@@ -3,7 +3,9 @@ import { z } from 'zod'
 export const IO_RENDER = z.object({
   id: z.string(),
   inputGroupKey: z.string(),
-  toRender: z.array(z.object({ methodName: z.string(), props: z.any() })),
+  toRender: z.array(
+    z.object({ methodName: z.string(), label: z.string(), props: z.any() })
+  ),
   kind: z.literal('RENDER'),
 })
 
@@ -26,7 +28,6 @@ const labelValue = z.object({
 export const ioSchema = {
   INPUT_TEXT: {
     props: z.object({
-      label: z.string(),
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.string()),
     }),
@@ -35,7 +36,6 @@ export const ioSchema = {
   },
   INPUT_EMAIL: {
     props: z.object({
-      label: z.string(),
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.string()),
     }),
@@ -47,7 +47,6 @@ export const ioSchema = {
       min: z.optional(z.number()),
       max: z.optional(z.number()),
       prepend: z.optional(z.string()),
-      label: z.string(),
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.number()),
     }),
@@ -56,7 +55,6 @@ export const ioSchema = {
   },
   INPUT_BOOLEAN: {
     props: z.object({
-      label: z.string(),
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.boolean()),
     }),
@@ -65,7 +63,6 @@ export const ioSchema = {
   },
   SELECT_TABLE: {
     props: z.object({
-      label: z.optional(z.string()),
       helpText: z.optional(z.string()),
       defaultValue: z.optional(
         z.array(
@@ -84,7 +81,6 @@ export const ioSchema = {
   SELECT_SINGLE: {
     props: z.object({
       options: z.array(labelValue),
-      label: z.string(),
       helpText: z.optional(z.string()),
       defaultValue: z.optional(labelValue),
     }),
@@ -94,7 +90,6 @@ export const ioSchema = {
   SELECT_MULTIPLE: {
     props: z.object({
       options: z.array(labelValue),
-      label: z.string(),
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.array(labelValue)),
     }),
@@ -103,7 +98,6 @@ export const ioSchema = {
   },
   SELECT_USER: {
     props: z.object({
-      label: z.string(),
       userList: z.array(
         z.object({
           id: z.union([z.string(), z.number()]),
@@ -122,15 +116,12 @@ export const ioSchema = {
     }),
   },
   DISPLAY_HEADING: {
-    props: z.object({
-      label: z.string(),
-    }),
+    props: z.object({}),
     state: z.null(),
     returns: z.null(),
   },
   DISPLAY_PROGRESS_THROUGH_LIST: {
     props: z.object({
-      label: z.string(),
       items: z.array(
         z.object({
           label: z.string(),

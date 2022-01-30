@@ -4,13 +4,15 @@ import { ioSchema } from './ioSchema'
 type IoSchema = typeof ioSchema
 export interface ComponentInstance<MN extends keyof IoSchema> {
   methodName: MN
-  props: z.infer<IoSchema[MN]['props']>
+  label: string
+  props?: z.infer<IoSchema[MN]['props']>
   state: z.infer<IoSchema[MN]['state']>
 }
 
 export interface ComponentType<MN extends keyof IoSchema> {
   onStateChange: (fn: () => void) => void
   schema: IoSchema[MN]
+  label: string
   getInstance: () => ComponentInstance<MN>
   getRenderInfo: () => ComponentRenderInfo<MN>
   returnValue: Promise<ComponentReturnValue<MN>>
@@ -23,7 +25,7 @@ export interface ComponentType<MN extends keyof IoSchema> {
 
 export type ComponentRenderInfo<MN extends keyof IoSchema> = Pick<
   ComponentInstance<MN>,
-  'methodName' | 'props'
+  'methodName' | 'label' | 'props'
 >
 
 export type ComponentReturnValue<MN extends keyof IoSchema> = z.infer<
@@ -38,13 +40,15 @@ export type AnyComponentType = ComponentTypeMap[keyof IoSchema]
 
 const component = <MN extends keyof IoSchema>(
   methodName: MN,
-  initialProps: z.infer<IoSchema[MN]['props']>,
+  label: string,
+  initialProps?: z.infer<IoSchema[MN]['props']>,
   handleStateChange?: (
     incomingState: z.infer<IoSchema[MN]['state']>
   ) => Promise<z.infer<IoSchema[MN]['props']>>
 ): ComponentType<MN> => {
   const instance: ComponentInstance<MN> = {
     methodName,
+    label,
     props: initialProps,
     state: null,
   }
@@ -94,6 +98,7 @@ const component = <MN extends keyof IoSchema>(
   function getRenderInfo(): ComponentRenderInfo<MN> {
     return {
       methodName: instance.methodName,
+      label: instance.label,
       props: instance.props,
     }
   }
@@ -103,6 +108,7 @@ const component = <MN extends keyof IoSchema>(
       onStateChangeHandler = fn
     },
     schema,
+    label,
     getInstance,
     getRenderInfo,
     returnValue,
