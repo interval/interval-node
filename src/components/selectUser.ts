@@ -6,6 +6,7 @@ export default function findAndSelectUser(
   constructor: IOPromiseConstructor<'SELECT_USER'>
 ) {
   return (
+    label: string,
     props: T_IO_METHOD<'SELECT_USER', 'props'> & {
       onSearch: (
         query: string
@@ -14,10 +15,11 @@ export default function findAndSelectUser(
   ) => {
     const c = component(
       'SELECT_USER',
-      { label: props.label, userList: props.userList },
+      label,
+      { userList: props.userList },
       async newState => {
         const filteredUsers = await props.onSearch(newState.queryTerm)
-        return { label: props.label, userList: filteredUsers }
+        return { userList: filteredUsers }
       }
     )
 
