@@ -139,9 +139,12 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
   function aliasComponentName<MethodName extends T_IO_METHOD_NAMES>(
     methodName: MethodName
-  ): (props: T_IO_METHOD<MethodName, 'props'>) => IOPromise<MethodName> {
-    return (props: T_IO_METHOD<MethodName, 'props'>) => {
-      const c = component(methodName, props)
+  ): (
+    label: string,
+    props?: T_IO_METHOD<MethodName, 'props'>
+  ) => IOPromise<MethodName> {
+    return (label: string, props?: T_IO_METHOD<MethodName, 'props'>) => {
+      const c = component(methodName, label, props)
       return ioPromiseConstructor(c)
     }
   }

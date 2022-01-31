@@ -17,9 +17,9 @@ export default function progressThroughList(
   constructor: IOPromiseConstructor<'DISPLAY_PROGRESS_THROUGH_LIST'>
 ) {
   return <T extends ProgressibleItem>(
+    label: string,
     items: T[],
-    eachItemFn: (item: T) => Promise<string>,
-    props: { label: string }
+    eachItemFn: (item: T) => Promise<string>
   ) => {
     const progressItems: ProgressList = items.map(item => {
       return {
@@ -29,8 +29,7 @@ export default function progressThroughList(
       }
     })
 
-    const c = component('DISPLAY_PROGRESS_THROUGH_LIST', {
-      label: props.label,
+    const c = component('DISPLAY_PROGRESS_THROUGH_LIST', label, {
       items: progressItems,
     })
 
@@ -42,7 +41,7 @@ export default function progressThroughList(
         progressItems[idx].resultDescription = resultText
         progressItems[idx].isComplete = true
 
-        c.setProps({ items: progressItems, label: props.label })
+        c.setProps({ items: progressItems })
       }
       c.setReturnValue(null)
     }
