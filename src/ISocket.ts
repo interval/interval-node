@@ -86,6 +86,8 @@ export default class ISocket extends EE<Events> {
         },
       })
       this.ws.send(JSON.stringify({ id, data, type: 'MESSAGE' }))
+    }).catch(err => {
+      console.error(err)
     })
   }
 
@@ -115,6 +117,10 @@ export default class ISocket extends EE<Events> {
 
     this.ws.onclose = (ev: CloseEvent) => {
       this.emit('close', ev.code, ev.reason)
+    }
+
+    this.ws.onerror = (ev: any) => {
+      /* */
     }
 
     this.ws.onmessage = (evt: MessageEvent) => {
