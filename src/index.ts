@@ -62,7 +62,7 @@ export default async function createIntervalHost(config: InternalConfig) {
       { id }
     )
 
-    ws.on('close', async (code, reason) => {
+    ws.onClose.attach(([code, reason]) => {
       // don't initialize retry process again if already started
       if (retryCount > 0) return
 
@@ -96,7 +96,7 @@ export default async function createIntervalHost(config: InternalConfig) {
 
       const retryEnd = performance.now() - retryStart
 
-      console.log(`❗ Could not connect to Interval after ${retryEnd}ms.`)
+      log.prod(`❗ Could not connect to Interval after ${retryEnd}ms.`)
     })
 
     await ws.connect()

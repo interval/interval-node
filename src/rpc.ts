@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { DuplexMessage } from './internalRpcSchema'
 import { DUPLEX_MESSAGE_SCHEMA } from './internalRpcSchema'
+import ISocket from './ISocket'
 
 let count = 0
 function generateId() {
@@ -16,11 +17,6 @@ interface MethodDef {
 }
 
 type OnReplyFn = (anyObject: any) => void
-
-interface Communicator {
-  on: (kind: string, handler: (...args: unknown[]) => void) => void
-  send: (data: string) => Promise<any>
-}
 
 function packageResponse({
   id,
@@ -93,11 +89,23 @@ export function createCaller<Methods extends MethodDef>({
   }
 }
 
+export type RPCCaller<CallerSchema extends MethodDef> = <
+  MethodName extends keyof CallerSchema
+>(
+  methodName: MethodName,
+  inputs: z.infer<CallerSchema[MethodName]['inputs']>
+) => Promise<z.infer<CallerSchema[MethodName]['returns']>>
+
 export function createDuplexRPCClient<
   CallerSchema extends MethodDef,
   ResponderSchema extends MethodDef
->(props: {
-  communicator: Communicator
+>({
+  communicator: initialCommunicator,
+  canCall,
+  canRespondTo,
+  handlers,
+}: {
+  communicator: ISocket
   canCall: CallerSchema
   canRespondTo: ResponderSchema
   handlers: {
@@ -106,16 +114,15 @@ export function createDuplexRPCClient<
     ) => Promise<z.infer<ResponderSchema[Property]['returns']>>
   }
 }) {
-  const { canCall, canRespondTo, handlers } = props
   const pendingCalls = new Map<string, OnReplyFn>()
-  let communicator = props.communicator
+  let communicator = initialCommunicator
 
   function setCommunicator(newCommunicator: Communicator) {
     communicator = newCommunicator
-    communicator.on('message', onmessage)
+    communicator.onMessage.attach(onmessage)
   }
 
-  setCommunicator(props.communicator)
+  setCommunicator(initialCommunicator)
 
   function handleReceivedResponse(parsed: DuplexMessage) {
     const onReplyFn = pendingCalls.get(parsed.id)
