@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws'
 import ISocket from './ISocket'
-import { createDuplexRPCClient } from './rpc'
+import { createDuplexRPCClient, DuplexRPCClient } from './rpc'
 import { wsServerSchema, hostSchema } from './internalRpcSchema'
 import { IO_RESPONSE, T_IO_RESPONSE, T_IO_METHOD } from './ioSchema'
 import createIOClient, { IOClient } from './io'
@@ -47,7 +47,7 @@ export default async function createIntervalHost(config: InternalConfig) {
 
   let retryCount = 0
   let ws: ISocket
-  let serverRpc: ReturnType<typeof createDuplexRPCClient>
+  let serverRpc: DuplexRPCClient<typeof wsServerSchema>
 
   async function createSocketConnection(connectConfig?: SetupConfig) {
     const id = connectConfig?.instanceId || v4()
@@ -62,7 +62,7 @@ export default async function createIntervalHost(config: InternalConfig) {
       { id }
     )
 
-    ws.onClose.attach(([code, reason]) => {
+    ws.onClose.attach(async ([code, reason]) => {
       // don't initialize retry process again if already started
       if (retryCount > 0) return
 

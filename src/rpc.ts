@@ -89,22 +89,18 @@ export function createCaller<Methods extends MethodDef>({
   }
 }
 
-export type RPCCaller<CallerSchema extends MethodDef> = <
-  MethodName extends keyof CallerSchema
->(
-  methodName: MethodName,
-  inputs: z.infer<CallerSchema[MethodName]['inputs']>
-) => Promise<z.infer<CallerSchema[MethodName]['returns']>>
+export type DuplexRPCClient<CallerSchema extends MethodDef> = {
+  setCommunicator: (newCommunicator: ISocket) => void
+  send: <MethodName extends keyof CallerSchema>(
+    methodName: MethodName,
+    inputs: z.infer<CallerSchema[MethodName]['inputs']>
+  ) => Promise<z.infer<CallerSchema[MethodName]['returns']>>
+}
 
-export function createDuplexRPCClient<
+interface CreateDuplexRPCClientProps<
   CallerSchema extends MethodDef,
   ResponderSchema extends MethodDef
->({
-  communicator: initialCommunicator,
-  canCall,
-  canRespondTo,
-  handlers,
-}: {
+> {
   communicator: ISocket
   canCall: CallerSchema
   canRespondTo: ResponderSchema
@@ -113,16 +109,25 @@ export function createDuplexRPCClient<
       inputs: z.infer<ResponderSchema[Property]['inputs']>
     ) => Promise<z.infer<ResponderSchema[Property]['returns']>>
   }
-}) {
-  const pendingCalls = new Map<string, OnReplyFn>()
-  let communicator = initialCommunicator
+}
 
-  function setCommunicator(newCommunicator: Communicator) {
+export function createDuplexRPCClient<
+  CallerSchema extends MethodDef,
+  ResponderSchema extends MethodDef
+>(
+  props: CreateDuplexRPCClientProps<CallerSchema, ResponderSchema>
+): DuplexRPCClient<CallerSchema> {
+  const { canCall, canRespondTo, handlers } = props
+
+  const pendingCalls = new Map<string, OnReplyFn>()
+  let communicator = props.communicator
+
+  function setCommunicator(newCommunicator: ISocket) {
     communicator = newCommunicator
     communicator.onMessage.attach(onmessage)
   }
 
-  setCommunicator(initialCommunicator)
+  setCommunicator(communicator)
 
   function handleReceivedResponse(parsed: DuplexMessage) {
     const onReplyFn = pendingCalls.get(parsed.id)
