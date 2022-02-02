@@ -37,10 +37,27 @@ createIntervalHost({
         .then(() => {})
     },
     'Update email for user': editEmailForUser,
-    'Upload spreadsheet': async io => {
-      const records = await io.experimental.spreadsheet('Spreadsheet!', {
-        columns: ['firstName', 'lastName', 'age'],
-      })
+    'Import users': async io => {
+      const records = await io.experimental.spreadsheet(
+        'Select users to import',
+        {
+          columns: [
+            'firstName',
+            'lastName',
+            { name: 'age', type: 'number?' },
+            { name: 'Is cool', type: 'boolean' },
+          ],
+        }
+      )
+
+      await io.experimental.progressThroughList(
+        'Importing users...',
+        records.map(r => `${r.firstName} ${r.lastName}`),
+        async name => {
+          await sleep(1000)
+          return `Added ${name}!`
+        }
+      )
     },
   },
 })
