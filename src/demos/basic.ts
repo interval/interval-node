@@ -31,6 +31,16 @@ createIntervalHost({
         io.input.number('Pick a number'),
       ])
     },
+    'Enter a number': async io => {
+      const num = await io.input.number('Enter a number')
+
+      await io.input.number(
+        `Enter a second number that's greater than ${num}`,
+        {
+          min: num + 1,
+        }
+      )
+    },
     'Hello current user': async (io, ctx) => {
       io.display
         .heading(`Hello, ${ctx.user.firstName} ${ctx.user.lastName}`)

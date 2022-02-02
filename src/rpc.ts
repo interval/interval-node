@@ -96,12 +96,7 @@ export function createCaller<Methods extends MethodDef>({
 export function createDuplexRPCClient<
   CallerSchema extends MethodDef,
   ResponderSchema extends MethodDef
->({
-  communicator,
-  canCall,
-  canRespondTo,
-  handlers,
-}: {
+>(props: {
   communicator: Communicator
   canCall: CallerSchema
   canRespondTo: ResponderSchema
@@ -111,7 +106,16 @@ export function createDuplexRPCClient<
     ) => Promise<z.infer<ResponderSchema[Property]['returns']>>
   }
 }) {
+  const { canCall, canRespondTo, handlers } = props
   const pendingCalls = new Map<string, OnReplyFn>()
+  let communicator = props.communicator
+
+  function setCommunicator(newCommunicator: Communicator) {
+    communicator = newCommunicator
+    communicator.on('message', onmessage)
+  }
+
+  setCommunicator(props.communicator)
 
   function handleReceivedResponse(parsed: DuplexMessage) {
     const onReplyFn = pendingCalls.get(parsed.id)
@@ -149,7 +153,7 @@ export function createDuplexRPCClient<
     return
   }
 
-  communicator.on('message', data => {
+  function onmessage(data: unknown) {
     const txt = data as string
     const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
 
@@ -160,9 +164,9 @@ export function createDuplexRPCClient<
     if (inputParsed.kind === 'CALL') {
       return handleReceivedCall(inputParsed)
     }
-  })
+  }
 
-  return function client<MethodName extends keyof CallerSchema>(
+  function send<MethodName extends keyof CallerSchema>(
     methodName: MethodName,
     inputs: z.infer<typeof canCall[MethodName]['inputs']>
   ) {
@@ -185,4 +189,6 @@ export function createDuplexRPCClient<
       communicator.send(msg)
     })
   }
+
+  return { send, setCommunicator }
 }

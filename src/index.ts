@@ -46,10 +46,13 @@ export default async function createIntervalHost(config: InternalConfig) {
   const ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
 
   let retryCount = 0
+  let ws: ISocket
+  let serverRpc: ReturnType<typeof createDuplexRPCClient>
 
-  async function setup(setupConfig?: SetupConfig) {
-    const id = setupConfig?.instanceId || v4()
-    const ws = new ISocket(
+  async function createSocketConnection(connectConfig?: SetupConfig) {
+    const id = connectConfig?.instanceId || v4()
+
+    ws = new ISocket(
       new WebSocket(config.endpoint || 'wss://intervalkit.com:3003', {
         headers: {
           'x-api-key': config.apiKey,
@@ -73,7 +76,7 @@ export default async function createIntervalHost(config: InternalConfig) {
       while (retryCount <= 10 && !didReconnect) {
         retryCount++
 
-        setup({ instanceId: ws.id })
+        createSocketConnection({ instanceId: ws.id })
           .then(() => {
             console.log('⚡ Reconnection successful')
             retryCount = 0
@@ -98,7 +101,15 @@ export default async function createIntervalHost(config: InternalConfig) {
 
     await ws.connect()
 
-    const serverRpc = createDuplexRPCClient({
+    if (!serverRpc) return
+
+    serverRpc.setCommunicator(ws)
+
+    await initializeHost()
+  }
+
+  function createRPCClient() {
+    serverRpc = createDuplexRPCClient({
       communicator: ws,
       canCall: wsServerSchema,
       canRespondTo: hostSchema,
@@ -114,7 +125,7 @@ export default async function createIntervalHost(config: InternalConfig) {
 
           const client = createIOClient({
             send: async ioRenderInstruction => {
-              await serverRpc('SEND_IO_CALL', {
+              await serverRpc.send('SEND_IO_CALL', {
                 transactionId: inputs.transactionId,
                 ioCall: JSON.stringify(ioRenderInstruction),
               })
@@ -128,7 +139,7 @@ export default async function createIntervalHost(config: InternalConfig) {
           }
 
           fn(client.io, ctx).then(() =>
-            serverRpc('MARK_TRANSACTION_COMPLETE', {
+            serverRpc.send('MARK_TRANSACTION_COMPLETE', {
               transactionId: inputs.transactionId,
             })
           )
@@ -151,8 +162,10 @@ export default async function createIntervalHost(config: InternalConfig) {
         },
       },
     })
+  }
 
-    const loggedIn = await serverRpc('INITIALIZE_HOST', {
+  async function initializeHost() {
+    const loggedIn = await serverRpc.send('INITIALIZE_HOST', {
       apiKey: config.apiKey,
       callableActionNames: Object.keys(config.actions),
     })
@@ -163,7 +176,9 @@ export default async function createIntervalHost(config: InternalConfig) {
     log.debug('Host ID:', ws.id)
   }
 
-  setup()
+  await createSocketConnection()
+  createRPCClient()
+  await initializeHost()
 
   return true
 }
