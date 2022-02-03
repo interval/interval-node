@@ -120,14 +120,16 @@ export function createDuplexRPCClient<
   const { canCall, canRespondTo, handlers } = props
 
   const pendingCalls = new Map<string, OnReplyFn>()
-  let communicator = props.communicator
+
+  let communicator: ISocket
 
   function setCommunicator(newCommunicator: ISocket) {
+    if (communicator) communicator.onMessage.detach()
     communicator = newCommunicator
     communicator.onMessage.attach(onmessage)
   }
 
-  setCommunicator(communicator)
+  setCommunicator(props.communicator)
 
   function handleReceivedResponse(parsed: DuplexMessage) {
     const onReplyFn = pendingCalls.get(parsed.id)
