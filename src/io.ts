@@ -158,6 +158,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
         boolean: aliasComponentName('INPUT_BOOLEAN'),
         number: aliasComponentName('INPUT_NUMBER'),
         email: aliasComponentName('INPUT_EMAIL'),
+        richText: aliasComponentName('INPUT_RICH_TEXT'),
       },
       select: {
         single: aliasComponentName('SELECT_SINGLE'),

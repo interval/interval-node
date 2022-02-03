@@ -61,6 +61,13 @@ export const ioSchema = {
     state: z.null(),
     returns: z.boolean(),
   },
+  INPUT_RICH_TEXT: {
+    props: z.object({
+      helpText: z.optional(z.string()),
+    }),
+    state: z.null(),
+    returns: z.string(),
+  },
   SELECT_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),

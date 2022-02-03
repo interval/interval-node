@@ -75,5 +75,12 @@ createIntervalHost({
       console.log(r)
     },
     'Update email for user': editEmailForUser,
+    'Enter email body': async io => {
+      const body = await io.input.richText('Enter email body', {
+        helpText: 'This will be sent to the user.',
+      })
+
+      console.log(body)
+    },
   },
 })
