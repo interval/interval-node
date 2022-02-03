@@ -45,9 +45,9 @@ export default async function createIntervalHost(config: InternalConfig) {
 
   const ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
 
-  let retryCount = 0
   let ws: ISocket
   let serverRpc: DuplexRPCClient<typeof wsServerSchema>
+  let isConnected = false
 
   async function createSocketConnection(connectConfig?: SetupConfig) {
     const id = connectConfig?.instanceId || v4()
@@ -64,23 +64,18 @@ export default async function createIntervalHost(config: InternalConfig) {
 
     ws.onClose.attach(async ([code, reason]) => {
       // don't initialize retry process again if already started
-      if (retryCount > 0) return
+      if (!isConnected) return
 
       log.prod(`❗ Lost connection to Interval (code ${code}). Reason:`, reason)
       log.prod('🔌 Reconnecting...')
 
-      retryCount = 0
-      let didReconnect = false
-      let retryStart = performance.now()
+      isConnected = false
 
-      while (retryCount <= 10 && !didReconnect) {
-        retryCount++
-
+      while (!isConnected) {
         createSocketConnection({ instanceId: ws.id })
           .then(() => {
             console.log('⚡ Reconnection successful')
-            retryCount = 0
-            didReconnect = true
+            isConnected = true
           })
           .catch(() => {
             /* */
@@ -91,15 +86,11 @@ export default async function createIntervalHost(config: InternalConfig) {
         console.log(`Unable to connect. Retrying in 3s...`)
         await sleep(3000)
       }
-
-      if (didReconnect) return
-
-      const retryEnd = performance.now() - retryStart
-
-      log.prod(`❗ Could not connect to Interval after ${retryEnd}ms.`)
     })
 
     await ws.connect()
+
+    isConnected = true
 
     if (!serverRpc) return
 
