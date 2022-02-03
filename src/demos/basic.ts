@@ -36,6 +36,44 @@ createIntervalHost({
         .heading(`Hello, ${ctx.user.firstName} ${ctx.user.lastName}`)
         .then(() => {})
     },
+    'Optional checkboxes': async io => {
+      const options = [
+        {
+          value: 'A',
+          label: 'A',
+        },
+        {
+          value: 'B',
+          label: 'B',
+        },
+        {
+          value: 'C',
+          label: 'C',
+        },
+      ]
+
+      let r = await io.select.multiple('Select zero or more', {
+        options,
+      })
+
+      console.log(r)
+
+      r = await io.select.multiple('Optionally modify the selection', {
+        options,
+        defaultValue: [
+          {
+            value: 'A',
+            label: 'A',
+          },
+          {
+            value: 'C',
+            label: 'C',
+          },
+        ],
+      })
+
+      console.log(r)
+    },
     'Update email for user': editEmailForUser,
     'Import users': async io => {
       const records = await io.experimental.spreadsheet(
