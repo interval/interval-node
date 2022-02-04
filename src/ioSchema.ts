@@ -30,6 +30,8 @@ export const ioSchema = {
     props: z.object({
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.string()),
+      multiline: z.optional(z.boolean()),
+      lines: z.optional(z.number()),
     }),
     state: z.null(),
     returns: z.string(),
@@ -123,6 +125,11 @@ export const ioSchema = {
     }),
   },
   DISPLAY_HEADING: {
+    props: z.object({}),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_MARKDOWN: {
     props: z.object({}),
     state: z.null(),
     returns: z.null(),

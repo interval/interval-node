@@ -167,6 +167,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       },
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),
+        markdown: aliasComponentName('DISPLAY_MARKDOWN'),
       },
       experimental: {
         findAndSelectUser: findAndSelectUser(ioPromiseConstructor),

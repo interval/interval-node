@@ -82,5 +82,19 @@ createIntervalHost({
 
       console.log(body)
     },
+    'Render markdown': async io => {
+      await io.renderGroup([
+        io.display.markdown('## Check box to erase user data'),
+        io.display.markdown('**Warning:** this _will_ erase user data.'),
+        io.select.multiple('Erase user data', {
+          options: [
+            {
+              label: 'Erase',
+              value: 'erase',
+            },
+          ],
+        }),
+      ])
+    },
   },
 })
