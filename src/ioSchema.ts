@@ -31,6 +31,7 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.string()),
       multiline: z.optional(z.boolean()),
+      lines: z.optional(z.number()),
     }),
     state: z.null(),
     returns: z.string(),
