@@ -75,6 +75,23 @@ createIntervalHost({
       console.log(r)
     },
     'Update email for user': editEmailForUser,
+    'Display returns automatically': async io => {
+      await io.renderGroup([
+        io.display.markdown(`
+          After you press continue, a long running task will start. 
+        `),
+        io.input.text('Your name'),
+      ])
+
+      console.log(1)
+
+      await io.display.heading('Submitted!')
+
+      console.log(2)
+
+      await sleep(10_000)
+      console.log('Done!')
+    },
     'Render markdown': async io => {
       await io.renderGroup([
         io.display.markdown(`

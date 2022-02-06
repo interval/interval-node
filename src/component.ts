@@ -103,6 +103,13 @@ const component = <MN extends keyof IoSchema>(
     }
   }
 
+  setImmediate(() => {
+    // TODO: probably could have a better API for this (eg. not doing a string check)
+    if (methodName.includes('DISPLAY_') && resolver) {
+      resolver(null)
+    }
+  })
+
   return {
     onStateChange: (fn: () => void) => {
       onStateChangeHandler = fn
