@@ -77,8 +77,11 @@ createIntervalHost({
     'Update email for user': editEmailForUser,
     'Render markdown': async io => {
       await io.renderGroup([
-        io.display.markdown('## Check box to erase user data'),
-        io.display.markdown('**Warning:** this _will_ erase user data.'),
+        io.display.markdown(`
+          ## User data deletion
+          **Warning:** this _will_ erase user data.
+          You can read more about this [here](https://google.com).
+        `),
         io.select.multiple('Erase user data', {
           options: [
             {
