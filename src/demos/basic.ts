@@ -1,6 +1,6 @@
 import createIntervalHost from '../index'
 import editEmailForUser from './editEmail'
-import { sleep } from './helpers'
+import { fakeDb, sleep } from './helpers'
 
 createIntervalHost({
   apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
@@ -97,10 +97,30 @@ createIntervalHost({
         }
       )
     },
+    'Display returns automatically': async io => {
+      await io.renderGroup([
+        io.display.markdown(`
+          After you press continue, a long running task will start.
+        `),
+        io.input.text('Your name'),
+      ])
+
+      console.log(1)
+
+      await io.display.heading('Submitted!')
+
+      console.log(2)
+
+      await sleep(10_000)
+      console.log('Done!')
+    },
     'Render markdown': async io => {
       await io.renderGroup([
-        io.display.markdown('## Check box to erase user data'),
-        io.display.markdown('**Warning:** this _will_ erase user data.'),
+        io.display.markdown(`
+          ## User data deletion
+          **Warning:** this _will_ erase user data.
+          You can read more about this [here](https://google.com).
+        `),
         io.select.multiple('Erase user data', {
           options: [
             {
@@ -110,6 +130,22 @@ createIntervalHost({
           ],
         }),
       ])
+    },
+    'Progress steps': async io => {
+      await io.experimental.progress.indeterminate('Fetching users...')
+
+      const users = await fakeDb.find('')
+
+      let completed = 1
+      for (const u of users) {
+        await io.experimental.progress.steps('Exporting users', {
+          subTitle: "We're exporting all users. This may take a while.",
+          currentStep: u.name,
+          steps: { completed, total: users.length },
+        })
+        await sleep(1000)
+        completed += 1
+      }
     },
   },
 })
