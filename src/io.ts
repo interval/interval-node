@@ -17,6 +17,7 @@ export type IOPromiseConstructor<MethodName extends T_IO_METHOD_NAMES> = (
 
 export interface IOPromise<MethodName extends T_IO_METHOD_NAMES> {
   component: ComponentType<MethodName>
+  _output: z.infer<ComponentType<MethodName>['schema']['returns']> | undefined
   then: Executor<MethodName>
 }
 
@@ -112,9 +113,10 @@ export default function createIOClient(clientConfig: ClientConfig) {
     ) as ComponentInstances
 
     type ReturnValues = {
-      -readonly [Idx in keyof PromiseInstances]: z.infer<
+      -readonly [Idx in keyof PromiseInstances]: Exclude<
         // @ts-ignore
-        PromiseInstances[Idx]['component']['schema']['returns']
+        PromiseInstances[Idx]['_output'],
+        undefined
       >
     }
 
@@ -124,8 +126,12 @@ export default function createIOClient(clientConfig: ClientConfig) {
   function ioPromiseConstructor<MethodName extends T_IO_METHOD_NAMES>(
     component: ComponentType<MethodName>
   ): IOPromise<MethodName> {
+    const _output: ComponentType<MethodName>['returnValue'] | undefined =
+      undefined
+
     return {
       component,
+      _output,
       then(resolve) {
         const componentInstances = [component] as unknown as Readonly<
           AnyComponentType[]

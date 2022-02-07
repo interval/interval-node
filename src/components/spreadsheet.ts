@@ -19,8 +19,13 @@ export default function spreadsheet(
       ...props,
     })
 
+    const _output: {
+      [key in keyof Columns]: z.infer<typeof COLUMN_DEFS[Columns[key]]>
+    }[] = []
+
     return {
       component: c,
+      _output,
       then(
         resolve: (
           input: {
