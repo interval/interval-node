@@ -36,6 +36,12 @@ const editEmailForUser: IntervalActionHandler = async io => {
         { label: 'B', value: 'b' },
       ],
     }),
+    io.select.multiple('Select some opts', {
+      options: [
+        { label: 'A', value: 'a' },
+        { label: 'B', value: 'b' },
+      ],
+    }),
     io.select.table('Select from this table', {
       data: [
         { label: 'A', value: 'a' },
@@ -44,7 +50,6 @@ const editEmailForUser: IntervalActionHandler = async io => {
     }),
   ])
   io.renderGroup([
-    // io.display.heading('You successfully edited email for ' + resp[1].name),
     io.display.heading('You successfully edited email for ' + resp[1].label),
   ])
 
