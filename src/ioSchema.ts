@@ -35,6 +35,18 @@ const labelValue = z.object({
   value: z.string(),
 })
 
+const selectOption = z.object({
+  label: z.string(),
+  value: z.string(),
+})
+
+const richSelectOption = z.object({
+  label: z.string(),
+  value: z.string(),
+  helpText: z.optional(z.string()),
+  imageUrl: z.optional(z.string()),
+})
+
 export const ioSchema = {
   INPUT_TEXT: {
     props: z.object({
@@ -109,21 +121,30 @@ export const ioSchema = {
   },
   SELECT_SINGLE: {
     props: z.object({
-      options: z.array(labelValue),
+      options: z.array(richSelectOption),
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(labelValue),
+      defaultValue: z.optional(richSelectOption),
+      searchable: z.optional(z.boolean()),
+      multiple: z.optional(z.boolean()),
+      onSearch: z.optional(
+        z
+          .function()
+          .args(z.string())
+          .returns(z.promise(z.array(selectOption)))
+      ),
     }),
-    state: z.null(),
-    returns: labelValue,
+    // state: z.union(z.object({ queryTerm: z.string() }) || z.null()),
+    state: z.object({ queryTerm: z.string() }),
+    returns: selectOption,
   },
   SELECT_MULTIPLE: {
     props: z.object({
-      options: z.array(labelValue),
+      options: z.array(richSelectOption),
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(z.array(labelValue)),
+      defaultValue: z.optional(z.array(richSelectOption)),
     }),
     state: z.null(),
-    returns: z.array(labelValue),
+    returns: z.array(richSelectOption),
   },
   SELECT_USER: {
     props: z.object({
@@ -191,7 +212,5 @@ export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
 type T_Fields = 'props' | 'state' | 'returns'
 
-export type T_IO_METHOD<
-  MN extends T_IO_METHOD_NAMES,
-  Field extends T_Fields
-> = z.infer<T_IO_Schema[MN][Field]>
+export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
+  z.infer<T_IO_Schema[MN][Field]>

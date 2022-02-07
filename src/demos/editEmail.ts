@@ -8,24 +8,26 @@ const editEmailForUser: IntervalActionHandler = async io => {
 
   const resp = await io.renderGroup([
     io.display.heading('Edit email address for user'),
-    io.experimental.findAndSelectUser('Select a user', {
-      userList: initialUsers,
+    io.select.single('Select a user', {
+      options: initialUsers,
       onSearch: async query => {
         const resp = await fakeDb.find(query)
         return resp
       },
+    }),
+    io.select.single('Choose roles', {
+      options: [
+        { label: 'Admin', value: 'a' },
+        { label: 'Editor', value: 'b' },
+        { label: 'Viewer', value: 'b' },
+      ],
+      multiple: true,
     }),
     io.input.text('Enter their new name'),
     io.input.email('Enter their new email'),
     io.input.number('Enter an amount'),
     io.input.boolean('Are you sure?'),
     io.select.single('Select an opt', {
-      options: [
-        { label: 'A', value: 'a' },
-        { label: 'B', value: 'b' },
-      ],
-    }),
-    io.select.multiple('Select some opts', {
       options: [
         { label: 'A', value: 'a' },
         { label: 'B', value: 'b' },
@@ -39,7 +41,8 @@ const editEmailForUser: IntervalActionHandler = async io => {
     }),
   ])
   io.renderGroup([
-    io.display.heading('You successfully edited email for ' + resp[1].name),
+    // io.display.heading('You successfully edited email for ' + resp[1].name),
+    io.display.heading('You successfully edited email for ' + resp[1].label),
   ])
 
   console.log('Resp', resp)

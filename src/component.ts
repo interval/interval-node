@@ -81,7 +81,7 @@ const component = <MN extends keyof IoSchema>(
         'Received non-null state, but no method was defined to handle.'
       )
     }
-    console.log('set state!', onStateChangeHandler)
+    console.log('set state!', newState)
     onStateChangeHandler && onStateChangeHandler()
     return instance
   }

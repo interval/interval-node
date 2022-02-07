@@ -3,23 +3,25 @@ import type { T_IO_METHOD } from '../ioSchema'
 import type { IOPromiseConstructor } from '../io'
 
 export default function findAndSelectUser(
-  constructor: IOPromiseConstructor<'SELECT_USER'>
+  constructor: IOPromiseConstructor<'SELECT_SINGLE'>
 ) {
   return (
     label: string,
-    props: T_IO_METHOD<'SELECT_USER', 'props'> & {
+    props: T_IO_METHOD<'SELECT_SINGLE', 'props'> & {
       onSearch: (
         query: string
-      ) => Promise<T_IO_METHOD<'SELECT_USER', 'returns'>[]>
+      ) => Promise<T_IO_METHOD<'SELECT_SINGLE', 'returns'>[]>
     }
   ) => {
     const c = component(
-      'SELECT_USER',
+      'SELECT_SINGLE',
       label,
-      { userList: props.userList },
+      { options: props.options, onSearch: props.onSearch },
       async newState => {
+        console.log('newState', newState)
         const filteredUsers = await props.onSearch(newState.queryTerm)
-        return { userList: filteredUsers }
+        console.log(filteredUsers)
+        return { options: filteredUsers, onSearch: props.onSearch }
       }
     )
 
