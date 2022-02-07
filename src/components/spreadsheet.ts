@@ -15,19 +15,25 @@ export default function spreadsheet(
     label: string,
     props: Props
   ) => {
-    type ReturnValue = {
-      [key in keyof Columns]: z.infer<typeof COLUMN_DEFS[Columns[key]]>
-    }[]
-
     const c = component('INPUT_SPREADSHEET', label, {
       ...props,
     })
 
     return {
       component: c,
-      then(resolve: (input: ReturnValue) => void) {
+      then(
+        resolve: (
+          input: {
+            [key in keyof Columns]: z.infer<typeof COLUMN_DEFS[Columns[key]]>
+          }[]
+        ) => void
+      ) {
         renderer([c]).then(([result]) => {
-          resolve(result as ReturnValue)
+          resolve(
+            result as {
+              [key in keyof Columns]: z.infer<typeof COLUMN_DEFS[Columns[key]]>
+            }[]
+          )
         })
       },
     }
