@@ -1,35 +1,28 @@
 import { z } from 'zod'
-import { ioSchema, TypeValue } from '../ioSchema'
+import { ioSchema } from '../ioSchema'
 
-type Columns = z.infer<typeof ioSchema['INPUT_SPREADSHEET']['props']>['columns']
+export function extractColumns<
+  Props extends z.infer<typeof ioSchema['INPUT_SPREADSHEET']['props']>,
+  Columns extends Props['columns']
+>(columns: Columns) {
+  type OutputType = {
+    [key in keyof Columns]: typeof COLUMN_DEFS[Columns[key]]
+  }
 
-export function extractColumns(columns: Columns) {
   const outputSchemaDef: any = {}
 
-  for (const col of columns) {
-    if (typeof col === 'string') {
-      outputSchemaDef[col] = z.string()
-    } else {
-      outputSchemaDef[col.name] = getColumnDef(col.type)
-    }
+  for (const [col, typeDef] of Object.entries(columns)) {
+    outputSchemaDef[col] = COLUMN_DEFS[typeDef]
   }
 
-  return z.array(z.object(outputSchemaDef))
+  return z.array(z.object(outputSchemaDef as OutputType))
 }
 
-function getColumnDef(colType: TypeValue) {
-  switch (colType) {
-    case 'number':
-      return z.number()
-    case 'number?':
-      return z.number().nullable()
-    case 'string':
-      return z.string()
-    case 'string?':
-      return z.string().nullable()
-    case 'boolean':
-      return z.boolean()
-    case 'boolean?':
-      return z.boolean().nullable()
-  }
+export const COLUMN_DEFS = {
+  number: z.number(),
+  'number?': z.number().nullable(),
+  string: z.string(),
+  'string?': z.string().nullable(),
+  boolean: z.boolean(),
+  'boolean?': z.boolean().nullable(),
 }

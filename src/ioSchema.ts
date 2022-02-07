@@ -76,15 +76,7 @@ export const ioSchema = {
   INPUT_SPREADSHEET: {
     props: z.object({
       helpText: z.string().optional(),
-      columns: z.array(
-        z.union([
-          z.string(),
-          z.object({
-            name: z.string(),
-            type: typeValue,
-          }),
-        ])
-      ),
+      columns: z.record(typeValue),
     }),
     state: z.null(),
     returns: z.array(
@@ -192,5 +184,7 @@ export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
 type T_Fields = 'props' | 'state' | 'returns'
 
-export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
-  z.infer<T_IO_Schema[MN][Field]>
+export type T_IO_METHOD<
+  MN extends T_IO_METHOD_NAMES,
+  Field extends T_Fields
+> = z.infer<T_IO_Schema[MN][Field]>

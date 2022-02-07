@@ -79,12 +79,12 @@ createIntervalHost({
       const records = await io.experimental.spreadsheet(
         'Select users to import',
         {
-          columns: [
-            'firstName',
-            'lastName',
-            { name: 'age', type: 'number?' },
-            { name: 'Is cool', type: 'boolean' },
-          ],
+          columns: {
+            firstName: 'string',
+            lastName: 'string',
+            age: 'number?',
+            'Is cool': 'boolean',
+          },
         }
       )
 
