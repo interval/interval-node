@@ -9,6 +9,7 @@ import component, {
 } from './component'
 import progressThroughList from './components/progressThroughList'
 import findAndSelectUser from './components/selectUser'
+import spreadsheet from './components/spreadsheet'
 
 export type IOPromiseConstructor<MethodName extends T_IO_METHOD_NAMES> = (
   c: ComponentType<MethodName>
@@ -16,6 +17,7 @@ export type IOPromiseConstructor<MethodName extends T_IO_METHOD_NAMES> = (
 
 export interface IOPromise<MethodName extends T_IO_METHOD_NAMES> {
   component: ComponentType<MethodName>
+  _output: z.infer<ComponentType<MethodName>['schema']['returns']> | undefined
   then: Executor<MethodName>
 }
 
@@ -113,7 +115,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
     type ReturnValues = {
       -readonly [Idx in keyof PromiseInstances]: PromiseInstances[Idx] extends AnyIOPromise
-        ? z.infer<PromiseInstances[Idx]['component']['schema']['returns']>
+        ? NonNullable<PromiseInstances[Idx]['_output']>
         : PromiseInstances[Idx]
     }
 
@@ -123,8 +125,12 @@ export default function createIOClient(clientConfig: ClientConfig) {
   function ioPromiseConstructor<MethodName extends T_IO_METHOD_NAMES>(
     component: ComponentType<MethodName>
   ): IOPromise<MethodName> {
+    const _output: ComponentType<MethodName>['returnValue'] | undefined =
+      undefined
+
     return {
       component,
+      _output,
       then(resolve) {
         const componentInstances = [component] as unknown as Readonly<
           [AnyComponentType, ...AnyComponentType[]]
@@ -171,6 +177,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       experimental: {
         findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
         progressThroughList: progressThroughList(ioPromiseConstructor),
+        spreadsheet: spreadsheet(renderComponents),
         progress: {
           steps: aliasComponentName('DISPLAY_PROGRESS_STEPS'),
           indeterminate: aliasComponentName('DISPLAY_PROGRESS_INDETERMINATE'),

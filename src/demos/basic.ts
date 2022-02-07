@@ -85,10 +85,32 @@ createIntervalHost({
       console.log(r)
     },
     'Update email for user': editEmailForUser,
+    'Import users': async io => {
+      const records = await io.experimental.spreadsheet(
+        'Select users to import',
+        {
+          columns: {
+            firstName: 'string',
+            lastName: 'string',
+            age: 'number?',
+            'Is cool': 'boolean',
+          },
+        }
+      )
+
+      await io.experimental.progressThroughList(
+        'Importing users...',
+        records.map(r => `${r.firstName} ${r.lastName}`),
+        async name => {
+          await sleep(1000)
+          return `Added ${name}!`
+        }
+      )
+    },
     'Display returns automatically': async io => {
       await io.renderGroup([
         io.display.markdown(`
-          After you press continue, a long running task will start. 
+          After you press continue, a long running task will start.
         `),
         io.input.text('Your name'),
       ])
