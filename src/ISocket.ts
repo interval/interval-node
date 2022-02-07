@@ -80,6 +80,8 @@ export default class ISocket {
         },
       })
       this.ws.send(JSON.stringify({ id, data, type: 'MESSAGE' }))
+    }).catch(err => {
+      console.error(err)
     })
   }
 
@@ -121,6 +123,10 @@ export default class ISocket {
 
     this.ws.onclose = (ev: CloseEvent) => {
       this.onClose.post([ev.code, ev.reason])
+    }
+
+    this.ws.onerror = (ev: any) => {
+      /* */
     }
 
     this.ws.onmessage = (evt: MessageEvent) => {
