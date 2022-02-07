@@ -41,15 +41,14 @@ export default function createIOClient(clientConfig: ClientConfig) {
   let onResponseHandler: ResponseHandlerFn | null = null
 
   async function renderComponents<
-    Instances extends readonly AnyComponentType[] | []
+    Instances extends Readonly<[AnyComponentType, ...AnyComponentType[]]>
   >(componentInstances: Instances) {
     const inputGroupKey = v4()
 
     type ReturnValues = {
-      -readonly [Idx in keyof Instances]: z.infer<
-        // @ts-ignore
-        Instances[Idx]['schema']['returns']
-      >
+      -readonly [Idx in keyof Instances]: Instances[Idx] extends AnyComponentType
+        ? z.infer<Instances[Idx]['schema']['returns']>
+        : Instances[Idx]
     }
 
     async function render() {
@@ -105,19 +104,19 @@ export default function createIOClient(clientConfig: ClientConfig) {
   }
 
   async function renderGroup<
-    PromiseInstances extends readonly AnyIOPromise[] | [],
-    ComponentInstances extends readonly AnyComponentType[] | []
+    PromiseInstances extends Readonly<[AnyIOPromise, ...AnyIOPromise[]]>,
+    ComponentInstances extends Readonly<
+      [AnyComponentType, ...AnyComponentType[]]
+    >
   >(promiseInstances: PromiseInstances) {
     const componentInstances = promiseInstances.map(
       pi => pi.component
-    ) as ComponentInstances
+    ) as unknown as ComponentInstances
 
     type ReturnValues = {
-      -readonly [Idx in keyof PromiseInstances]: Exclude<
-        // @ts-ignore
-        PromiseInstances[Idx]['_output'],
-        undefined
-      >
+      -readonly [Idx in keyof PromiseInstances]: PromiseInstances[Idx] extends AnyIOPromise
+        ? Required<PromiseInstances[Idx]['_output']>
+        : PromiseInstances[Idx]
     }
 
     return renderComponents(componentInstances) as unknown as ReturnValues
@@ -134,7 +133,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       _output,
       then(resolve) {
         const componentInstances = [component] as unknown as Readonly<
-          AnyComponentType[]
+          [AnyComponentType, ...AnyComponentType[]]
         >
 
         renderComponents(componentInstances).then(([result]) => {

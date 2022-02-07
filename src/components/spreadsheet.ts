@@ -5,7 +5,12 @@ import { COLUMN_DEFS } from '../utils/spreadsheet'
 
 export default function spreadsheet(
   renderer: (
-    componentInstances: ComponentType<'INPUT_SPREADSHEET'>[]
+    componentInstances: Readonly<
+      [
+        ComponentType<'INPUT_SPREADSHEET'>,
+        ...ComponentType<'INPUT_SPREADSHEET'>[]
+      ]
+    >
   ) => Promise<T_IO_METHOD<'INPUT_SPREADSHEET', 'returns'>[]>
 ) {
   return <
