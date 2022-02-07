@@ -134,6 +134,23 @@ export const ioSchema = {
     state: z.null(),
     returns: z.null(),
   },
+  DISPLAY_PROGRESS_STEPS: {
+    props: z.object({
+      steps: z.object({
+        completed: z.number(),
+        total: z.number(),
+      }),
+      currentStep: z.string().optional(),
+      subTitle: z.string().optional(),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_PROGRESS_INDETERMINATE: {
+    props: z.object({}),
+    state: z.null(),
+    returns: z.null(),
+  },
   DISPLAY_PROGRESS_THROUGH_LIST: {
     props: z.object({
       items: z.array(
@@ -154,7 +171,5 @@ export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
 type T_Fields = 'props' | 'state' | 'returns'
 
-export type T_IO_METHOD<
-  MN extends T_IO_METHOD_NAMES,
-  Field extends T_Fields
-> = z.infer<T_IO_Schema[MN][Field]>
+export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
+  z.infer<T_IO_Schema[MN][Field]>

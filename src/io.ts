@@ -172,6 +172,10 @@ export default function createIOClient(clientConfig: ClientConfig) {
       experimental: {
         findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
         progressThroughList: progressThroughList(ioPromiseConstructor),
+        progress: {
+          steps: aliasComponentName('DISPLAY_PROGRESS_STEPS'),
+          indeterminate: aliasComponentName('DISPLAY_PROGRESS_INDETERMINATE'),
+        },
       },
     },
     onResponse: (result: T_IO_RESPONSE) => {
