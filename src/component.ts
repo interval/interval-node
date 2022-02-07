@@ -74,14 +74,16 @@ const component = <MN extends keyof IoSchema>(
   ): Promise<ComponentInstance<MN>> {
     const parsedState = schema.state.parse(newState)
     if (handleStateChange) {
-      instance.props = await handleStateChange(parsedState)
+      instance.props = {
+        ...instance.props,
+        ...(await handleStateChange(parsedState)),
+      }
     }
     if (parsedState !== null && !handleStateChange) {
       console.warn(
         'Received non-null state, but no method was defined to handle.'
       )
     }
-    console.log('set state!', newState)
     onStateChangeHandler && onStateChangeHandler()
     return instance
   }

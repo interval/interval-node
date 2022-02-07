@@ -125,15 +125,7 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
       defaultValue: z.optional(richSelectOption),
       searchable: z.optional(z.boolean()),
-      multiple: z.optional(z.boolean()),
-      onSearch: z.optional(
-        z
-          .function()
-          .args(z.string())
-          .returns(z.promise(z.array(selectOption)))
-      ),
     }),
-    // state: z.union(z.object({ queryTerm: z.string() }) || z.null()),
     state: z.object({ queryTerm: z.string() }),
     returns: selectOption,
   },
@@ -145,25 +137,6 @@ export const ioSchema = {
     }),
     state: z.null(),
     returns: z.array(richSelectOption),
-  },
-  SELECT_USER: {
-    props: z.object({
-      userList: z.array(
-        z.object({
-          id: z.union([z.string(), z.number()]),
-          name: z.string(),
-          email: z.string().optional(),
-          imageUrl: z.string().optional(),
-        })
-      ),
-    }),
-    state: z.object({ queryTerm: z.string() }),
-    returns: z.object({
-      id: z.union([z.string(), z.number()]),
-      name: z.string(),
-      email: z.string().optional(),
-      imageUrl: z.string().optional(),
-    }),
   },
   DISPLAY_HEADING: {
     props: z.object({}),

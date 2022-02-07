@@ -157,7 +157,7 @@ createIntervalHost({
       for (const u of users) {
         await io.experimental.progress.steps('Exporting users', {
           subTitle: "We're exporting all users. This may take a while.",
-          currentStep: u.name,
+          currentStep: u.label,
           steps: { completed, total: users.length },
         })
         await sleep(1000)
