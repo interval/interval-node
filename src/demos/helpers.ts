@@ -15,7 +15,7 @@ function mapToSelectOption(inputUser: {
   return {
     value: inputUser.username,
     label: name,
-    helpText: inputUser.email,
+    description: inputUser.email,
     imageUrl: `https://avatars.dicebear.com/api/pixel-art/${encodeURIComponent(
       name
     )}.svg?scale=96&translateY=10`,

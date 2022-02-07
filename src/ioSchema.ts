@@ -35,15 +35,10 @@ const labelValue = z.object({
   value: z.string(),
 })
 
-const selectOption = z.object({
-  label: z.string(),
-  value: z.string(),
-})
-
 const richSelectOption = z.object({
   label: z.string(),
   value: z.string(),
-  helpText: z.optional(z.string()),
+  description: z.optional(z.string()),
   imageUrl: z.optional(z.string()),
 })
 
@@ -127,16 +122,16 @@ export const ioSchema = {
       searchable: z.optional(z.boolean()),
     }),
     state: z.object({ queryTerm: z.string() }),
-    returns: selectOption,
+    returns: richSelectOption,
   },
   SELECT_MULTIPLE: {
     props: z.object({
-      options: z.array(richSelectOption),
+      options: z.array(labelValue),
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(z.array(richSelectOption)),
+      defaultValue: z.optional(z.array(labelValue)),
     }),
     state: z.null(),
-    returns: z.array(richSelectOption),
+    returns: z.array(labelValue),
   },
   DISPLAY_HEADING: {
     props: z.object({}),
