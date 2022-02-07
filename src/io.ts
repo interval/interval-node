@@ -115,7 +115,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
     type ReturnValues = {
       -readonly [Idx in keyof PromiseInstances]: PromiseInstances[Idx] extends AnyIOPromise
-        ? Required<PromiseInstances[Idx]['_output']>
+        ? NonNullable<PromiseInstances[Idx]['_output']>
         : PromiseInstances[Idx]
     }
 
