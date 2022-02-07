@@ -166,10 +166,15 @@ export default function createIOClient(clientConfig: ClientConfig) {
       },
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),
+        markdown: aliasComponentName('DISPLAY_MARKDOWN'),
       },
       experimental: {
         findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
         progressThroughList: progressThroughList(ioPromiseConstructor),
+        progress: {
+          steps: aliasComponentName('DISPLAY_PROGRESS_STEPS'),
+          indeterminate: aliasComponentName('DISPLAY_PROGRESS_INDETERMINATE'),
+        },
       },
     },
     onResponse: (result: T_IO_RESPONSE) => {
