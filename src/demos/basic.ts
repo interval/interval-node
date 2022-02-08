@@ -42,9 +42,15 @@ createIntervalHost({
       )
     },
     'Hello current user': async (io, ctx) => {
-      io.display
-        .heading(`Hello, ${ctx.user.firstName} ${ctx.user.lastName}`)
-        .then(() => {})
+      console.log(ctx.params)
+
+      let heading = `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`
+
+      if (ctx.params.message) {
+        heading += ` (Message: ${ctx.params.message})`
+      }
+
+      io.display.heading(heading).then(() => {})
     },
     'Optional checkboxes': async io => {
       const options = [
