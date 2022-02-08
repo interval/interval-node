@@ -7,6 +7,7 @@ export interface ComponentInstance<MN extends keyof IoSchema> {
   label: string
   props?: z.infer<IoSchema[MN]['props']>
   state: z.infer<IoSchema[MN]['state']>
+  isStateful: boolean
 }
 
 export interface ComponentType<MN extends keyof IoSchema> {
@@ -25,7 +26,7 @@ export interface ComponentType<MN extends keyof IoSchema> {
 
 export type ComponentRenderInfo<MN extends keyof IoSchema> = Pick<
   ComponentInstance<MN>,
-  'methodName' | 'label' | 'props'
+  'methodName' | 'label' | 'props' | 'isStateful'
 >
 
 export type ComponentReturnValue<MN extends keyof IoSchema> = z.infer<
@@ -51,6 +52,7 @@ const component = <MN extends keyof IoSchema>(
     label,
     props: initialProps,
     state: null,
+    isStateful: !!handleStateChange,
   }
 
   let onStateChangeHandler: (() => void) | null = null
@@ -102,6 +104,7 @@ const component = <MN extends keyof IoSchema>(
       methodName: instance.methodName,
       label: instance.label,
       props: instance.props,
+      isStateful: instance.isStateful,
     }
   }
 

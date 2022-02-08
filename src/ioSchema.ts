@@ -4,7 +4,12 @@ export const IO_RENDER = z.object({
   id: z.string(),
   inputGroupKey: z.string(),
   toRender: z.array(
-    z.object({ methodName: z.string(), label: z.string(), props: z.any() })
+    z.object({
+      methodName: z.string(),
+      label: z.string(),
+      props: z.any(),
+      isStateful: z.boolean(),
+    })
   ),
   kind: z.literal('RENDER'),
 })
