@@ -1,8 +1,12 @@
 import { WebSocket } from 'ws'
 import ISocket from './ISocket'
 import { createDuplexRPCClient, DuplexRPCClient } from './rpc'
-import { wsServerSchema, hostSchema } from './internalRpcSchema'
-import { IO_RESPONSE, T_IO_RESPONSE, T_IO_METHOD } from './ioSchema'
+import {
+  wsServerSchema,
+  hostSchema,
+  TRANSACTION_RESULT_SCHEMA_VERSION,
+} from './internalRpcSchema'
+import { IO_RESPONSE, T_IO_RESPONSE, T_TRANSACTION_RESULT } from './ioSchema'
 import createIOClient, { IOClient } from './io'
 import { z } from 'zod'
 import { v4 } from 'uuid'
@@ -14,7 +18,7 @@ interface ActionCtx {
 export type IntervalActionHandler = (
   io: IOClient['io'],
   ctx: ActionCtx
-) => Promise<any>
+) => Promise<T_TRANSACTION_RESULT['output'] | void>
 
 interface InternalConfig {
   apiKey: string
@@ -129,11 +133,31 @@ export default async function createIntervalHost(config: InternalConfig) {
             user: inputs.user,
           }
 
-          fn(client.io, ctx).then(() =>
-            serverRpc.send('MARK_TRANSACTION_COMPLETE', {
-              transactionId: inputs.transactionId,
+          fn(client.io, ctx)
+            .then(res => {
+              const result: T_TRANSACTION_RESULT = {
+                schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
+                status: 'success',
+                output: res ? res : [],
+              }
+
+              return result
             })
-          )
+            .catch(e => {
+              const result: T_TRANSACTION_RESULT = {
+                schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
+                status: 'error',
+                error: { message: e.message },
+              }
+
+              return result
+            })
+            .then((res: T_TRANSACTION_RESULT) => {
+              serverRpc.send('MARK_TRANSACTION_COMPLETE', {
+                transactionId: inputs.transactionId,
+                result: JSON.stringify(res),
+              })
+            })
 
           return
         },
