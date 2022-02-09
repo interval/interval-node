@@ -9,6 +9,7 @@ import component, {
 } from './component'
 import progressThroughList from './components/progressThroughList'
 import spreadsheet from './components/spreadsheet'
+import selectTable from './components/selectTable'
 
 export type IOPromiseConstructor<MethodName extends T_IO_METHOD_NAMES> = (
   c: ComponentType<MethodName>
@@ -177,7 +178,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       select: {
         single: aliasComponentName('SELECT_SINGLE'),
         multiple: aliasComponentName('SELECT_MULTIPLE'),
-        table: aliasComponentName('SELECT_TABLE'),
+        table: selectTable(ioPromiseConstructor),
       },
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),
