@@ -1,8 +1,8 @@
-import createIntervalHost from '../index'
+import Interval from '../index'
 import editEmailForUser from './editEmail'
 import { fakeDb, sleep } from './helpers'
 
-createIntervalHost({
+const interval = new Interval({
   apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3002',
@@ -178,3 +178,5 @@ createIntervalHost({
     },
   },
 })
+
+interval.listen()

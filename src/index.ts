@@ -2,7 +2,7 @@ import { WebSocket } from 'ws'
 import ISocket from './ISocket'
 import { createDuplexRPCClient, DuplexRPCClient } from './rpc'
 import { wsServerSchema, hostSchema } from './internalRpcSchema'
-import { IO_RESPONSE, T_IO_RESPONSE, T_IO_METHOD } from './ioSchema'
+import { IO_RESPONSE, T_IO_RESPONSE } from './ioSchema'
 import createIOClient, { IOClient } from './io'
 import { z } from 'zod'
 import { v4 } from 'uuid'
@@ -30,33 +30,93 @@ interface SetupConfig {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-export default async function createIntervalHost(config: InternalConfig) {
-  const log = {
-    prod: (...args: any[]) => {
-      console.log('[Interval] ', ...args)
-    },
-    debug: (...args: any[]) => {
-      if (config.logLevel === 'debug') {
-        console.log(...args)
-      }
-    },
+type LogLevel = 'prod' | 'debug'
+
+class Logger {
+  logLevel: LogLevel = 'prod'
+
+  constructor(logLevel?: LogLevel) {
+    if (logLevel) {
+      this.logLevel = logLevel
+    }
   }
 
-  log.debug('Create Interval Host :)', config)
+  prod(...args: any[]) {
+    console.log('[Interval] ', ...args)
+  }
 
-  const ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
+  debug(...args: any[]) {
+    if (this.logLevel === 'debug') {
+      console.debug(...args)
+    }
+  }
+}
 
-  let ws: ISocket
-  let serverRpc: DuplexRPCClient<typeof wsServerSchema>
-  let isConnected = false
+export default class Interval {
+  #apiKey: string
+  #endpoint: string = 'wss://intervalkit.com:3003'
+  #logger: Logger
+  #actions
 
-  async function createSocketConnection(connectConfig?: SetupConfig) {
-    const id = connectConfig?.instanceId || v4()
+  constructor(config: InternalConfig) {
+    this.#apiKey = config.apiKey
+    if (config.endpoint) {
+      this.#endpoint = config.endpoint
+    }
 
-    ws = new ISocket(
-      new WebSocket(config.endpoint || 'wss://intervalkit.com:3003', {
+    this.#logger = new Logger(config.logLevel)
+
+    this.#actions = {
+      actions: config.actions ?? ({} as Record<string, IntervalActionHandler>),
+      add: this.#addActions,
+      remove: this.#removeActions,
+      // TODO: enqueue, dequeue
+    }
+  }
+
+  get #log() {
+    return this.#logger
+  }
+
+  get actions() {
+    return this.#actions
+  }
+
+  #addActions(actions: Record<string, IntervalActionHandler>) {
+    this.#actions.actions = {
+      ...this.#actions.actions,
+      ...actions,
+    }
+  }
+
+  #removeActions(...actionNames: string[]) {
+    for (const name of actionNames) {
+      delete this.#actions.actions[name]
+    }
+  }
+
+  #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
+  #ws: ISocket | undefined = undefined
+  #serverRpc: DuplexRPCClient<typeof wsServerSchema> | undefined = undefined
+  #isConnected = false
+
+  get isConnected() {
+    return this.#isConnected
+  }
+
+  async listen() {
+    await this.#createSocketConnection()
+    this.#createRPCClient()
+    await this.#initializeHost()
+  }
+
+  async #createSocketConnection(connectConfig?: SetupConfig) {
+    const id = connectConfig?.instanceId ?? v4()
+
+    const ws = new ISocket(
+      new WebSocket(this.#endpoint, {
         headers: {
-          'x-api-key': config.apiKey,
+          'x-api-key': this.#apiKey,
           'x-instance-id': id,
         },
       }),
@@ -65,18 +125,21 @@ export default async function createIntervalHost(config: InternalConfig) {
 
     ws.onClose.attach(async ([code, reason]) => {
       // don't initialize retry process again if already started
-      if (!isConnected) return
+      if (!this.#isConnected) return
 
-      log.prod(`❗ Lost connection to Interval (code ${code}). Reason:`, reason)
-      log.prod('🔌 Reconnecting...')
+      this.#log.prod(
+        `❗ Lost connection to Interval (code ${code}). Reason:`,
+        reason
+      )
+      this.#log.prod('🔌 Reconnecting...')
 
-      isConnected = false
+      this.#isConnected = false
 
-      while (!isConnected) {
-        createSocketConnection({ instanceId: ws.id })
+      while (!this.#isConnected) {
+        this.#createSocketConnection({ instanceId: ws.id })
           .then(() => {
             console.log('⚡ Reconnection successful')
-            isConnected = true
+            this.#isConnected = true
           })
           .catch(() => {
             /* */
@@ -91,27 +154,32 @@ export default async function createIntervalHost(config: InternalConfig) {
 
     await ws.connect()
 
-    isConnected = true
+    this.#ws = ws
+    this.#isConnected = true
 
-    if (!serverRpc) return
+    if (!this.#serverRpc) return
 
-    serverRpc.setCommunicator(ws)
+    this.#serverRpc.setCommunicator(ws)
 
-    await initializeHost()
+    await this.#initializeHost()
   }
 
-  function createRPCClient() {
-    serverRpc = createDuplexRPCClient({
-      communicator: ws,
+  #createRPCClient() {
+    if (!this.#ws) {
+      throw new Error('ISocket not initialized')
+    }
+
+    const serverRpc = createDuplexRPCClient({
+      communicator: this.#ws,
       canCall: wsServerSchema,
       canRespondTo: hostSchema,
       handlers: {
         START_TRANSACTION: async inputs => {
-          const fn = config.actions[inputs.actionName]
-          log.debug(fn)
+          const fn = this.#actions.actions[inputs.actionName]
+          this.#log.debug(fn)
 
           if (!fn) {
-            log.debug('No fn called', inputs.actionName)
+            this.#log.debug('No fn called', inputs.actionName)
             return
           }
 
@@ -124,7 +192,7 @@ export default async function createIntervalHost(config: InternalConfig) {
             },
           })
 
-          ioResponseHandlers.set(inputs.transactionId, client.onResponse)
+          this.#ioResponseHandlers.set(inputs.transactionId, client.onResponse)
 
           const ctx: ActionCtx = {
             user: inputs.user,
@@ -140,38 +208,46 @@ export default async function createIntervalHost(config: InternalConfig) {
           return
         },
         IO_RESPONSE: async inputs => {
-          log.debug('got io response', inputs)
+          this.#log.debug('got io response', inputs)
 
           const ioResp = IO_RESPONSE.parse(JSON.parse(inputs.value))
-          const replyHandler = ioResponseHandlers.get(ioResp.transactionId)
+          const replyHandler = this.#ioResponseHandlers.get(
+            ioResp.transactionId
+          )
 
           if (!replyHandler) {
-            log.debug('Missing reply handler for', inputs.transactionId)
+            this.#log.debug('Missing reply handler for', inputs.transactionId)
             return
           }
 
           replyHandler(ioResp)
-          ioResponseHandlers.delete(ioResp.id)
+          this.#ioResponseHandlers.delete(ioResp.id)
         },
       },
     })
+
+    this.#serverRpc = serverRpc
   }
 
-  async function initializeHost() {
-    const loggedIn = await serverRpc.send('INITIALIZE_HOST', {
-      apiKey: config.apiKey,
-      callableActionNames: Object.keys(config.actions),
+  async #initializeHost() {
+    if (!this.#serverRpc) {
+      throw new Error('serverRpc not initialized')
+    }
+
+    if (!this.#ws) {
+      throw new Error('ISocket not initialized')
+    }
+
+    const loggedIn = await this.#serverRpc.send('INITIALIZE_HOST', {
+      apiKey: this.#apiKey,
+      callableActionNames: Object.keys(this.#actions.actions),
     })
 
     if (!loggedIn) throw new Error('The provided API key is not valid')
 
-    log.prod(`🔗 Connected! Access your actions at: ${loggedIn.dashboardUrl}`)
-    log.debug('Host ID:', ws.id)
+    this.#log.prod(
+      `🔗 Connected! Access your actions at: ${loggedIn.dashboardUrl}`
+    )
+    this.#log.debug('Host ID:', this.#ws.id)
   }
-
-  await createSocketConnection()
-  createRPCClient()
-  await initializeHost()
-
-  return true
 }
