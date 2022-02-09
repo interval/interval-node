@@ -4,7 +4,12 @@ export const IO_RENDER = z.object({
   id: z.string(),
   inputGroupKey: z.string(),
   toRender: z.array(
-    z.object({ methodName: z.string(), label: z.string(), props: z.any() })
+    z.object({
+      methodName: z.string(),
+      label: z.string(),
+      props: z.any(),
+      isStateful: z.boolean(),
+    })
   ),
   kind: z.literal('RENDER'),
 })
@@ -34,6 +39,21 @@ const labelValue = z.object({
   label: z.string(),
   value: z.string(),
 })
+
+const richSelectOption = z.object({
+  label: z.string(),
+  value: z.string(),
+  description: z.optional(z.string()),
+  imageUrl: z.optional(z.string()),
+})
+
+/**
+ * Any methods with an `immediate` property defined (at all, not just truthy)
+ * will resolve immediately when awaited.
+ */
+export function resolvesImmediately(methodName: T_IO_METHOD_NAMES): boolean {
+  return 'immediate' in ioSchema[methodName]
+}
 
 export const ioSchema = {
   INPUT_TEXT: {
@@ -95,26 +115,45 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
       defaultValue: z.optional(
         z.array(
-          z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+          z.record(
+            z.union([
+              z.string(),
+              z.number(),
+              z.boolean(),
+              z.null(),
+              z.undefined(),
+            ])
+          )
         )
       ),
       data: z.array(
-        z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+        z.record(
+          z.union([
+            z.string(),
+            z.number(),
+            z.boolean(),
+            z.null(),
+            z.undefined(),
+          ])
+        )
       ),
     }),
     state: z.null(),
     returns: z.array(
-      z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+      z.record(
+        z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()])
+      )
     ),
   },
   SELECT_SINGLE: {
     props: z.object({
-      options: z.array(labelValue),
+      options: z.array(richSelectOption),
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(labelValue),
+      defaultValue: z.optional(richSelectOption),
+      searchable: z.optional(z.boolean()),
     }),
-    state: z.null(),
-    returns: labelValue,
+    state: z.object({ queryTerm: z.string() }),
+    returns: richSelectOption,
   },
   SELECT_MULTIPLE: {
     props: z.object({
@@ -125,34 +164,17 @@ export const ioSchema = {
     state: z.null(),
     returns: z.array(labelValue),
   },
-  SELECT_USER: {
-    props: z.object({
-      userList: z.array(
-        z.object({
-          id: z.union([z.string(), z.number()]),
-          name: z.string(),
-          email: z.string().optional(),
-          imageUrl: z.string().optional(),
-        })
-      ),
-    }),
-    state: z.object({ queryTerm: z.string() }),
-    returns: z.object({
-      id: z.union([z.string(), z.number()]),
-      name: z.string(),
-      email: z.string().optional(),
-      imageUrl: z.string().optional(),
-    }),
-  },
   DISPLAY_HEADING: {
     props: z.object({}),
     state: z.null(),
     returns: z.null(),
+    immediate: z.literal(true),
   },
   DISPLAY_MARKDOWN: {
     props: z.object({}),
     state: z.null(),
     returns: z.null(),
+    immediate: z.literal(true),
   },
   DISPLAY_PROGRESS_STEPS: {
     props: z.object({
@@ -165,11 +187,13 @@ export const ioSchema = {
     }),
     state: z.null(),
     returns: z.null(),
+    immediate: z.literal(true),
   },
   DISPLAY_PROGRESS_INDETERMINATE: {
     props: z.object({}),
     state: z.null(),
     returns: z.null(),
+    immediate: z.literal(true),
   },
   DISPLAY_PROGRESS_THROUGH_LIST: {
     props: z.object({

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ioSchema } from './ioSchema'
+import { ioSchema, resolvesImmediately } from './ioSchema'
 
 type IoSchema = typeof ioSchema
 export interface ComponentInstance<MN extends keyof IoSchema> {
@@ -7,6 +7,7 @@ export interface ComponentInstance<MN extends keyof IoSchema> {
   label: string
   props?: z.infer<IoSchema[MN]['props']>
   state: z.infer<IoSchema[MN]['state']>
+  isStateful: boolean
 }
 
 export interface ComponentType<MN extends keyof IoSchema> {
@@ -25,7 +26,7 @@ export interface ComponentType<MN extends keyof IoSchema> {
 
 export type ComponentRenderInfo<MN extends keyof IoSchema> = Pick<
   ComponentInstance<MN>,
-  'methodName' | 'label' | 'props'
+  'methodName' | 'label' | 'props' | 'isStateful'
 >
 
 export type ComponentReturnValue<MN extends keyof IoSchema> = z.infer<
@@ -51,6 +52,7 @@ const component = <MN extends keyof IoSchema>(
     label,
     props: initialProps,
     state: null,
+    isStateful: !!handleStateChange,
   }
 
   let onStateChangeHandler: (() => void) | null = null
@@ -74,14 +76,16 @@ const component = <MN extends keyof IoSchema>(
   ): Promise<ComponentInstance<MN>> {
     const parsedState = schema.state.parse(newState)
     if (handleStateChange) {
-      instance.props = await handleStateChange(parsedState)
+      instance.props = {
+        ...instance.props,
+        ...(await handleStateChange(parsedState)),
+      }
     }
     if (parsedState !== null && !handleStateChange) {
       console.warn(
         'Received non-null state, but no method was defined to handle.'
       )
     }
-    console.log('set state!', onStateChangeHandler)
     onStateChangeHandler && onStateChangeHandler()
     return instance
   }
@@ -100,12 +104,13 @@ const component = <MN extends keyof IoSchema>(
       methodName: instance.methodName,
       label: instance.label,
       props: instance.props,
+      isStateful: instance.isStateful,
     }
   }
 
+  // Immediately resolve any methods defined as immediate in schema
   setImmediate(() => {
-    // TODO: probably could have a better API for this (eg. not doing a string check)
-    if (methodName.includes('DISPLAY_') && resolver) {
+    if (resolvesImmediately(methodName) && resolver) {
       resolver(null)
     }
   })

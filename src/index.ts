@@ -16,9 +16,10 @@ import createIOClient, { IOClient } from './io'
 import { z } from 'zod'
 import { v4 } from 'uuid'
 
-interface ActionCtx {
-  user: z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>['user']
-}
+type ActionCtx = Pick<
+  z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>,
+  'user' | 'params'
+>
 
 export type IntervalActionHandler = (
   io: IOClient['io'],
@@ -136,6 +137,7 @@ export default async function createIntervalHost(config: InternalConfig) {
 
           const ctx: ActionCtx = {
             user: inputs.user,
+            params: inputs.params,
           }
 
           fn(client.io, ctx)

@@ -96,6 +96,7 @@ export const hostSchema = {
         firstName: z.string(),
         lastName: z.string(),
       }),
+      params: z.record(z.string()),
     }),
     returns: z.void(),
   },

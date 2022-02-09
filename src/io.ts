@@ -8,8 +8,8 @@ import component, {
   ComponentReturnValue,
 } from './component'
 import progressThroughList from './components/progressThroughList'
-import findAndSelectUser from './components/selectUser'
 import spreadsheet from './components/spreadsheet'
+import selectTable from './components/selectTable'
 
 export type IOPromiseConstructor<MethodName extends T_IO_METHOD_NAMES> = (
   c: ComponentType<MethodName>
@@ -147,10 +147,19 @@ export default function createIOClient(clientConfig: ClientConfig) {
     methodName: MethodName
   ): (
     label: string,
-    props?: T_IO_METHOD<MethodName, 'props'>
+    props?: T_IO_METHOD<MethodName, 'props'>,
+    handleStateChange?: (
+      newState: any
+    ) => Promise<T_IO_METHOD<MethodName, 'props'>>
   ) => IOPromise<MethodName> {
-    return (label: string, props?: T_IO_METHOD<MethodName, 'props'>) => {
-      const c = component(methodName, label, props)
+    return (
+      label: string,
+      props?: T_IO_METHOD<MethodName, 'props'>,
+      handleStateChange?: (
+        newState: T_IO_METHOD<MethodName, 'state'>
+      ) => Promise<T_IO_METHOD<MethodName, 'props'>>
+    ) => {
+      const c = component(methodName, label, props, handleStateChange)
       return ioPromiseConstructor(c)
     }
   }
@@ -169,14 +178,13 @@ export default function createIOClient(clientConfig: ClientConfig) {
       select: {
         single: aliasComponentName('SELECT_SINGLE'),
         multiple: aliasComponentName('SELECT_MULTIPLE'),
-        table: aliasComponentName('SELECT_TABLE'),
+        table: selectTable(ioPromiseConstructor),
       },
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),
         markdown: aliasComponentName('DISPLAY_MARKDOWN'),
       },
       experimental: {
-        findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
         progressThroughList: progressThroughList(ioPromiseConstructor),
         spreadsheet: spreadsheet(renderComponents),
         progress: {
