@@ -194,44 +194,30 @@ type T_Fields = 'props' | 'state' | 'returns'
 export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
   z.infer<T_IO_Schema[MN][Field]>
 
-const transactionResultOutput = z.union([
-  z.object({
-    type: z.literal('button'),
-    url: z.string(),
-    label: z.string(),
-  }),
-  z.object({
-    type: z.literal('text'),
-    content: z.string(),
-  }),
-  z.object({
-    type: z.literal('keyValue'),
-    data: z.record(z.union([z.string(), z.number(), z.boolean()])),
-  }),
-])
+type JSONPrimitive = string | number | boolean | null
 
-export const TRANSACTION_RESULT = z.object({
-  // Transaction results are preserved indefinitely, so we version the schema.
-  // New version numbers should be given to breaking changes.
-  schemaVersion: z.literal(1),
-  status: z.union([z.literal('success'), z.literal('error')]),
-  // TODO: do we want to include more info here?
-  error: z.object({ message: z.string().optional() }).optional(),
-  output: z.array(transactionResultOutput).optional(),
-})
+type ActionReturnData = Record<string, JSONPrimitive>
 
-export const outputTypes = {
-  OUTPUT_TEXT: z.string(),
-  OUTPUT_BUTTON: z.object({
-    label: z.string(),
-    url: z.string(),
-  }),
-  OUTPUT_KEYVALUE: z.record(z.union([z.string(), z.number(), z.boolean()])),
+type ActionReturnStatus = 'success' | 'failure'
+
+export type IOFunctionReturnType = ActionReturnData | undefined
+
+export type ActionResultType =
+  | JSONPrimitive
+  | {
+      dataKind?: 'link'
+      value: string
+    }
+
+// action handlers augment the returned data into this structure
+export type ActionResultData = Record<string, ActionResultType>
+
+export type ActionResultSchema = {
+  schemaVersion: 1
+  status: ActionReturnStatus
+  data: IOFunctionReturnType | null
 }
 
-export type T_TRANSACTION_RESULT = z.infer<typeof TRANSACTION_RESULT>
-export type T_OUTPUT_SCHEMA = typeof outputTypes
-export type T_IO_OUTPUT_TYPES = keyof T_OUTPUT_SCHEMA
-export type T_IO_OUTPUT<MN extends T_IO_OUTPUT_TYPES> = z.infer<
-  T_OUTPUT_SCHEMA[MN]
->
+export type ParsedActionResultSchema = Omit<ActionResultSchema, 'data'> & {
+  data: ActionResultData | null
+}

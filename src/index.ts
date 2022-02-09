@@ -6,7 +6,12 @@ import {
   hostSchema,
   TRANSACTION_RESULT_SCHEMA_VERSION,
 } from './internalRpcSchema'
-import { IO_RESPONSE, T_IO_RESPONSE, T_TRANSACTION_RESULT } from './ioSchema'
+import {
+  ActionResultSchema,
+  IOFunctionReturnType,
+  IO_RESPONSE,
+  T_IO_RESPONSE,
+} from './ioSchema'
 import createIOClient, { IOClient } from './io'
 import { z } from 'zod'
 import { v4 } from 'uuid'
@@ -18,7 +23,7 @@ interface ActionCtx {
 export type IntervalActionHandler = (
   io: IOClient['io'],
   ctx: ActionCtx
-) => Promise<T_TRANSACTION_RESULT['output'] | void>
+) => Promise<IOFunctionReturnType | void>
 
 interface InternalConfig {
   apiKey: string
@@ -135,24 +140,24 @@ export default async function createIntervalHost(config: InternalConfig) {
 
           fn(client.io, ctx)
             .then(res => {
-              const result: T_TRANSACTION_RESULT = {
+              const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
                 status: 'success',
-                output: res ? res : [],
+                data: res || null,
               }
 
               return result
             })
             .catch(e => {
-              const result: T_TRANSACTION_RESULT = {
+              const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
-                status: 'error',
-                error: { message: e.message },
+                status: 'failure',
+                data: e.message ? { message: e.message } : null,
               }
 
               return result
             })
-            .then((res: T_TRANSACTION_RESULT) => {
+            .then((res: ActionResultSchema) => {
               serverRpc.send('MARK_TRANSACTION_COMPLETE', {
                 transactionId: inputs.transactionId,
                 result: JSON.stringify(res),

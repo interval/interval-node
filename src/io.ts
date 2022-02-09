@@ -1,14 +1,6 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
-import {
-  TRANSACTION_RESULT,
-  T_IO_METHOD,
-  T_IO_METHOD_NAMES,
-  T_IO_OUTPUT,
-  T_IO_OUTPUT_TYPES,
-  T_OUTPUT_SCHEMA,
-  T_TRANSACTION_RESULT,
-} from './ioSchema'
+import { T_IO_METHOD, T_IO_METHOD_NAMES } from './ioSchema'
 import type { T_IO_RENDER, T_IO_RESPONSE } from './ioSchema'
 import component, {
   AnyComponentType,
@@ -151,36 +143,6 @@ export default function createIOClient(clientConfig: ClientConfig) {
     }
   }
 
-  function outputConstructor<MethodName extends T_IO_OUTPUT_TYPES>(
-    methodName: MethodName
-  ): (input: T_IO_OUTPUT<MethodName>) => T_TRANSACTION_RESULT['output'] {
-    return (input: T_IO_OUTPUT<MethodName>) => {
-      switch (methodName) {
-        case 'OUTPUT_TEXT':
-          return [{ type: 'text', content: input.toString() }]
-        case 'OUTPUT_BUTTON':
-          const { label, url } = input as T_IO_OUTPUT<'OUTPUT_BUTTON'>
-          return [{ type: 'button', label, url }]
-        case 'OUTPUT_KEYVALUE':
-          const data = input as T_IO_OUTPUT<'OUTPUT_KEYVALUE'>
-          return [{ type: 'keyValue', data }]
-        default:
-          return undefined
-      }
-    }
-  }
-
-  function outputGroupConstructor(
-    ...outputs: Array<T_TRANSACTION_RESULT['output']>
-  ) {
-    const result: T_TRANSACTION_RESULT['output'] = []
-    for (const output of outputs) {
-      if (!output) continue
-      result.push(...output)
-    }
-    return result
-  }
-
   function aliasComponentName<MethodName extends T_IO_METHOD_NAMES>(
     methodName: MethodName
   ): (
@@ -221,13 +183,6 @@ export default function createIOClient(clientConfig: ClientConfig) {
           steps: aliasComponentName('DISPLAY_PROGRESS_STEPS'),
           indeterminate: aliasComponentName('DISPLAY_PROGRESS_INDETERMINATE'),
         },
-      },
-
-      output: {
-        text: outputConstructor('OUTPUT_TEXT'),
-        button: outputConstructor('OUTPUT_BUTTON'),
-        keyValue: outputConstructor('OUTPUT_KEYVALUE'),
-        group: outputGroupConstructor,
       },
     },
     onResponse: (result: T_IO_RESPONSE) => {
