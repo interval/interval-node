@@ -142,7 +142,7 @@ export default async function createIntervalHost(config: InternalConfig) {
             .then(res => {
               const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
-                status: 'success',
+                status: 'SUCCESS',
                 data: res || null,
               }
 
@@ -151,7 +151,7 @@ export default async function createIntervalHost(config: InternalConfig) {
             .catch(e => {
               const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
-                status: 'failure',
+                status: 'FAILURE',
                 data: e.message ? { message: e.message } : null,
               }
 

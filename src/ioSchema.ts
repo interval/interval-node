@@ -196,13 +196,13 @@ export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
 
 type JSONPrimitive = string | number | boolean | null
 
-type ActionReturnData = Record<string, JSONPrimitive>
+export type ActionReturnData = Record<string, JSONPrimitive>
 
-type ActionReturnStatus = 'success' | 'failure'
+type ActionReturnStatus = 'SUCCESS' | 'FAILURE'
 
 export type IOFunctionReturnType = ActionReturnData | undefined
 
-export type ActionResultType =
+export type ActionResultDataValue =
   | JSONPrimitive
   | {
       dataKind?: 'link'
@@ -210,14 +210,10 @@ export type ActionResultType =
     }
 
 // action handlers augment the returned data into this structure
-export type ActionResultData = Record<string, ActionResultType>
+export type ActionResultData = Record<string, ActionResultDataValue>
 
 export type ActionResultSchema = {
   schemaVersion: 1
   status: ActionReturnStatus
   data: IOFunctionReturnType | null
-}
-
-export type ParsedActionResultSchema = Omit<ActionResultSchema, 'data'> & {
-  data: ActionResultData | null
 }
