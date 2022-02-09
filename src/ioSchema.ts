@@ -220,24 +220,21 @@ export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
 
 type JSONPrimitive = string | number | boolean | null
 
-export type ActionReturnData = Record<string, JSONPrimitive>
+type RawActionReturnData = Record<string, JSONPrimitive>
 
-type ActionReturnStatus = 'SUCCESS' | 'FAILURE'
+export type IOFunctionReturnType = RawActionReturnData | undefined
 
-export type IOFunctionReturnType = ActionReturnData | undefined
-
-export type ActionResultDataValue =
+export type ParsedActionReturnDataValue =
   | JSONPrimitive
   | {
       dataKind?: 'link'
       value: string
     }
 
-// action handlers augment the returned data into this structure
-export type ActionResultData = Record<string, ActionResultDataValue>
+export type ParsedActionReturnData = Record<string, ParsedActionReturnDataValue>
 
 export type ActionResultSchema = {
   schemaVersion: 1
-  status: ActionReturnStatus
+  status: 'SUCCESS' | 'FAILURE'
   data: IOFunctionReturnType | null
 }
