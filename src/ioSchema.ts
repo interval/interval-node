@@ -107,16 +107,34 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
       defaultValue: z.optional(
         z.array(
-          z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+          z.record(
+            z.union([
+              z.string(),
+              z.number(),
+              z.boolean(),
+              z.null(),
+              z.undefined(),
+            ])
+          )
         )
       ),
       data: z.array(
-        z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+        z.record(
+          z.union([
+            z.string(),
+            z.number(),
+            z.boolean(),
+            z.null(),
+            z.undefined(),
+          ])
+        )
       ),
     }),
     state: z.null(),
     returns: z.array(
-      z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+      z.record(
+        z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()])
+      )
     ),
   },
   SELECT_SINGLE: {
@@ -185,5 +203,7 @@ export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
 type T_Fields = 'props' | 'state' | 'returns'
 
-export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
-  z.infer<T_IO_Schema[MN][Field]>
+export type T_IO_METHOD<
+  MN extends T_IO_METHOD_NAMES,
+  Field extends T_Fields
+> = z.infer<T_IO_Schema[MN][Field]>

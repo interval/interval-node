@@ -46,6 +46,7 @@ const editEmailForUser: IntervalActionHandler = async io => {
       data: [
         { label: 'A', value: 'a' },
         { label: 'B', value: 'b' },
+        { label: 'C', value: 'c', extraData: true },
       ],
     }),
   ])
