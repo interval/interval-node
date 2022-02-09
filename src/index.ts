@@ -53,24 +53,18 @@ class Logger {
 }
 
 export default class Interval {
+  #actions: Record<string, IntervalActionHandler>
   #apiKey: string
   #endpoint: string = 'wss://intervalkit.com:3003'
   #logger: Logger
-  #actions
 
   constructor(config: InternalConfig) {
     this.#apiKey = config.apiKey
-    if (config.endpoint) {
-      this.#endpoint = config.endpoint
-    }
-
+    this.#actions = config.actions
     this.#logger = new Logger(config.logLevel)
 
-    this.#actions = {
-      actions: config.actions ?? ({} as Record<string, IntervalActionHandler>),
-      add: this.#addActions,
-      remove: this.#removeActions,
-      // TODO: enqueue, dequeue
+    if (config.endpoint) {
+      this.#endpoint = config.endpoint
     }
   }
 
@@ -78,20 +72,12 @@ export default class Interval {
     return this.#logger
   }
 
+  // It feels a little wasteful to create a new object every time this getter
+  // is called, but defining it ahead of time allows consumers to reassign to it
+  // statefully which I think we would rather avoid.
   get actions() {
-    return this.#actions
-  }
-
-  #addActions(actions: Record<string, IntervalActionHandler>) {
-    this.#actions.actions = {
-      ...this.#actions.actions,
-      ...actions,
-    }
-  }
-
-  #removeActions(...actionNames: string[]) {
-    for (const name of actionNames) {
-      delete this.#actions.actions[name]
+    return {
+      // TODO: enqueue, dequeue
     }
   }
 
@@ -175,7 +161,7 @@ export default class Interval {
       canRespondTo: hostSchema,
       handlers: {
         START_TRANSACTION: async inputs => {
-          const fn = this.#actions.actions[inputs.actionName]
+          const fn = this.#actions[inputs.actionName]
           this.#log.debug(fn)
 
           if (!fn) {
@@ -240,7 +226,7 @@ export default class Interval {
 
     const loggedIn = await this.#serverRpc.send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
-      callableActionNames: Object.keys(this.#actions.actions),
+      callableActionNames: Object.keys(this.#actions),
     })
 
     if (!loggedIn) throw new Error('The provided API key is not valid')
