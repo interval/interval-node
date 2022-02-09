@@ -208,10 +208,10 @@ const transactionResultOutput = z.union([
     type: z.literal('keyValue'),
     data: z.record(z.union([z.string(), z.number(), z.boolean()])),
   }),
-  z.object({
-    type: z.literal('table'),
-    data: z.record(z.union([z.string(), z.number(), z.boolean()])),
-  }),
+  // z.object({
+  //   type: z.literal('table'),
+  //   data: z.record(z.union([z.string(), z.number(), z.boolean()])),
+  // }),
 ])
 
 export const TRANSACTION_RESULT = z.object({
