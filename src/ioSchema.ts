@@ -47,6 +47,14 @@ const richSelectOption = z.object({
   imageUrl: z.optional(z.string()),
 })
 
+/**
+ * Any methods with an `immediate` property defined (at all, not just truthy)
+ * will resolve immediately when awaited.
+ */
+export function resolvesImmediately(methodName: T_IO_METHOD_NAMES): boolean {
+  return 'immediate' in ioSchema[methodName]
+}
+
 export const ioSchema = {
   INPUT_TEXT: {
     props: z.object({
@@ -142,11 +150,13 @@ export const ioSchema = {
     props: z.object({}),
     state: z.null(),
     returns: z.null(),
+    immediate: z.literal(true),
   },
   DISPLAY_MARKDOWN: {
     props: z.object({}),
     state: z.null(),
     returns: z.null(),
+    immediate: z.literal(true),
   },
   DISPLAY_PROGRESS_STEPS: {
     props: z.object({
@@ -159,11 +169,13 @@ export const ioSchema = {
     }),
     state: z.null(),
     returns: z.null(),
+    immediate: z.literal(true),
   },
   DISPLAY_PROGRESS_INDETERMINATE: {
     props: z.object({}),
     state: z.null(),
     returns: z.null(),
+    immediate: z.literal(true),
   },
   DISPLAY_PROGRESS_THROUGH_LIST: {
     props: z.object({

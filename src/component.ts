@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ioSchema } from './ioSchema'
+import { ioSchema, resolvesImmediately } from './ioSchema'
 
 type IoSchema = typeof ioSchema
 export interface ComponentInstance<MN extends keyof IoSchema> {
@@ -108,9 +108,9 @@ const component = <MN extends keyof IoSchema>(
     }
   }
 
+  // Immediately resolve any methods defined as immediate in schema
   setImmediate(() => {
-    // TODO: probably could have a better API for this (eg. not doing a string check)
-    if (methodName.includes('DISPLAY_') && resolver) {
+    if (resolvesImmediately(methodName) && resolver) {
       resolver(null)
     }
   })
