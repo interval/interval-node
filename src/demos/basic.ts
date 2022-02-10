@@ -96,7 +96,13 @@ createIntervalHost({
         helpText: 'This will be sent to the user.',
       })
 
-      console.log(body)
+      await io.display.markdown(`
+          ## You entered:
+
+          ~~~html
+          ${body}
+          ~~~
+      `)
     },
     'Import users': async io => {
       const records = await io.experimental.spreadsheet(
