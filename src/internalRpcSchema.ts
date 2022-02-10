@@ -42,10 +42,43 @@ export const wsServerSchema = {
       apiKey: z.string(),
       callableActionNames: z.array(z.string()),
     }),
-    returns: z.union([
-      z.null(),
-      z.object({
+    returns: z
+      .object({
         dashboardUrl: z.string(),
+      })
+      .nullable(),
+  },
+  ENQUEUE_ACTION: {
+    inputs: z.object({
+      actionName: z.string(),
+      assignee: z.string().optional(),
+      params: z.record(z.string()).optional(),
+    }),
+    returns: z.union([
+      z.object({
+        type: z.literal('success'),
+        id: z.string(),
+      }),
+      z.object({
+        type: z.literal('error'),
+        message: z.string(),
+      }),
+    ]),
+  },
+  DEQUEUE_ACTION: {
+    inputs: z.object({
+      id: z.string(),
+    }),
+    returns: z.union([
+      z.object({
+        type: z.literal('success'),
+        id: z.string(),
+        assignee: z.string().optional(),
+        params: z.record(z.string()).optional(),
+      }),
+      z.object({
+        type: z.literal('error'),
+        message: z.string(),
       }),
     ]),
   },

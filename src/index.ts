@@ -17,7 +17,7 @@ export type IntervalActionHandler = (
   ctx: ActionCtx
 ) => Promise<any>
 
-interface InternalConfig {
+export interface InternalConfig {
   apiKey: string
   actions: Record<string, IntervalActionHandler>
   endpoint?: string
@@ -52,6 +52,18 @@ class Logger {
   }
 }
 
+export interface QueuedAction {
+  id: string
+  assignee?: string
+  params?: Record<string, string>
+}
+
+class IntervalError extends Error {
+  constructor(message: string) {
+    super(message)
+  }
+}
+
 export default class Interval {
   #actions: Record<string, IntervalActionHandler>
   #apiKey: string
@@ -77,8 +89,74 @@ export default class Interval {
   // statefully which I think we would rather avoid.
   get actions() {
     return {
-      // TODO: enqueue, dequeue
+      enqueue: this.#enqueueAction.bind(this),
+      dequeue: this.#dequeueAction.bind(this),
     }
+  }
+
+  async #enqueueAction(
+    actionName: string,
+    config: Pick<QueuedAction, 'assignee' | 'params'> = {}
+  ): Promise<QueuedAction> {
+    // TODO: Richer error types
+
+    if (!this.#isConnected || !this.#ws || !this.#serverRpc) {
+      throw new IntervalError(
+        'Connection not established. Please be sure to call listen() before enqueueing actions.'
+      )
+    }
+
+    if (config.params) {
+      if (
+        typeof config.params !== 'object' ||
+        Array.isArray(config.params) ||
+        Object.entries(config.params).some(
+          ([key, val]) =>
+            typeof key !== 'string' ||
+            (typeof val !== 'string' && typeof val !== 'number')
+        )
+      ) {
+        throw new IntervalError(
+          'Invalid params, please pass an object of strings or numbers'
+        )
+      }
+    }
+
+    const response = await this.#serverRpc.send('ENQUEUE_ACTION', {
+      actionName,
+      ...config,
+    })
+
+    if (response.type === 'error') {
+      throw new IntervalError(
+        `There was a problem enqueuing the action: ${response.message}`
+      )
+    }
+
+    return {
+      id: response.id,
+      ...config,
+    }
+  }
+
+  async #dequeueAction(id: string): Promise<QueuedAction> {
+    // TODO: Richer error types
+
+    if (!this.#isConnected || !this.#ws || !this.#serverRpc) {
+      throw new IntervalError(
+        'Connection not established. Please be sure to call listen() before enqueueing actions.'
+      )
+    }
+
+    const response = await this.#serverRpc.send('DEQUEUE_ACTION', { id })
+
+    if (response.type === 'error') {
+      throw new IntervalError('There was a problem dequeuing the action')
+    }
+
+    const { type, ...rest } = response
+
+    return rest
   }
 
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()

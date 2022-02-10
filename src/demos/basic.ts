@@ -180,3 +180,22 @@ const interval = new Interval({
 })
 
 interval.listen()
+
+/*
+setTimeout(async () => {
+  await interval.actions.enqueue('Hello current user', {
+    assignee: 'alex@interval.com',
+    params: {
+      message: 'Hello, queue!',
+    },
+  })
+
+  const queuedAction = await interval.actions.enqueue('Hello current user', {
+    params: {
+      message: 'Hello, anyone!',
+    },
+  })
+
+  await interval.actions.dequeue(queuedAction.id)
+}, 1000)
+*/
