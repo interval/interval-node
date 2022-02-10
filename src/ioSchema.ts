@@ -164,25 +164,6 @@ export const ioSchema = {
     state: z.null(),
     returns: z.array(labelValue),
   },
-  SELECT_USER: {
-    props: z.object({
-      userList: z.array(
-        z.object({
-          id: z.union([z.string(), z.number()]),
-          name: z.string(),
-          email: z.string().optional(),
-          imageUrl: z.string().optional(),
-        })
-      ),
-    }),
-    state: z.object({ queryTerm: z.string() }),
-    returns: z.object({
-      id: z.union([z.string(), z.number()]),
-      name: z.string(),
-      email: z.string().optional(),
-      imageUrl: z.string().optional(),
-    }),
-  },
   DISPLAY_HEADING: {
     props: z.object({}),
     state: z.null(),
