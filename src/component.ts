@@ -7,6 +7,7 @@ export interface ComponentInstance<MN extends keyof IoSchema> {
   label: string
   props?: z.infer<IoSchema[MN]['props']>
   state: z.infer<IoSchema[MN]['state']>
+  isStateful?: boolean
 }
 
 export interface ComponentType<MN extends keyof IoSchema> {
@@ -25,7 +26,7 @@ export interface ComponentType<MN extends keyof IoSchema> {
 
 export type ComponentRenderInfo<MN extends keyof IoSchema> = Pick<
   ComponentInstance<MN>,
-  'methodName' | 'label' | 'props'
+  'methodName' | 'label' | 'props' | 'isStateful'
 >
 
 export type ComponentReturnValue<MN extends keyof IoSchema> = z.infer<
@@ -46,11 +47,18 @@ const component = <MN extends keyof IoSchema>(
     incomingState: z.infer<IoSchema[MN]['state']>
   ) => Promise<z.infer<IoSchema[MN]['props']>>
 ): ComponentType<MN> => {
+  // if initialProps includes one or more "on[Action]" methods.
+  // maybe a better way to do this? e.g. component schema defines which of its methods is stateful
+  const isStateful =
+    initialProps &&
+    Object.keys(initialProps).some(prop => !!prop.match(/^on[A-Z]/))
+
   const instance: ComponentInstance<MN> = {
     methodName,
     label,
     props: initialProps,
     state: null,
+    isStateful,
   }
 
   let onStateChangeHandler: (() => void) | null = null
@@ -74,7 +82,10 @@ const component = <MN extends keyof IoSchema>(
   ): Promise<ComponentInstance<MN>> {
     const parsedState = schema.state.parse(newState)
     if (handleStateChange) {
-      instance.props = await handleStateChange(parsedState)
+      instance.props = {
+        ...instance.props,
+        ...(await handleStateChange(parsedState)),
+      }
     }
     if (parsedState !== null && !handleStateChange) {
       console.warn(
@@ -99,6 +110,7 @@ const component = <MN extends keyof IoSchema>(
       methodName: instance.methodName,
       label: instance.label,
       props: instance.props,
+      isStateful: instance.isStateful,
     }
   }
 

@@ -5,7 +5,7 @@ export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-function mapToSelectOption(inputUser: {
+export function mapToSelectOption(inputUser: {
   username: string
   first_name: string
   last_name: string
@@ -22,7 +22,7 @@ function mapToSelectOption(inputUser: {
   }
 }
 
-function mapToIntervalUser(inputUser: {
+export function mapToIntervalUser(inputUser: {
   first_name: string
   last_name: string
   email: string
@@ -52,7 +52,6 @@ export const fakeDb = (function fakeDb() {
           return searchStr.includes(inputLower)
         })
         .slice(0, 10)
-        .map(mapToIntervalUser)
     },
   }
 })()
