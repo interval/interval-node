@@ -98,7 +98,13 @@ createIntervalHost({
         helpText: 'This will be sent to the user.',
       })
 
-      console.log(body)
+      await io.display.markdown(`
+          ## You entered:
+
+          ~~~html
+          ${body}
+          ~~~
+      `)
     },
     'Import users': async io => {
       const records = await io.experimental.spreadsheet(
@@ -165,7 +171,7 @@ createIntervalHost({
       for (const u of users) {
         await io.experimental.progress.steps('Exporting users', {
           subTitle: "We're exporting all users. This may take a while.",
-          currentStep: u.label,
+          currentStep: u.name,
           steps: { completed, total: users.length },
         })
         await sleep(1000)
