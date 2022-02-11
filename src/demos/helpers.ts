@@ -22,6 +22,23 @@ function mapToSelectOption(inputUser: {
   }
 }
 
+function mapToIntervalUser(inputUser: {
+  first_name: string
+  last_name: string
+  email: string
+  username: string
+}) {
+  const name = `${inputUser.first_name} ${inputUser.last_name}`
+  return {
+    id: inputUser.username,
+    name: name,
+    email: inputUser.email,
+    imageUrl: `https://avatars.dicebear.com/api/pixel-art/${encodeURIComponent(
+      name
+    )}.svg?scale=96&translateY=10`,
+  }
+}
+
 export const fakeDb = (function fakeDb() {
   const data = fakeUsers
 
@@ -35,7 +52,7 @@ export const fakeDb = (function fakeDb() {
           return searchStr.includes(inputLower)
         })
         .slice(0, 10)
-        .map(mapToSelectOption)
+        .map(mapToIntervalUser)
     },
   }
 })()
