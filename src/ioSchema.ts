@@ -256,3 +256,7 @@ export type ActionResultSchema = {
   status: 'SUCCESS' | 'FAILURE'
   data: IOFunctionReturnType | null
 }
+
+export type ParsedActionResultSchema = Omit<ActionResultSchema, 'data'> & {
+  data: ParsedActionReturnData
+}
