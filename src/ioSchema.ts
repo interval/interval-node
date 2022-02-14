@@ -258,5 +258,5 @@ export type ActionResultSchema = {
 }
 
 export type ParsedActionResultSchema = Omit<ActionResultSchema, 'data'> & {
-  data: ParsedActionReturnData
+  data: ParsedActionReturnData | null
 }
