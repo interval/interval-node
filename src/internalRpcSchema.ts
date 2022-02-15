@@ -9,6 +9,8 @@ export const DUPLEX_MESSAGE_SCHEMA = z.object({
 
 export type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
 
+export const TRANSACTION_RESULT_SCHEMA_VERSION = 1
+
 export const wsServerSchema = {
   CONNECT_TO_TRANSACTION_AS_CLIENT: {
     inputs: z.object({
@@ -34,6 +36,7 @@ export const wsServerSchema = {
   MARK_TRANSACTION_COMPLETE: {
     inputs: z.object({
       transactionId: z.string(),
+      result: z.string(),
     }),
     returns: z.boolean(),
   },

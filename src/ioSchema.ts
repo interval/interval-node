@@ -236,3 +236,28 @@ type T_Fields = 'props' | 'state' | 'returns'
 
 export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
   z.infer<T_IO_Schema[MN][Field]>
+
+type JSONPrimitive = string | number | boolean | null
+
+type RawActionReturnData = Record<string, JSONPrimitive>
+
+export type IOFunctionReturnType = RawActionReturnData | undefined
+
+export type ParsedActionReturnDataValue =
+  | JSONPrimitive
+  | {
+      dataKind?: 'link'
+      value: string
+    }
+
+export type ParsedActionReturnData = Record<string, ParsedActionReturnDataValue>
+
+export type ActionResultSchema = {
+  schemaVersion: 1
+  status: 'SUCCESS' | 'FAILURE'
+  data: IOFunctionReturnType | null
+}
+
+export type ParsedActionResultSchema = Omit<ActionResultSchema, 'data'> & {
+  data: ParsedActionReturnData | null
+}

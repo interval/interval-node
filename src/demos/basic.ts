@@ -1,6 +1,7 @@
 import createIntervalHost from '../index'
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from './helpers'
+import unauthorized from './unauthorized'
 
 createIntervalHost({
   apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
@@ -31,6 +32,7 @@ createIntervalHost({
         io.input.number('Pick a number'),
       ])
     },
+    'Unauthorized error': unauthorized,
     'Enter a number': async io => {
       const num = await io.input.number('Enter a number')
 
