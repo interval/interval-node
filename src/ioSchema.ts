@@ -241,7 +241,7 @@ export type T_IO_METHOD<
 
 type JSONPrimitive = string | number | boolean | null
 
-type RawActionReturnData = Record<string, JSONPrimitive>
+export type RawActionReturnData = Record<string, JSONPrimitive>
 
 export type IOFunctionReturnType = RawActionReturnData | undefined
 
