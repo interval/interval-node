@@ -91,6 +91,7 @@ export const hostSchema = {
     inputs: z.object({
       transactionId: z.string(),
       actionName: z.string(),
+      environment: z.enum(['PRODUCTION', 'DEVELOPMENT']),
       user: z.object({
         email: z.string(),
         firstName: z.string(),
