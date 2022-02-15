@@ -8,6 +8,7 @@ export const IO_RENDER = z.object({
       methodName: z.string(),
       label: z.string(),
       props: z.any(),
+      isStateful: z.boolean().optional(),
     })
   ),
   kind: z.literal('RENDER'),
