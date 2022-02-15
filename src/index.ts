@@ -1,8 +1,17 @@
 import { WebSocket } from 'ws'
 import ISocket from './ISocket'
 import { createDuplexRPCClient, DuplexRPCClient } from './rpc'
-import { wsServerSchema, hostSchema } from './internalRpcSchema'
-import { IO_RESPONSE, T_IO_RESPONSE, T_IO_METHOD } from './ioSchema'
+import {
+  wsServerSchema,
+  hostSchema,
+  TRANSACTION_RESULT_SCHEMA_VERSION,
+} from './internalRpcSchema'
+import {
+  ActionResultSchema,
+  IOFunctionReturnType,
+  IO_RESPONSE,
+  T_IO_RESPONSE,
+} from './ioSchema'
 import createIOClient, { IOClient } from './io'
 import { z } from 'zod'
 import { v4 } from 'uuid'
@@ -15,7 +24,7 @@ type ActionCtx = Pick<
 export type IntervalActionHandler = (
   io: IOClient['io'],
   ctx: ActionCtx
-) => Promise<any>
+) => Promise<IOFunctionReturnType | void>
 
 interface InternalConfig {
   apiKey: string
@@ -131,11 +140,31 @@ export default async function createIntervalHost(config: InternalConfig) {
             params: inputs.params,
           }
 
-          fn(client.io, ctx).then(() =>
-            serverRpc.send('MARK_TRANSACTION_COMPLETE', {
-              transactionId: inputs.transactionId,
+          fn(client.io, ctx)
+            .then(res => {
+              const result: ActionResultSchema = {
+                schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
+                status: 'SUCCESS',
+                data: res || null,
+              }
+
+              return result
             })
-          )
+            .catch(e => {
+              const result: ActionResultSchema = {
+                schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
+                status: 'FAILURE',
+                data: e.message ? { message: e.message } : null,
+              }
+
+              return result
+            })
+            .then((res: ActionResultSchema) => {
+              serverRpc.send('MARK_TRANSACTION_COMPLETE', {
+                transactionId: inputs.transactionId,
+                result: JSON.stringify(res),
+              })
+            })
 
           return
         },

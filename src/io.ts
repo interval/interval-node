@@ -11,6 +11,7 @@ import progressThroughList from './components/progressThroughList'
 import spreadsheet from './components/spreadsheet'
 import selectTable from './components/selectTable'
 import findAndSelectUser from './components/selectUser'
+import findAndSelect from './components/selectSingle'
 
 export type IOPromiseConstructor<MethodName extends T_IO_METHOD_NAMES> = (
   c: ComponentType<MethodName>
@@ -180,6 +181,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
         progressThroughList: progressThroughList(ioPromiseConstructor),
         spreadsheet: spreadsheet(renderComponents),
         findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
+        findAndSelect: findAndSelect(ioPromiseConstructor),
         progress: {
           steps: aliasComponentName('DISPLAY_PROGRESS_STEPS'),
           indeterminate: aliasComponentName('DISPLAY_PROGRESS_INDETERMINATE'),
