@@ -1,6 +1,6 @@
 {
   "name": "interval-js",
-  "version": "0.7.0",
+  "version": "0.8.0-dev",
   "private": true,
   "license": "MIT",
   "engines": {
