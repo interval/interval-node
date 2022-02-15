@@ -255,7 +255,7 @@ export type ParsedActionReturnDataValue =
 export type ParsedActionReturnData = Record<string, ParsedActionReturnDataValue>
 
 export type ActionResultSchema = {
-  schemaVersion: 1
+  schemaVersion: 0 | 1
   status: 'SUCCESS' | 'FAILURE'
   data: IOFunctionReturnType | null
 }
