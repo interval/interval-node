@@ -36,7 +36,7 @@ export const wsServerSchema = {
   MARK_TRANSACTION_COMPLETE: {
     inputs: z.object({
       transactionId: z.string(),
-      result: z.string(),
+      result: z.string().optional(),
     }),
     returns: z.boolean(),
   },
@@ -124,6 +124,7 @@ export const hostSchema = {
     inputs: z.object({
       transactionId: z.string(),
       actionName: z.string(),
+      environment: z.enum(['live', 'development']),
       user: z.object({
         email: z.string(),
         firstName: z.string(),

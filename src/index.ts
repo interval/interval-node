@@ -18,7 +18,7 @@ import { v4 } from 'uuid'
 
 type ActionCtx = Pick<
   z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>,
-  'user' | 'params'
+  'user' | 'params' | 'environment'
 >
 
 export type IntervalActionHandler = (
@@ -270,6 +270,7 @@ export default class Interval {
           const ctx: ActionCtx = {
             user: inputs.user,
             params: inputs.params,
+            environment: inputs.environment,
           }
 
           fn(client.io, ctx)
