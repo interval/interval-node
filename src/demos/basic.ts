@@ -1,6 +1,7 @@
 import Interval from '../index'
 import editEmailForUser from './editEmail'
-import { fakeDb, sleep } from './helpers'
+import { fakeDb, mapToIntervalUser, sleep } from './helpers'
+import unauthorized from './unauthorized'
 
 const interval = new Interval({
   apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
@@ -31,6 +32,7 @@ const interval = new Interval({
         io.input.number('Pick a number'),
       ])
     },
+    'Unauthorized error': unauthorized,
     'Enter a number': async io => {
       const num = await io.input.number('Enter a number')
 
@@ -163,13 +165,15 @@ const interval = new Interval({
     'Progress steps': async io => {
       await io.experimental.progress.indeterminate('Fetching users...')
 
-      const users = await fakeDb.find('')
+      const users = await fakeDb
+        .find('')
+        .then(res => res.map(mapToIntervalUser))
 
       let completed = 1
       for (const u of users) {
         await io.experimental.progress.steps('Exporting users', {
           subTitle: "We're exporting all users. This may take a while.",
-          currentStep: u.label,
+          currentStep: u.name,
           steps: { completed, total: users.length },
         })
         await sleep(1000)

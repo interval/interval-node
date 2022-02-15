@@ -1,5 +1,5 @@
 import { IntervalActionHandler } from '..'
-import { fakeDb } from './helpers'
+import { fakeDb, mapToSelectOption } from './helpers'
 
 const editEmailForUser: IntervalActionHandler = async io => {
   console.log("Let's say hello...")
@@ -8,22 +8,18 @@ const editEmailForUser: IntervalActionHandler = async io => {
 
   const resp = await io.renderGroup([
     io.display.heading('Edit email address for user'),
-    io.select.single(
-      'Select a user',
-      {
-        options: initialUsers,
-        searchable: true,
+    io.experimental.findAndSelect('Select a user', {
+      options: initialUsers.map(mapToSelectOption),
+      onSearch: async query => {
+        const resp = await fakeDb.find(query)
+        return resp.map(mapToSelectOption)
       },
-      async newState => {
-        const resp = await fakeDb.find(newState.queryTerm || '')
-        return { options: resp }
-      }
-    ),
+    }),
     io.select.single('Choose role', {
       options: [
         { label: 'Admin', value: 'a' },
         { label: 'Editor', value: 'b' },
-        { label: 'Viewer', value: 'b' },
+        { label: 'Viewer', value: 'c' },
       ],
     }),
     io.input.text('Enter their new name'),
