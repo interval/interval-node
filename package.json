@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "evt": "^1.10.2",
-    "react-markdown": "^8.0.0",
     "uuid": "^8.3.2",
     "ws": "^8.4.1",
     "zod": "^3.0.0"
