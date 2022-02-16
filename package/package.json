@@ -1,5 +1,5 @@
 {
-  "name": "interval-js",
+  "name": "@interval/sdk",
   "version": "0.7.0",
   "private": true,
   "license": "MIT",
