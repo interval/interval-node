@@ -1,6 +1,6 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
-import { T_IO_METHOD, T_IO_METHOD_NAMES } from './ioSchema'
+import { T_IO_Schema, T_IO_METHOD, T_IO_METHOD_NAMES } from './ioSchema'
 import type { T_IO_RENDER, T_IO_RESPONSE } from './ioSchema'
 import component, {
   AnyComponentType,
@@ -149,9 +149,12 @@ export default function createIOClient(clientConfig: ClientConfig) {
     methodName: MethodName
   ): (
     label: string,
-    props?: T_IO_METHOD<MethodName, 'props'>
+    props?: z.input<T_IO_Schema[MethodName]['props']>
   ) => IOPromise<MethodName> {
-    return (label: string, props?: T_IO_METHOD<MethodName, 'props'>) => {
+    return (
+      label: string,
+      props?: z.input<T_IO_Schema[MethodName]['props']>
+    ) => {
       const c = component(methodName, label, props)
       return ioPromiseConstructor(c)
     }

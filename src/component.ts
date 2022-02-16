@@ -5,7 +5,7 @@ type IoSchema = typeof ioSchema
 export interface ComponentInstance<MN extends keyof IoSchema> {
   methodName: MN
   label: string
-  props?: z.infer<IoSchema[MN]['props']>
+  props?: z.input<IoSchema[MN]['props']>
   state: z.infer<IoSchema[MN]['state']>
   isStateful?: boolean
 }
@@ -42,7 +42,7 @@ export type AnyComponentType = ComponentTypeMap[keyof IoSchema]
 const component = <MN extends keyof IoSchema>(
   methodName: MN,
   label: string,
-  initialProps?: z.infer<IoSchema[MN]['props']>,
+  initialProps?: z.input<IoSchema[MN]['props']>,
   handleStateChange?: (
     incomingState: z.infer<IoSchema[MN]['state']>
   ) => Promise<z.infer<IoSchema[MN]['props']>>

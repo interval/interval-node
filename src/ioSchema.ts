@@ -88,7 +88,7 @@ export const ioSchema = {
   INPUT_BOOLEAN: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(z.boolean()),
+      defaultValue: z.boolean().default(false),
     }),
     state: z.null(),
     returns: z.boolean(),
@@ -159,7 +159,9 @@ export const ioSchema = {
     props: z.object({
       options: z.array(labelValue),
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(z.array(labelValue)),
+      defaultValue: z
+        .array(labelValue)
+        .default([] as { value: string; label: string }[]),
     }),
     state: z.null(),
     returns: z.array(labelValue),
