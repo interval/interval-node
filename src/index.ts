@@ -104,7 +104,7 @@ export default class Interval {
   }
 
   async #enqueueAction(
-    actionName: string,
+    slug: string,
     config: Pick<QueuedAction, 'assignee' | 'params'> = {}
   ): Promise<QueuedAction> {
     // TODO: Richer error types
@@ -132,7 +132,7 @@ export default class Interval {
     }
 
     const response = await this.#serverRpc.send('ENQUEUE_ACTION', {
-      actionName,
+      slug,
       ...config,
     })
 
@@ -248,11 +248,11 @@ export default class Interval {
       canRespondTo: hostSchema,
       handlers: {
         START_TRANSACTION: async inputs => {
-          const fn = this.#actions[inputs.actionName]
+          const fn = this.#actions[inputs.slug]
           this.#log.debug(fn)
 
           if (!fn) {
-            this.#log.debug('No fn called', inputs.actionName)
+            this.#log.debug('No fn called', inputs.slug)
             return
           }
 
@@ -334,7 +334,7 @@ export default class Interval {
 
     const loggedIn = await this.#serverRpc.send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
-      callableActionNames: Object.keys(this.#actions),
+      callableActionSlugs: Object.keys(this.#actions),
     })
 
     if (!loggedIn) throw new Error('The provided API key is not valid')

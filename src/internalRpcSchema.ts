@@ -43,7 +43,7 @@ export const wsServerSchema = {
   INITIALIZE_HOST: {
     inputs: z.object({
       apiKey: z.string(),
-      callableActionNames: z.array(z.string()),
+      callableActionSlugs: z.array(z.string()),
     }),
     returns: z
       .object({
@@ -53,7 +53,7 @@ export const wsServerSchema = {
   },
   ENQUEUE_ACTION: {
     inputs: z.object({
-      actionName: z.string(),
+      slug: z.string(),
       assignee: z.string().optional(),
       params: z.record(z.string()).optional(),
     }),
@@ -123,7 +123,7 @@ export const hostSchema = {
   START_TRANSACTION: {
     inputs: z.object({
       transactionId: z.string(),
-      actionName: z.string(),
+      slug: z.string(),
       environment: z.enum(['live', 'development']),
       user: z.object({
         email: z.string(),
