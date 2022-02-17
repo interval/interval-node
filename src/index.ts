@@ -54,6 +54,14 @@ class Logger {
     console.log('[Interval] ', ...args)
   }
 
+  warn(...args: any[]) {
+    console.warn(...args)
+  }
+
+  error(...args: any[]) {
+    console.error(...args)
+  }
+
   debug(...args: any[]) {
     if (this.logLevel === 'debug') {
       console.debug(...args)
@@ -211,7 +219,7 @@ export default class Interval {
       while (!this.#isConnected) {
         this.#createSocketConnection({ instanceId: ws.id })
           .then(() => {
-            console.log('⚡ Reconnection successful')
+            this.#log.prod('⚡ Reconnection successful')
             this.#isConnected = true
           })
           .catch(() => {
@@ -220,7 +228,7 @@ export default class Interval {
 
         // we could do exponential backoff here, but in most cases (server restart, dev mode) the
         // sever is back up within ~5-7 seconds, and when EB is enabled you just end up waiting longer than necessary.
-        console.log(`Unable to connect. Retrying in 3s...`)
+        this.#log.prod(`Unable to connect. Retrying in 3s...`)
         await sleep(3000)
       }
     })
@@ -332,12 +340,35 @@ export default class Interval {
       throw new Error('ISocket not initialized')
     }
 
+    const slugs = Object.keys(this.#actions)
+
     const loggedIn = await this.#serverRpc.send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
-      callableActionSlugs: Object.keys(this.#actions),
+      callableActionSlugs: slugs,
     })
 
     if (!loggedIn) throw new Error('The provided API key is not valid')
+
+    if (loggedIn.invalidSlugs.length > 0) {
+      this.#log.warn('[Interval]', '⚠ Invalid slugs detected:\n')
+
+      for (const slug of loggedIn.invalidSlugs) {
+        this.#log.warn(`  - ${slug}`)
+      }
+
+      this.#log.warn(
+        '\nAction slugs should contain only letters, numbers, underscores, and hyphens.'
+      )
+
+      this.#log.warn(
+        'These will continue to work for now, but will not work in a future version.\n'
+      )
+
+      // TODO: Throw here when we fully deprecate invalid slugs
+      // if (loggedIn.invalidSlugs.length === slugs.length) {
+      //   throw new Error('No valid slugs provided')
+      // }
+    }
 
     this.#log.prod(
       `🔗 Connected! Access your actions at: ${loggedIn.dashboardUrl}`
