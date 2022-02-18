@@ -4,11 +4,12 @@ import { fakeDb, mapToIntervalUser, sleep } from './helpers'
 import unauthorized from './unauthorized'
 
 const interval = new Interval({
-  apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
+  //apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
+  apiKey: 'live_yrV1jfFwNq1svWTLzwgr0680lHRFmjZZO4amPBE6G1b7NitK',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3002',
   actions: {
-    'Progress through long list': async io => {
+    'progress-through-long-list': async io => {
       const resp = await io.experimental.progressThroughList(
         'Here are some items',
         ['Dan', 'Alex', 'Jacob'],
@@ -20,7 +21,7 @@ const interval = new Interval({
 
       console.log('done!', resp)
     },
-    'No interactive elements': async io => {
+    noInteractiveElements: async io => {
       io.display.heading('I do nothing :(').then(() => {})
       console.log('done!')
     },
@@ -32,8 +33,8 @@ const interval = new Interval({
         io.input.number('Pick a number'),
       ])
     },
-    'Unauthorized error': unauthorized,
-    'Enter a number': async io => {
+    'unauthorized-error': unauthorized,
+    enter_a_number: async io => {
       const num = await io.input.number('Enter a number')
 
       await io.input.number(
@@ -43,7 +44,7 @@ const interval = new Interval({
         }
       )
     },
-    'Hello current user': async (io, ctx) => {
+    helloCurrentUser: async (io, ctx) => {
       console.log(ctx.params)
 
       let heading = `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`
@@ -54,7 +55,7 @@ const interval = new Interval({
 
       io.display.heading(heading).then(() => {})
     },
-    'Optional checkboxes': async io => {
+    optionalCheckboxes: async io => {
       const options = [
         {
           value: 'A',
@@ -106,7 +107,7 @@ const interval = new Interval({
           ~~~
       `)
     },
-    'Import users': async io => {
+    ImportUsers: async io => {
       const records = await io.experimental.spreadsheet(
         'Select users to import',
         {
@@ -128,7 +129,7 @@ const interval = new Interval({
         }
       )
     },
-    'Display returns automatically': async io => {
+    'Display-Returns-Automatically': async io => {
       await io.renderGroup([
         io.display.markdown(`
           After you press continue, a long running task will start.
@@ -145,7 +146,7 @@ const interval = new Interval({
       await sleep(10_000)
       console.log('Done!')
     },
-    'Render markdown': async io => {
+    Render_markdown: async io => {
       await io.renderGroup([
         io.display.markdown(`
           ## User data deletion
@@ -162,7 +163,7 @@ const interval = new Interval({
         }),
       ])
     },
-    'Progress steps': async io => {
+    Progress_steps: async io => {
       await io.experimental.progress.indeterminate('Fetching users...')
 
       const users = await fakeDb

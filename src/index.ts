@@ -357,17 +357,16 @@ export default class Interval {
       }
 
       this.#log.warn(
-        '\nAction slugs should contain only letters, numbers, underscores, and hyphens.'
+        '\nAction slugs must contain only letters, numbers, underscores, and hyphens.'
       )
 
       this.#log.warn(
-        'These will continue to work for now, but will not work in a future version.\n'
+        'Please rename your action name keys to slugs and deploy again.\n'
       )
 
-      // TODO: Throw here when we fully deprecate invalid slugs
-      // if (loggedIn.invalidSlugs.length === slugs.length) {
-      //   throw new Error('No valid slugs provided')
-      // }
+      if (loggedIn.invalidSlugs.length === slugs.length) {
+        throw new Error('No valid slugs provided')
+      }
     }
 
     this.#log.prod(
