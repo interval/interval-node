@@ -371,7 +371,7 @@ export default class Interval {
     }
 
     this.#log.prod(
-      `🔗 Connected! Access your actions at: ${loggedIn.dashboardUrl}`
+      `🔗 Connected! Access your actions at: ${loggedIn.actionsUrl}`
     )
     this.#log.debug('Host ID:', this.#ws.id)
   }
