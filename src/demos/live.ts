@@ -1,7 +1,7 @@
 import Interval from '../index'
 
 const interval = new Interval({
-  apiKey: 'live_T31EqcPqmzWzZy2AegrE7wxKKvzDS1zqEfH4w6vq5R3o8jUE',
+  apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3002',
   actions: {
