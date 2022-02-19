@@ -140,7 +140,7 @@ export default class Interval {
     }
 
     const response = await this.#serverRpc.send('ENQUEUE_ACTION', {
-      slug,
+      actionName: slug,
       ...config,
     })
 
@@ -256,11 +256,12 @@ export default class Interval {
       canRespondTo: hostSchema,
       handlers: {
         START_TRANSACTION: async inputs => {
-          const fn = this.#actions[inputs.slug]
+          const slug = inputs.actionName
+          const fn = this.#actions[slug]
           this.#log.debug(fn)
 
           if (!fn) {
-            this.#log.debug('No fn called', inputs.slug)
+            this.#log.debug('No fn called', slug)
             return
           }
 
@@ -344,7 +345,7 @@ export default class Interval {
 
     const loggedIn = await this.#serverRpc.send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
-      callableActionSlugs: slugs,
+      callableActionNames: slugs,
     })
 
     if (!loggedIn) throw new Error('The provided API key is not valid')
@@ -370,7 +371,7 @@ export default class Interval {
     }
 
     this.#log.prod(
-      `🔗 Connected! Access your actions at: ${loggedIn.actionsUrl}`
+      `🔗 Connected! Access your actions at: ${loggedIn.dashboardUrl}`
     )
     this.#log.debug('Host ID:', this.#ws.id)
   }

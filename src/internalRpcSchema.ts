@@ -47,19 +47,23 @@ export const wsServerSchema = {
   INITIALIZE_HOST: {
     inputs: z.object({
       apiKey: z.string(),
-      callableActionSlugs: z.array(z.string()),
+      // Actually slugs, for backward compatibility
+      // TODO: Change to slug in breaking release
+      callableActionNames: z.array(z.string()),
     }),
     returns: z
       .object({
         environment: actionEnvironment,
         invalidSlugs: z.array(z.string()),
-        actionsUrl: z.string(),
+        dashboardUrl: z.string(),
       })
       .nullable(),
   },
   ENQUEUE_ACTION: {
     inputs: z.object({
-      slug: z.string(),
+      // Actually slugs, for backward compatibility
+      // TODO: Change to slug in breaking release
+      actionName: z.string(),
       assignee: z.string().optional(),
       params: z.record(z.string()).optional(),
     }),
@@ -129,7 +133,9 @@ export const hostSchema = {
   START_TRANSACTION: {
     inputs: z.object({
       transactionId: z.string(),
-      slug: z.string(),
+      // Actually slug, for backward compatibility
+      // TODO: Change to slug in breaking release
+      actionName: z.string(),
       environment: actionEnvironment,
       user: z.object({
         email: z.string(),
