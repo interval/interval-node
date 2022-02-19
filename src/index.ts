@@ -357,7 +357,7 @@ export default class Interval {
       }
 
       this.#log.warn(
-        '\nAction slugs must contain only letters, numbers, underscores, and hyphens.'
+        '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
       )
 
       this.#log.warn(
