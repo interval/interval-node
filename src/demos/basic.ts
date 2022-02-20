@@ -3,6 +3,18 @@ import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from './helpers'
 import unauthorized from './unauthorized'
 
+const intervalLiveMode = new Interval({
+  apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
+  endpoint: 'ws://localhost:3002',
+  actions: {
+    ImportUsers: async io => {
+      console.log("I'm a live mode action")
+      const name = await io.input.text('Enter the name for a user')
+      return { name }
+    },
+  },
+}).listen()
+
 const interval = new Interval({
   apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
   logLevel: 'debug',
