@@ -4,7 +4,7 @@ import { fakeDb, mapToIntervalUser, sleep } from './helpers'
 import unauthorized from './unauthorized'
 
 const interval = new Interval({
-  apiKey: '24367604-b35f-4b89-81bc-7d1cf549ba60',
+  apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3002',
   actions: {
