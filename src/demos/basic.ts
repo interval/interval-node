@@ -3,7 +3,7 @@ import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from './helpers'
 import unauthorized from './unauthorized'
 
-const intervalLiveMode = new Interval({
+new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3002',
   actions: {
