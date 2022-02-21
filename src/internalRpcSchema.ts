@@ -11,6 +11,10 @@ export type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
 
 export const TRANSACTION_RESULT_SCHEMA_VERSION = 1
 
+export const actionEnvironment = z.enum(['live', 'development'])
+
+export type ActionEnvironment = z.infer<typeof actionEnvironment>
+
 export const wsServerSchema = {
   CONNECT_TO_TRANSACTION_AS_CLIENT: {
     inputs: z.object({
@@ -43,16 +47,22 @@ export const wsServerSchema = {
   INITIALIZE_HOST: {
     inputs: z.object({
       apiKey: z.string(),
+      // Actually slugs, for backward compatibility
+      // TODO: Change to slug in breaking release
       callableActionNames: z.array(z.string()),
     }),
     returns: z
       .object({
+        environment: actionEnvironment,
+        invalidSlugs: z.array(z.string()),
         dashboardUrl: z.string(),
       })
       .nullable(),
   },
   ENQUEUE_ACTION: {
     inputs: z.object({
+      // Actually slugs, for backward compatibility
+      // TODO: Change to slug in breaking release
       actionName: z.string(),
       assignee: z.string().optional(),
       params: z.record(z.string()).optional(),
@@ -123,8 +133,10 @@ export const hostSchema = {
   START_TRANSACTION: {
     inputs: z.object({
       transactionId: z.string(),
+      // Actually slug, for backward compatibility
+      // TODO: Change to slug in breaking release
       actionName: z.string(),
-      environment: z.enum(['live', 'development']),
+      environment: actionEnvironment,
       user: z.object({
         email: z.string(),
         firstName: z.string(),
