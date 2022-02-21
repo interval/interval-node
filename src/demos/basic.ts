@@ -12,6 +12,23 @@ new Interval({
       const name = await io.input.text('Enter the name for a user')
       return { name }
     },
+    enter_two_numbers: async io => {
+      const num1 = await io.input.number('Enter a number')
+
+      const num2 = await io.input.number(
+        `Enter a second number that's greater than ${num1}`,
+        {
+          min: num1 + 1,
+        }
+      )
+
+      return { num1, num2 }
+    },
+    enter_one_number: async io => {
+      const num = await io.input.number('Enter a number')
+
+      return { num }
+    },
   },
 }).listen()
 
