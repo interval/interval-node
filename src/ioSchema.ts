@@ -47,6 +47,25 @@ const richSelectOption = z.object({
   imageUrl: z.optional(z.string()),
 })
 
+const objectLiteralSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.date(),
+])
+
+type Literal = boolean | null | number | string | Date
+type KeyValue = Literal | { [key: string]: KeyValue } | KeyValue[]
+
+const keyValueObject: z.ZodSchema<KeyValue> = z.lazy(() =>
+  z.union([
+    objectLiteralSchema,
+    z.record(keyValueObject),
+    z.array(keyValueObject),
+  ])
+)
+
 /**
  * Any methods with an `immediate` property defined (at all, not just truthy)
  * will resolve immediately when awaited.
@@ -197,6 +216,14 @@ export const ioSchema = {
     returns: z.null(),
     immediate: z.literal(true),
   },
+  DISPLAY_OBJECT: {
+    props: z.object({
+      data: keyValueObject,
+    }),
+    state: z.null(),
+    returns: z.null(),
+    immediate: z.literal(true),
+  },
   DISPLAY_PROGRESS_STEPS: {
     props: z.object({
       steps: z.object({
@@ -236,6 +263,7 @@ export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
 type T_Fields = 'props' | 'state' | 'returns'
 
+// prettier-ignore
 export type T_IO_METHOD<
   MN extends T_IO_METHOD_NAMES,
   Field extends T_Fields
