@@ -139,8 +139,8 @@ export const hostSchema = {
       environment: actionEnvironment,
       user: z.object({
         email: z.string(),
-        firstName: z.string(),
-        lastName: z.string(),
+        firstName: z.string().nullable(),
+        lastName: z.string().nullable(),
       }),
       params: z.record(z.string()),
     }),
