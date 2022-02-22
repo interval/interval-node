@@ -243,8 +243,11 @@ export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
 type T_Fields = 'props' | 'state' | 'returns'
 
-export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
-  z.infer<T_IO_Schema[MN][Field]>
+// prettier-ignore
+export type T_IO_METHOD<
+  MN extends T_IO_METHOD_NAMES,
+  Field extends T_Fields
+> = z.infer<T_IO_Schema[MN][Field]>
 
 type JSONPrimitive = string | number | boolean | null
 
