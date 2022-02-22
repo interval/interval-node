@@ -32,11 +32,11 @@ export type Executor<MethodName extends T_IO_METHOD_NAMES> = (
   reject?: () => void
 ) => void
 
-type IOPromiseMap = {
-  [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName>
-}
-
 type GroupMethods = Exclude<T_IO_METHOD_NAMES, 'CONFIRM'>
+
+type IOPromiseMap = {
+  [MethodName in GroupMethods]: IOPromise<MethodName>
+}
 
 type GroupIOPromise = IOPromiseMap[GroupMethods]
 
