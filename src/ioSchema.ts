@@ -110,7 +110,7 @@ export const ioSchema = {
       z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
     ),
   },
-  INPUT_CONFIRM: {
+  CONFIRM: {
     props: z.object({
       helpText: z.optional(z.string()),
     }),

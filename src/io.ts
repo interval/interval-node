@@ -36,7 +36,9 @@ type IOPromiseMap = {
   [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName>
 }
 
-type AnyIOPromise = IOPromiseMap[T_IO_METHOD_NAMES]
+type GroupMethods = Exclude<T_IO_METHOD_NAMES, 'CONFIRM'>
+
+type GroupIOPromise = IOPromiseMap[GroupMethods]
 
 export default function createIOClient(clientConfig: ClientConfig) {
   type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
@@ -106,7 +108,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
   }
 
   async function renderGroup<
-    PromiseInstances extends Readonly<[AnyIOPromise, ...AnyIOPromise[]]>,
+    PromiseInstances extends Readonly<[GroupIOPromise, ...GroupIOPromise[]]>,
     ComponentInstances extends Readonly<
       [AnyComponentType, ...AnyComponentType[]]
     >
@@ -116,7 +118,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
     ) as unknown as ComponentInstances
 
     type ReturnValues = {
-      -readonly [Idx in keyof PromiseInstances]: PromiseInstances[Idx] extends AnyIOPromise
+      -readonly [Idx in keyof PromiseInstances]: PromiseInstances[Idx] extends GroupIOPromise
         ? NonNullable<PromiseInstances[Idx]['_output']>
         : PromiseInstances[Idx]
     }
@@ -164,13 +166,14 @@ export default function createIOClient(clientConfig: ClientConfig) {
     io: {
       renderGroup,
 
+      confirm: aliasComponentName('CONFIRM'),
+
       input: {
         text: aliasComponentName('INPUT_TEXT'),
         boolean: aliasComponentName('INPUT_BOOLEAN'),
         number: aliasComponentName('INPUT_NUMBER'),
         email: aliasComponentName('INPUT_EMAIL'),
         richText: aliasComponentName('INPUT_RICH_TEXT'),
-        confirm: aliasComponentName('INPUT_CONFIRM'),
       },
       select: {
         single: aliasComponentName('SELECT_SINGLE'),
