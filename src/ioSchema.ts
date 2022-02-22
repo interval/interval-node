@@ -110,6 +110,13 @@ export const ioSchema = {
       z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
     ),
   },
+  INPUT_CONFIRM: {
+    props: z.object({
+      helpText: z.optional(z.string()),
+    }),
+    state: z.null(),
+    returns: z.boolean(),
+  },
   SELECT_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
@@ -236,10 +243,8 @@ export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
 type T_Fields = 'props' | 'state' | 'returns'
 
-export type T_IO_METHOD<
-  MN extends T_IO_METHOD_NAMES,
-  Field extends T_Fields
-> = z.infer<T_IO_Schema[MN][Field]>
+export type T_IO_METHOD<MN extends T_IO_METHOD_NAMES, Field extends T_Fields> =
+  z.infer<T_IO_Schema[MN][Field]>
 
 type JSONPrimitive = string | number | boolean | null
 

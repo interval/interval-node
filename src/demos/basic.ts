@@ -79,6 +79,19 @@ const interval = new Interval({
         }
       )
     },
+    confirmBeforeDelete: async io => {
+      const email = await io.input.email('Enter an email address')
+
+      const didDelete = await io.input.confirm(`Delete this user?`, {
+        helpText: 'All of their data will be removed.',
+      })
+
+      // as of now, this is the recommended way to quit, so the dashboard doesn't say "success"
+      // and falsely imply that the action was carried out anyway.
+      if (!didDelete) throw new Error()
+
+      return { didDelete, email }
+    },
     helloCurrentUser: async (io, ctx) => {
       console.log(ctx.params)
 
