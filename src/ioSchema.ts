@@ -217,6 +217,18 @@ export const ioSchema = {
     returns: z.null(),
     immediate: z.literal(true),
   },
+  DISPLAY_TABLE: {
+    props: z.object({
+      helpText: z.optional(z.string()),
+      headers: z.optional(z.array(z.string())),
+      rows: z.array(
+        z.array(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+      ),
+    }),
+    state: z.null(),
+    returns: z.null(),
+    immediate: z.literal(true),
+  },
   DISPLAY_PROGRESS_STEPS: {
     props: z.object({
       steps: z.object({
