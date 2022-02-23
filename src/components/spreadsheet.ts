@@ -29,6 +29,7 @@ export default function spreadsheet(
     }[] = []
 
     return {
+      groupable: true,
       component: c,
       _output,
       then(
