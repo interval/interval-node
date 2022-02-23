@@ -207,6 +207,24 @@ const interval = new Interval({
         }),
       ])
     },
+    Render_object: async io => {
+      await io.group([
+        io.display.object('User', {
+          data: {
+            name: 'Interval',
+            action: { isTrue: true, createdAt: new Date() },
+          },
+        }),
+        io.select.multiple('Continue?', {
+          options: [
+            {
+              label: 'Continue',
+              value: 'Continue',
+            },
+          ],
+        }),
+      ])
+    },
     Progress_steps: async io => {
       await io.experimental.progress.indeterminate('Fetching users...')
 

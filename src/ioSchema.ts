@@ -14,6 +14,15 @@ export const IO_RENDER = z.object({
   kind: z.literal('RENDER'),
 })
 
+const serializableSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.undefined(),
+])
+const serializableRecord = z.record(serializableSchema)
+
 export const IO_RESPONSE = z.object({
   id: z.string(),
   transactionId: z.string(),
@@ -43,9 +52,28 @@ const labelValue = z.object({
 const richSelectOption = z.object({
   label: z.string(),
   value: z.string(),
-  description: z.optional(z.string()),
-  imageUrl: z.optional(z.string()),
+  description: z.string().nullish(),
+  imageUrl: z.string().nullish(),
 })
+
+const objectLiteralSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.date(),
+])
+
+type Literal = boolean | null | number | string | Date
+type KeyValue = Literal | { [key: string]: KeyValue } | KeyValue[]
+
+const keyValueObject: z.ZodSchema<KeyValue> = z.lazy(() =>
+  z.union([
+    objectLiteralSchema,
+    z.record(keyValueObject),
+    z.array(keyValueObject),
+  ])
+)
 
 /**
  * Any methods with an `immediate` property defined (at all, not just truthy)
@@ -106,9 +134,7 @@ export const ioSchema = {
       columns: z.record(typeValue),
     }),
     state: z.null(),
-    returns: z.array(
-      z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
-    ),
+    returns: z.array(serializableRecord),
   },
   CONFIRM: {
     props: z.object({
@@ -121,37 +147,11 @@ export const ioSchema = {
   SELECT_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(
-        z.array(
-          z.record(
-            z.union([
-              z.string(),
-              z.number(),
-              z.boolean(),
-              z.null(),
-              z.undefined(),
-            ])
-          )
-        )
-      ),
-      data: z.array(
-        z.record(
-          z.union([
-            z.string(),
-            z.number(),
-            z.boolean(),
-            z.null(),
-            z.undefined(),
-          ])
-        )
-      ),
+      defaultValue: z.optional(z.array(serializableRecord)),
+      data: z.array(serializableRecord),
     }),
     state: z.null(),
-    returns: z.array(
-      z.record(
-        z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()])
-      )
-    ),
+    returns: z.array(serializableRecord),
   },
   SELECT_SINGLE: {
     props: z.object({
@@ -201,6 +201,14 @@ export const ioSchema = {
   },
   DISPLAY_MARKDOWN: {
     props: z.object({}),
+    state: z.null(),
+    returns: z.null(),
+    immediate: z.literal(true),
+  },
+  DISPLAY_OBJECT: {
+    props: z.object({
+      data: keyValueObject,
+    }),
     state: z.null(),
     returns: z.null(),
     immediate: z.literal(true),

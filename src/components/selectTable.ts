@@ -1,6 +1,6 @@
 import { T_IO_METHOD } from '../ioSchema'
 import component from '../component'
-import type { IOPromiseConstructor } from '../io'
+import type { IOPromiseConstructor, IOPromise } from '../io'
 
 export default function selectTable(
   constructor: IOPromiseConstructor<'SELECT_TABLE'>
@@ -12,13 +12,9 @@ export default function selectTable(
     label: string,
     props: Props
   ) => {
-    const ioPromise = constructor(component('SELECT_TABLE', label, props))
-
-    const _output = undefined as DataList | undefined
-
-    return {
-      ...ioPromise,
-      _output,
-    }
+    return constructor(component('SELECT_TABLE', label, props)) as IOPromise<
+      'SELECT_TABLE',
+      DataList
+    >
   }
 }

@@ -41,13 +41,16 @@ const editEmailForUser: IntervalActionHandler = async io => {
     io.select.table('Select from this table', {
       data: [
         { label: 'A', value: 'a' },
-        { label: 'B', value: 'b' },
+        { label: 'B', value: 'b', otherExtraData: 'ok' },
         { label: 'C', value: 'c', extraData: true },
       ],
     }),
   ])
+
+  const found = resp[1]
+
   io.group([
-    io.display.heading('You successfully edited email for ' + resp[1].label),
+    io.display.heading('You successfully edited email for ' + found.label),
   ])
 
   console.log('Resp', resp)
