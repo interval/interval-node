@@ -376,3 +376,5 @@ export default class Interval {
     this.#log.debug('Host ID:', this.#ws.id)
   }
 }
+
+export { Interval }
