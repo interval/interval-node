@@ -116,6 +116,7 @@ export const ioSchema = {
     }),
     state: z.null(),
     returns: z.boolean(),
+    exclusive: z.literal(true),
   },
   SELECT_TABLE: {
     props: z.object({

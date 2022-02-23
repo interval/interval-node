@@ -1,7 +1,11 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
-import { T_IO_Schema, T_IO_METHOD, T_IO_METHOD_NAMES } from './ioSchema'
-import type { T_IO_RENDER, T_IO_RESPONSE } from './ioSchema'
+import type {
+  T_IO_RENDER,
+  T_IO_RESPONSE,
+  T_IO_Schema,
+  T_IO_METHOD_NAMES,
+} from './ioSchema'
 import component, {
   AnyComponentType,
   ComponentType,
@@ -21,7 +25,16 @@ export interface IOPromise<MethodName extends T_IO_METHOD_NAMES> {
   component: ComponentType<MethodName>
   _output: z.infer<ComponentType<MethodName>['schema']['returns']> | undefined
   then: Executor<MethodName>
+  // This doesn't actually do anything, we only use it as a marker to provide
+  // slightly better error messages to users if they use an exclusive method
+  // inside a group.
+  groupable: true
 }
+
+export type ExclusiveIOPromise<MethodName extends T_IO_METHOD_NAMES> = Omit<
+  IOPromise<MethodName>,
+  'groupable'
+>
 
 interface ClientConfig {
   send: (ioToRender: T_IO_RENDER) => Promise<void>
@@ -32,13 +45,21 @@ export type Executor<MethodName extends T_IO_METHOD_NAMES> = (
   reject?: () => void
 ) => void
 
-type GroupMethods = Exclude<T_IO_METHOD_NAMES, 'CONFIRM'>
-
 type IOPromiseMap = {
-  [MethodName in GroupMethods]: IOPromise<MethodName>
+  [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName>
 }
 
-type GroupIOPromise = IOPromiseMap[GroupMethods]
+/**
+ * Map of IOPromises that can be rendered in a group.
+ */
+type GroupIOPromiseMap = {
+  [MethodName in keyof IOPromiseMap]: T_IO_Schema[MethodName] extends {
+    exclusive: z.ZodLiteral<true>
+  }
+    ? never
+    : IOPromiseMap[MethodName]
+}
+type GroupIOPromise = GroupIOPromiseMap[T_IO_METHOD_NAMES]
 
 export default function createIOClient(clientConfig: ClientConfig) {
   type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
@@ -133,6 +154,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       undefined
 
     return {
+      groupable: true,
       component,
       _output,
       then(resolve) {
@@ -162,11 +184,27 @@ export default function createIOClient(clientConfig: ClientConfig) {
     }
   }
 
+  /**
+   * A simple wrapper that doesn't actually do anything except create
+   * a type error if you try to use it in a group.
+   */
+  function makeExclusive<MethodName extends T_IO_METHOD_NAMES>(
+    inner: (
+      label: string,
+      props?: z.input<T_IO_Schema[MethodName]['props']>
+    ) => IOPromise<MethodName>
+  ): (
+    label: string,
+    props?: z.input<T_IO_Schema[MethodName]['props']>
+  ) => ExclusiveIOPromise<MethodName> {
+    return inner
+  }
+
   return {
     io: {
       renderGroup,
 
-      confirm: aliasComponentName('CONFIRM'),
+      confirm: makeExclusive(aliasComponentName('CONFIRM')),
 
       input: {
         text: aliasComponentName('INPUT_TEXT'),
