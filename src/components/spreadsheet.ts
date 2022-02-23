@@ -1,17 +1,11 @@
 import { z } from 'zod'
-import component, { ComponentType } from '../component'
+import component from '../component'
 import type { T_IO_METHOD } from '../ioSchema'
+import type { IOPromiseConstructor, IOPromise } from '../io'
 import { COLUMN_DEFS } from '../utils/spreadsheet'
 
 export default function spreadsheet(
-  renderer: (
-    componentInstances: Readonly<
-      [
-        ComponentType<'INPUT_SPREADSHEET'>,
-        ...ComponentType<'INPUT_SPREADSHEET'>[]
-      ]
-    >
-  ) => Promise<T_IO_METHOD<'INPUT_SPREADSHEET', 'returns'>[]>
+  constructor: IOPromiseConstructor<'INPUT_SPREADSHEET'>
 ) {
   return <
     Props extends T_IO_METHOD<'INPUT_SPREADSHEET', 'props'>,
@@ -24,28 +18,11 @@ export default function spreadsheet(
       ...props,
     })
 
-    const _output: {
-      [key in keyof Columns]: z.infer<typeof COLUMN_DEFS[Columns[key]]>
-    }[] = []
-
-    return {
-      component: c,
-      _output,
-      then(
-        resolve: (
-          input: {
-            [key in keyof Columns]: z.infer<typeof COLUMN_DEFS[Columns[key]]>
-          }[]
-        ) => void
-      ) {
-        renderer([c]).then(([result]) => {
-          resolve(
-            result as {
-              [key in keyof Columns]: z.infer<typeof COLUMN_DEFS[Columns[key]]>
-            }[]
-          )
-        })
-      },
-    }
+    return constructor(c) as IOPromise<
+      'INPUT_SPREADSHEET',
+      {
+        [key in keyof Columns]: z.infer<typeof COLUMN_DEFS[Columns[key]]>
+      }[]
+    >
   }
 }

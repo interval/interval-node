@@ -1,6 +1,6 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
-import { T_IO_Schema, T_IO_METHOD, T_IO_METHOD_NAMES } from './ioSchema'
+import { T_IO_Schema, T_IO_METHOD_NAMES } from './ioSchema'
 import type { T_IO_RENDER, T_IO_RESPONSE } from './ioSchema'
 import component, {
   AnyComponentType,
@@ -11,26 +11,30 @@ import progressThroughList from './components/progressThroughList'
 import spreadsheet from './components/spreadsheet'
 import selectTable from './components/selectTable'
 import findAndSelectUser from './components/selectUser'
-import findAndSelect from './components/selectSingle'
+import findAndSelect, { selectSingle } from './components/selectSingle'
 
-export type IOPromiseConstructor<MethodName extends T_IO_METHOD_NAMES> = (
-  c: ComponentType<MethodName>
-) => IOPromise<MethodName>
+export type IOPromiseConstructor<
+  MethodName extends T_IO_METHOD_NAMES,
+  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+> = (c: ComponentType<MethodName>) => IOPromise<MethodName, Output>
 
-export interface IOPromise<MethodName extends T_IO_METHOD_NAMES> {
+export interface IOPromise<
+  MethodName extends T_IO_METHOD_NAMES,
+  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+> {
   component: ComponentType<MethodName>
-  _output: z.infer<ComponentType<MethodName>['schema']['returns']> | undefined
-  then: Executor<MethodName>
+  _output: Output | undefined
+  then: Executor<MethodName, Output>
 }
 
 interface ClientConfig {
   send: (ioToRender: T_IO_RENDER) => Promise<void>
 }
 
-export type Executor<MethodName extends T_IO_METHOD_NAMES> = (
-  resolve: (input: ComponentReturnValue<MethodName>) => void,
-  reject?: () => void
-) => void
+export type Executor<
+  MethodName extends T_IO_METHOD_NAMES,
+  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+> = (resolve: (output: Output) => void, reject?: () => void) => void
 
 type IOPromiseMap = {
   [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName>
@@ -124,11 +128,11 @@ export default function createIOClient(clientConfig: ClientConfig) {
     return renderComponents(componentInstances) as unknown as ReturnValues
   }
 
-  function ioPromiseConstructor<MethodName extends T_IO_METHOD_NAMES>(
-    component: ComponentType<MethodName>
-  ): IOPromise<MethodName> {
-    const _output: ComponentType<MethodName>['returnValue'] | undefined =
-      undefined
+  function ioPromiseConstructor<
+    MethodName extends T_IO_METHOD_NAMES,
+    Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+  >(component: ComponentType<MethodName>): IOPromise<MethodName, Output> {
+    const _output: Output | undefined = undefined
 
     return {
       component,
@@ -139,7 +143,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
         >
 
         renderComponents(componentInstances).then(([result]) => {
-          resolve(result)
+          resolve(result as NonNullable<typeof _output>)
         })
       },
     }
@@ -172,7 +176,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
         richText: aliasComponentName('INPUT_RICH_TEXT'),
       },
       select: {
-        single: aliasComponentName('SELECT_SINGLE'),
+        single: selectSingle(ioPromiseConstructor),
         multiple: aliasComponentName('SELECT_MULTIPLE'),
         table: selectTable(ioPromiseConstructor),
       },
@@ -183,7 +187,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       },
       experimental: {
         progressThroughList: progressThroughList(ioPromiseConstructor),
-        spreadsheet: spreadsheet(renderComponents),
+        spreadsheet: spreadsheet(ioPromiseConstructor),
         findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
         findAndSelect: findAndSelect(ioPromiseConstructor),
         progress: {
