@@ -41,7 +41,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 type LogLevel = 'prod' | 'debug'
 
-class Logger {
+export class Logger {
   logLevel: LogLevel = 'prod'
 
   constructor(logLevel?: LogLevel) {
@@ -266,6 +266,7 @@ export default class Interval {
           }
 
           const client = createIOClient({
+            logger: this.#logger,
             send: async ioRenderInstruction => {
               await serverRpc.send('SEND_IO_CALL', {
                 transactionId: inputs.transactionId,

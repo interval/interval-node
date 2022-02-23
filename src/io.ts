@@ -1,5 +1,6 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
+import type { Logger } from '.'
 import type {
   T_IO_RENDER,
   T_IO_RESPONSE,
@@ -21,6 +22,17 @@ export type IOPromiseConstructor<MethodName extends T_IO_METHOD_NAMES> = (
   c: ComponentType<MethodName>
 ) => IOPromise<MethodName>
 
+export type IOComponentFunction<MethodName extends T_IO_METHOD_NAMES> = (
+  label: string,
+  props?: z.input<T_IO_Schema[MethodName]['props']>
+) => IOPromise<MethodName>
+
+export type ExclusiveIOComponentFunction<MethodName extends T_IO_METHOD_NAMES> =
+  (
+    label: string,
+    props?: z.input<T_IO_Schema[MethodName]['props']>
+  ) => ExclusiveIOPromise<MethodName>
+
 export interface IOPromise<MethodName extends T_IO_METHOD_NAMES> {
   component: ComponentType<MethodName>
   _output: z.infer<ComponentType<MethodName>['schema']['returns']> | undefined
@@ -37,6 +49,7 @@ export type ExclusiveIOPromise<MethodName extends T_IO_METHOD_NAMES> = Omit<
 >
 
 interface ClientConfig {
+  logger: Logger
   send: (ioToRender: T_IO_RENDER) => Promise<void>
 }
 
@@ -134,9 +147,16 @@ export default function createIOClient(clientConfig: ClientConfig) {
       [AnyComponentType, ...AnyComponentType[]]
     >
   >(promiseInstances: PromiseInstances) {
-    const componentInstances = promiseInstances.map(
-      pi => pi.component
-    ) as unknown as ComponentInstances
+    const componentInstances = promiseInstances.map(pi => {
+      // In case user is using JavaScript or ignores the type error
+      if (!pi.groupable) {
+        clientConfig.logger.warn(
+          '[Interval]',
+          `Component with label "${pi.component.label}" is not supported inside a group, please remove it from the group`
+        )
+      }
+      return pi.component
+    }) as unknown as ComponentInstances
 
     type ReturnValues = {
       -readonly [Idx in keyof PromiseInstances]: PromiseInstances[Idx] extends GroupIOPromise
@@ -171,10 +191,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
   function aliasComponentName<MethodName extends T_IO_METHOD_NAMES>(
     methodName: MethodName
-  ): (
-    label: string,
-    props?: z.input<T_IO_Schema[MethodName]['props']>
-  ) => IOPromise<MethodName> {
+  ): IOComponentFunction<MethodName> {
     return (
       label: string,
       props?: z.input<T_IO_Schema[MethodName]['props']>
@@ -185,19 +202,19 @@ export default function createIOClient(clientConfig: ClientConfig) {
   }
 
   /**
-   * A simple wrapper that doesn't actually do anything except create
+   * A simple wrapper that strips the marker prop to create
    * a type error if you try to use it in a group.
    */
   function makeExclusive<MethodName extends T_IO_METHOD_NAMES>(
-    inner: (
+    inner: IOComponentFunction<MethodName>
+  ): ExclusiveIOComponentFunction<MethodName> {
+    return (
       label: string,
       props?: z.input<T_IO_Schema[MethodName]['props']>
-    ) => IOPromise<MethodName>
-  ): (
-    label: string,
-    props?: z.input<T_IO_Schema[MethodName]['props']>
-  ) => ExclusiveIOPromise<MethodName> {
-    return inner
+    ) => {
+      const { groupable, ...rest } = inner(label, props)
+      return rest
+    }
   }
 
   return {
