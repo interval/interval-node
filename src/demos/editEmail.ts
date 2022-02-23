@@ -6,7 +6,7 @@ const editEmailForUser: IntervalActionHandler = async io => {
 
   const initialUsers = await fakeDb.find('')
 
-  const resp = await io.renderGroup([
+  const resp = await io.group([
     io.display.heading('Edit email address for user'),
     io.experimental.findAndSelect('Select a user', {
       options: initialUsers.map(mapToSelectOption),
@@ -46,7 +46,7 @@ const editEmailForUser: IntervalActionHandler = async io => {
       ],
     }),
   ])
-  io.renderGroup([
+  io.group([
     io.display.heading('You successfully edited email for ' + resp[1].label),
   ])
 

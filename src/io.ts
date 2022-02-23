@@ -105,7 +105,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
     ) as unknown as Promise<ReturnValues>
   }
 
-  async function renderGroup<
+  async function group<
     PromiseInstances extends Readonly<[AnyIOPromise, ...AnyIOPromise[]]>,
     ComponentInstances extends Readonly<
       [AnyComponentType, ...AnyComponentType[]]
@@ -162,7 +162,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
   return {
     io: {
-      renderGroup,
+      group,
 
       input: {
         text: aliasComponentName('INPUT_TEXT'),
