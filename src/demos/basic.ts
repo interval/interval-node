@@ -199,7 +199,7 @@ const interval = new Interval({
       ])
     },
     Render_object: async io => {
-      await io.renderGroup([
+      await io.group([
         io.display.object('User', {
           data: {
             name: 'Interval',
