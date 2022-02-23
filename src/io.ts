@@ -128,7 +128,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
     ) as unknown as Promise<ReturnValues>
   }
 
-  async function renderGroup<
+  async function group<
     PromiseInstances extends Readonly<[GroupIOPromise, ...GroupIOPromise[]]>,
     ComponentInstances extends Readonly<
       [AnyComponentType, ...AnyComponentType[]]
@@ -202,7 +202,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
   return {
     io: {
-      renderGroup,
+      group,
 
       confirm: makeExclusive(aliasComponentName('CONFIRM')),
 
