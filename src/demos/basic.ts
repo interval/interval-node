@@ -63,7 +63,7 @@ const interval = new Interval({
     'Unique ID tester': async io => {
       await io.input.number('Hi')
 
-      const [name, id] = await io.renderGroup([
+      const [name, id] = await io.group([
         io.input.text('Your name'),
         io.input.number('Pick a number'),
       ])
@@ -165,7 +165,7 @@ const interval = new Interval({
       )
     },
     'Display-Returns-Automatically': async io => {
-      await io.renderGroup([
+      await io.group([
         io.display.markdown(`
           After you press continue, a long running task will start.
         `),
@@ -182,7 +182,7 @@ const interval = new Interval({
       console.log('Done!')
     },
     Render_markdown: async io => {
-      await io.renderGroup([
+      await io.group([
         io.display.markdown(`
           ## User data deletion
           **Warning:** this _will_ erase user data.
