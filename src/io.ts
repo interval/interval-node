@@ -249,6 +249,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
         heading: aliasComponentName('DISPLAY_HEADING'),
         markdown: aliasComponentName('DISPLAY_MARKDOWN'),
         object: aliasComponentName('DISPLAY_OBJECT'),
+        table: aliasComponentName('DISPLAY_TABLE'),
       },
       experimental: {
         progressThroughList: progressThroughList(ioPromiseConstructor),
