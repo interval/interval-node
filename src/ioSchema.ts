@@ -44,10 +44,12 @@ export const typeValue = z.enum([
 ])
 export type TypeValue = z.infer<typeof typeValue>
 
-const labelValue = z.object({
-  label: z.string(),
-  value: z.string(),
-})
+const labelValue = z
+  .object({
+    label: z.string(),
+    value: z.string(),
+  })
+  .passthrough()
 
 const richSelectOption = z
   .object({
@@ -171,7 +173,7 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
       defaultValue: z
         .array(labelValue)
-        .default([] as { value: string; label: string }[]),
+        .default([] as z.infer<typeof labelValue>[]),
     }),
     state: z.null(),
     returns: z.array(labelValue),
@@ -259,6 +261,11 @@ export type T_IO_METHOD<
   MN extends T_IO_METHOD_NAMES,
   Field extends T_Fields
 > = z.infer<T_IO_Schema[MN][Field]>
+
+// Must use input for props with possible transformations
+export type T_IO_PROPS<MN extends T_IO_METHOD_NAMES> = z.input<
+  T_IO_Schema[MN]['props']
+>
 
 type JSONPrimitive = string | number | boolean | null
 

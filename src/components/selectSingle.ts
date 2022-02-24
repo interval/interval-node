@@ -1,12 +1,12 @@
 import component from '../component'
-import type { T_IO_METHOD } from '../ioSchema'
+import type { T_IO_PROPS } from '../ioSchema'
 import type { IOPromiseConstructor, IOPromise } from '../io'
 
 export function selectSingle(
   constructor: IOPromiseConstructor<'SELECT_SINGLE'>
 ) {
   return <
-    Props extends T_IO_METHOD<'SELECT_SINGLE', 'props'>,
+    Props extends T_IO_PROPS<'SELECT_SINGLE'>,
     Options extends Props['options']
   >(
     label: string,
@@ -23,7 +23,7 @@ export default function findAndSelect(
   constructor: IOPromiseConstructor<'SELECT_SINGLE'>
 ) {
   return <
-    Props extends T_IO_METHOD<'SELECT_SINGLE', 'props'> & {
+    Props extends T_IO_PROPS<'SELECT_SINGLE'> & {
       onSearch?: (query: string) => Promise<Options>
     },
     Options extends Props['options']
@@ -39,11 +39,7 @@ export default function findAndSelect(
       onSearch
         ? async newState => {
             const options = await onSearch(newState.queryTerm)
-
-            return {
-              ...props,
-              options,
-            }
+            return { options }
           }
         : undefined
     )

@@ -1,4 +1,4 @@
-import { T_IO_METHOD } from '../ioSchema'
+import { T_IO_PROPS } from '../ioSchema'
 import component from '../component'
 import type { IOPromiseConstructor } from '../io'
 
@@ -8,10 +8,7 @@ type ProgressibleItem =
     }
   | string
 
-type ProgressList = T_IO_METHOD<
-  'DISPLAY_PROGRESS_THROUGH_LIST',
-  'props'
->['items']
+type ProgressList = T_IO_PROPS<'DISPLAY_PROGRESS_THROUGH_LIST'>['items']
 
 export default function progressThroughList(
   constructor: IOPromiseConstructor<'DISPLAY_PROGRESS_THROUGH_LIST'>

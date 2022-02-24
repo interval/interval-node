@@ -20,7 +20,7 @@ export interface ComponentType<MN extends keyof IoSchema> {
   setState: (
     newState: z.infer<IoSchema[MN]['state']>
   ) => Promise<ComponentInstance<MN>>
-  setProps: (newProps: z.infer<IoSchema[MN]['props']>) => void
+  setProps: (newProps: z.input<IoSchema[MN]['props']>) => void
   setReturnValue: (value: z.infer<IoSchema[MN]['returns']>) => void
 }
 
@@ -45,7 +45,7 @@ const component = <MN extends keyof IoSchema>(
   initialProps?: z.input<IoSchema[MN]['props']>,
   handleStateChange?: (
     incomingState: z.infer<IoSchema[MN]['state']>
-  ) => Promise<z.infer<IoSchema[MN]['props']>>
+  ) => Promise<Partial<z.input<IoSchema[MN]['props']>>>
 ): ComponentType<MN> => {
   // if initialProps includes one or more "on[Action]" methods.
   // maybe a better way to do this? e.g. component schema defines which of its methods is stateful
@@ -96,7 +96,7 @@ const component = <MN extends keyof IoSchema>(
     return instance
   }
 
-  function setProps(newProps: z.infer<IoSchema[MN]['props']>) {
+  function setProps(newProps: z.input<IoSchema[MN]['props']>) {
     instance.props = newProps
     onStateChangeHandler && onStateChangeHandler()
   }

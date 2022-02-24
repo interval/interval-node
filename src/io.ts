@@ -17,6 +17,7 @@ import spreadsheet from './components/spreadsheet'
 import selectTable from './components/selectTable'
 import findAndSelectUser from './components/selectUser'
 import findAndSelect, { selectSingle } from './components/selectSingle'
+import selectMultiple from './components/selectMultiple'
 
 export type IOPromiseConstructor<
   MethodName extends T_IO_METHOD_NAMES,
@@ -241,7 +242,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       },
       select: {
         single: selectSingle(ioPromiseConstructor),
-        multiple: aliasComponentName('SELECT_MULTIPLE'),
+        multiple: selectMultiple(ioPromiseConstructor),
         table: selectTable(ioPromiseConstructor),
       },
       display: {

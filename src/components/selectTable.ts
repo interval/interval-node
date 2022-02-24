@@ -1,4 +1,4 @@
-import { T_IO_METHOD } from '../ioSchema'
+import { T_IO_PROPS } from '../ioSchema'
 import component from '../component'
 import type { IOPromiseConstructor, IOPromise } from '../io'
 
@@ -6,7 +6,7 @@ export default function selectTable(
   constructor: IOPromiseConstructor<'SELECT_TABLE'>
 ) {
   return <
-    Props extends T_IO_METHOD<'SELECT_TABLE', 'props'>,
+    Props extends T_IO_PROPS<'SELECT_TABLE'>,
     DataList extends Props['data']
   >(
     label: string,

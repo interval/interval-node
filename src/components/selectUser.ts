@@ -1,5 +1,5 @@
 import component from '../component'
-import type { T_IO_METHOD } from '../ioSchema'
+import type { T_IO_PROPS } from '../ioSchema'
 import type { IOPromiseConstructor } from '../io'
 
 export default function findAndSelectUser(
@@ -7,10 +7,10 @@ export default function findAndSelectUser(
 ) {
   return (
     label: string,
-    props: T_IO_METHOD<'SELECT_USER', 'props'> & {
+    props: T_IO_PROPS<'SELECT_USER'> & {
       onSearch: (
         query: string
-      ) => Promise<T_IO_METHOD<'SELECT_USER', 'returns'>[]>
+      ) => Promise<T_IO_PROPS<'SELECT_USER'>['userList']>
     }
   ) => {
     const c = component(
