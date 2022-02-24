@@ -62,7 +62,7 @@ const interval = new Interval({
       console.log('done!', resp)
     },
     noInteractiveElements: async io => {
-      io.display.heading('I do nothing :(').then(() => {})
+      await io.display.heading('I block :(')
       console.log('done!')
     },
     'Unique ID tester': async io => {
@@ -178,7 +178,7 @@ const interval = new Interval({
         }
       )
     },
-    'Display-Returns-Automatically': async io => {
+    'Display-Does-Not-Return-Automatically': async io => {
       await io.group([
         io.display.markdown(`
           After you press continue, a long running task will start.
@@ -188,11 +188,21 @@ const interval = new Interval({
 
       console.log(1)
 
-      await io.display.heading('Submitted!')
+      await io.display.heading('Blocking until you press continue')
+
+      await sleep(2000)
+
+      io.display
+        .markdown(`Can still hack immedate returns with \`.then()\``)
+        .then(() => {})
+
+      await sleep(2000)
+
+      io.display.markdown('See!').then(() => {})
 
       console.log(2)
 
-      await sleep(10_000)
+      await sleep(2000)
       console.log('Done!')
     },
     Render_markdown: async io => {
