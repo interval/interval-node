@@ -49,12 +49,14 @@ const labelValue = z.object({
   value: z.string(),
 })
 
-const richSelectOption = z.object({
-  label: z.string(),
-  value: z.string(),
-  description: z.string().nullish(),
-  imageUrl: z.string().nullish(),
-})
+const richSelectOption = z
+  .object({
+    label: z.string(),
+    value: z.string(),
+    description: z.string().nullish(),
+    imageUrl: z.string().nullish(),
+  })
+  .passthrough()
 
 const objectLiteralSchema = z.union([
   z.string(),
