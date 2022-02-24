@@ -3,7 +3,7 @@ import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from './helpers'
 import unauthorized from './unauthorized'
 
-new Interval({
+const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3002',
   actions: {
@@ -30,7 +30,9 @@ new Interval({
       return { num }
     },
   },
-}).listen()
+})
+
+prod.listen()
 
 const interval = new Interval({
   apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
@@ -250,14 +252,16 @@ interval.listen()
 
 /*
 setTimeout(async () => {
-  await interval.actions.enqueue('Hello current user', {
+  await prod.actions.enqueue('enter_one_number')
+
+  await interval.actions.enqueue('helloCurrentUser', {
     assignee: 'alex@interval.com',
     params: {
       message: 'Hello, queue!',
     },
   })
 
-  const queuedAction = await interval.actions.enqueue('Hello current user', {
+  const queuedAction = await interval.actions.enqueue('helloCurrentUser', {
     params: {
       message: 'Hello, anyone!',
     },
