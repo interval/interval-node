@@ -14,15 +14,6 @@ export const IO_RENDER = z.object({
   kind: z.literal('RENDER'),
 })
 
-const serializableSchema = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.null(),
-  z.undefined(),
-])
-const serializableRecord = z.record(serializableSchema)
-
 export const IO_RESPONSE = z.object({
   id: z.string(),
   transactionId: z.string(),
@@ -78,6 +69,16 @@ const keyValueObject: z.ZodSchema<KeyValue> = z.lazy(() =>
     z.array(keyValueObject),
   ])
 )
+
+const serializableSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.object({ label: z.string(), value: objectLiteralSchema }),
+  z.null(),
+  z.undefined(),
+])
+const serializableRecord = z.record(serializableSchema)
 
 /**
  * Any methods with an `immediate` property defined (at all, not just truthy)
@@ -152,6 +153,7 @@ export const ioSchema = {
     props: z.object({
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.array(serializableRecord)),
+      columns: z.optional(z.array(z.string())),
       data: z.array(serializableRecord),
     }),
     state: z.null(),
