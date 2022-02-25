@@ -222,10 +222,8 @@ export const ioSchema = {
   DISPLAY_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      headers: z.optional(z.array(z.string())),
-      rows: z.array(
-        z.array(z.union([z.string(), z.number(), z.boolean(), z.null()]))
-      ),
+      columns: z.optional(z.array(z.string())),
+      data: z.array(serializableRecord),
     }),
     state: z.null(),
     returns: z.null(),

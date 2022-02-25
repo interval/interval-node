@@ -1,7 +1,7 @@
 import Interval from '../index'
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from './helpers'
-import selectFromTable from './selectFromTable'
+import { table_basic, table_custom_columns } from './selectFromTable'
 import unauthorized from './unauthorized'
 
 const prod = new Interval({
@@ -47,7 +47,8 @@ const interval = new Interval({
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed sit amet quam in lorem sagittis accumsan malesuada nec mauris. Nulla cursus dolor id augue sodales, et consequat elit mattis. Suspendisse nec sollicitudin ex. Pellentesque laoreet nulla nec malesuada consequat. Donec blandit leo id tincidunt tristique. Mauris vehicula metus sed ex bibendum, nec bibendum urna tincidunt. Curabitur porttitor euismod velit sed interdum. Suspendisse at dapibus eros. Vestibulum varius, est vel luctus pellentesque, risus lorem ullamcorper est, a ullamcorper metus dolor eget neque. Donec sit amet nulla tempus, fringilla magna eu, bibendum tortor. Nam pulvinar diam id vehicula posuere. Praesent non turpis et nibh dictum suscipit non nec ante. Phasellus vulputate egestas nisl a dapibus. Duis augue lorem, mattis auctor condimentum a, convallis sed elit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Pellentesque bibendum, magna vel pharetra fermentum, eros mi vulputate enim, in consectetur est quam quis felis.',
       }
     },
-    selectFromTable: selectFromTable,
+    table_basic,
+    table_custom_columns,
     'progress-through-long-list': async io => {
       const resp = await io.experimental.progressThroughList(
         'Here are some items',
