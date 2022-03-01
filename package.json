@@ -10,12 +10,13 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "tar": "yarn pack",
-    "build": "tsc",
+    "build": "yarn envoy && tsc",
     "demo:basic": "node ./dist/demos/basic.js",
     "demo:prod": "node ./dist/demos/prodDemo.js",
     "dev": "nodemon --watch src --exec \"yarn build && yarn demo:basic\" -e ts"
   },
   "dependencies": {
+    "@interval/envoy": "^1.0.1",
     "evt": "^1.10.2",
     "uuid": "^8.3.2",
     "ws": "^8.4.1",
