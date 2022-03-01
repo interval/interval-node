@@ -6,13 +6,13 @@
   "engines": {
     "node": ">=14"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "scripts": {
     "tar": "yarn pack",
     "build": "yarn envoy && tsc",
-    "demo:basic": "node ./dist/demos/basic.js",
-    "demo:prod": "node ./dist/demos/prodDemo.js",
+    "demo:basic": "node ./dist/src/demos/basic.js",
+    "demo:prod": "node ./dist/src/demos/prodDemo.js",
     "dev": "nodemon --watch src --exec \"yarn build && yarn demo:basic\" -e ts"
   },
   "dependencies": {
