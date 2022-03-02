@@ -3,4 +3,5 @@ node_modules
 dist
 *.tgz
 pm2.config.js
-prodDemo.ts
+.env
+env.ts
