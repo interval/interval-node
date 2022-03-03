@@ -74,11 +74,16 @@ const serializableSchema = z.union([
   z.string(),
   z.number(),
   z.boolean(),
-  z.object({ label: z.string(), value: objectLiteralSchema }),
+  z.record(objectLiteralSchema),
   z.null(),
   z.undefined(),
 ])
 const serializableRecord = z.record(serializableSchema)
+
+const tableColumnDef = z.object({
+  key: z.string(),
+  label: z.optional(z.string()),
+})
 
 /**
  * Any methods with an `immediate` property defined (at all, not just truthy)
@@ -153,7 +158,7 @@ export const ioSchema = {
     props: z.object({
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.array(serializableRecord)),
-      columns: z.optional(z.array(z.string())),
+      columns: z.optional(z.array(tableColumnDef)),
       data: z.array(serializableRecord),
     }),
     state: z.null(),
@@ -222,7 +227,7 @@ export const ioSchema = {
   DISPLAY_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      columns: z.optional(z.array(z.string())),
+      columns: z.optional(z.array(tableColumnDef)),
       data: z.array(serializableRecord),
     }),
     state: z.null(),

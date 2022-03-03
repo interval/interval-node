@@ -29,11 +29,7 @@ function formatCurrency(amount: number) {
 
 export const table_basic: IntervalActionHandler = async io => {
   const selections = await io.select.table('Select from this table', {
-    data: charges.map(ch => ({
-      id: { label: ch.id.slice(0, 5), value: ch.id },
-      name: ch.name,
-      amount: { label: formatCurrency(ch.amount), value: ch.amount },
-    })),
+    data: charges,
   })
 
   await io.display.object('Selected', { data: selections })
@@ -41,7 +37,7 @@ export const table_basic: IntervalActionHandler = async io => {
 
 export const table_custom_columns: IntervalActionHandler = async io => {
   const selections = await io.select.table('Select from this table', {
-    columns: ['ID', 'Name', 'Price'],
+    // columns: ['ID', 'Name', 'Price'],
     data: charges.map(ch => ({
       id: { label: ch.id.slice(0, 5), value: ch.id },
       name: ch.name,
