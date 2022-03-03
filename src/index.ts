@@ -84,7 +84,7 @@ class IntervalError extends Error {
 export default class Interval {
   #actions: Record<string, IntervalActionHandler>
   #apiKey: string
-  #endpoint: string = 'wss://intervalkit.com:3003'
+  #endpoint: string = 'wss://intervalkit.com/websocket'
   #logger: Logger
 
   constructor(config: InternalConfig) {
