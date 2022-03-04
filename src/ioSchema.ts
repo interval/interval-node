@@ -170,7 +170,6 @@ export const ioSchema = {
   SELECT_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(z.array(serializableRecord)),
       columns: z.optional(z.array(tableColumnDef)),
       data: z.array(tableRow),
     }),
