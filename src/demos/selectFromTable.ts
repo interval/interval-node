@@ -10,16 +10,19 @@ const charges = [
     id: 'acc14b04-60d8-4f9d-9907-10ea1ed05fe2',
     name: 'Dan',
     amount: 0,
+    promoCode: 'APPLE',
   },
   {
     id: '91032195-6836-4573-9cd5-0b06ea2379ec',
     name: 'Jacob',
     amount: 1200,
+    promoCode: 'BANANA',
   },
   {
     id: '48d10a1a-9c8c-4426-8d0c-796610c652f3',
     name: 'Ryan',
     amount: 2022,
+    promoCode: 'ORANGE',
   },
 ]
 
@@ -45,6 +48,11 @@ export const table_custom_columns: IntervalActionHandler = async io => {
         key: 'amount',
         label: 'Price',
         formatter: value => formatCurrency(value ? value / 100 : 0),
+      },
+      {
+        key: 'promoCode',
+        label: 'Promo code',
+        formatter: value => value ?? '(None)',
       },
     ],
   })

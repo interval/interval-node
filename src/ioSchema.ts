@@ -58,9 +58,10 @@ const objectLiteralSchema = z.union([
   z.boolean(),
   z.null(),
   z.date(),
+  z.undefined(),
 ])
 
-type Literal = boolean | null | number | string | Date
+type Literal = boolean | null | number | string | Date | undefined
 type KeyValue = Literal | { [key: string]: KeyValue } | KeyValue[]
 
 const keyValueObject: z.ZodSchema<KeyValue> = z.lazy(() =>
@@ -87,6 +88,7 @@ const tableRowValue = z.union([
   z.boolean(),
   z.null(),
   z.date(),
+  z.undefined(),
   // this is a private schema that we use internally to store the original value inside the row.
   z.object({ _label: z.string(), _value: objectLiteralSchema }),
 ])

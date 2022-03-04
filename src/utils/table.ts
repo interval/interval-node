@@ -51,7 +51,7 @@ export function tableRowDeserializer(rows: z.infer<typeof tableRow>[]) {
     return Object.keys(row).reduce<{ [key: string]: any }>((result, key) => {
       const v = row[key]
 
-      if (v && typeof v === 'object' && '_value' in v) {
+      if (v && typeof v === 'object' && '_label' in v) {
         result[key] = v._value
       } else {
         result[key] = v
