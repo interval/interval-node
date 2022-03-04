@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { tableRowDeserializer } from './utils/table'
 
 export const IO_RENDER = z.object({
   id: z.string(),
@@ -74,15 +75,27 @@ const serializableSchema = z.union([
   z.string(),
   z.number(),
   z.boolean(),
-  z.record(objectLiteralSchema),
   z.null(),
+  z.date(),
   z.undefined(),
 ])
 const serializableRecord = z.record(serializableSchema)
 
+const tableRowValue = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.date(),
+  // this is a private schema that we use internally to store the original value inside the row.
+  z.object({ _label: z.string(), _value: objectLiteralSchema }),
+])
+export const tableRow = z.record(tableRowValue)
+
 const tableColumnDef = z.object({
   key: z.string(),
   label: z.optional(z.string()),
+  formatter: z.optional(z.function().args(z.any()).returns(z.string())),
 })
 
 /**
@@ -159,10 +172,10 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.array(serializableRecord)),
       columns: z.optional(z.array(tableColumnDef)),
-      data: z.array(serializableRecord),
+      data: z.array(tableRow),
     }),
     state: z.null(),
-    returns: z.array(serializableRecord),
+    returns: z.array(tableRow).transform(tableRowDeserializer),
   },
   SELECT_SINGLE: {
     props: z.object({
@@ -228,7 +241,7 @@ export const ioSchema = {
     props: z.object({
       helpText: z.optional(z.string()),
       columns: z.optional(z.array(tableColumnDef)),
-      data: z.array(serializableRecord),
+      data: z.array(tableRow),
     }),
     state: z.null(),
     returns: z.null(),
