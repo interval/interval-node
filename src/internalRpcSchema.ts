@@ -50,6 +50,8 @@ export const wsServerSchema = {
       // Actually slugs, for backward compatibility
       // TODO: Change to slug in breaking release
       callableActionNames: z.array(z.string()),
+      sdkName: z.string().optional(),
+      sdkVersion: z.string().optional(),
     }),
     returns: z
       .object({
