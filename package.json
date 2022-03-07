@@ -14,7 +14,7 @@
     "build": "yarn build:envoy && tsc",
     "demo:basic": "node ./dist/demos/basic.js",
     "demo:prod": "node ./dist/demos/prodDemo.js",
-    "dev": "nodemon -i src/env.ts --watch src --exec \"yarn build && yarn demo:basic\" -e ts"
+    "dev": "yarn build:envoy && nodemon -i src/env.ts --watch src -e ts src/demos/basic.ts"
   },
   "dependencies": {
     "@interval/envoy": "^1.0.1",
