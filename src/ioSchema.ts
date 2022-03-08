@@ -72,15 +72,18 @@ const keyValueObject: z.ZodSchema<KeyValue> = z.lazy(() =>
   ])
 )
 
-const serializableSchema = z.union([
+export const deserializableSchema = z.union([
   z.string(),
   z.number(),
   z.boolean(),
   z.null(),
-  z.date(),
   z.undefined(),
 ])
-const serializableRecord = z.record(serializableSchema)
+export const deserializableRecord = z.record(deserializableSchema)
+export type DeserializableRecord = z.infer<typeof deserializableRecord>
+export const serializableSchema = deserializableSchema.or(z.date())
+export const serializableRecord = z.record(serializableSchema)
+export type SerializableRecord = z.infer<typeof serializableRecord>
 
 const tableRowValue = z.union([
   z.string(),
@@ -302,7 +305,7 @@ type JSONPrimitive = string | number | boolean | null
 
 export type RawActionReturnData = Record<string, JSONPrimitive>
 
-export type IOFunctionReturnType = RawActionReturnData | undefined
+export type IOFunctionReturnType = SerializableRecord | undefined
 
 export type ParsedActionReturnDataValue =
   | JSONPrimitive

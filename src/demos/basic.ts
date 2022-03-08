@@ -30,6 +30,10 @@ const prod = new Interval({
 
       return { num }
     },
+    echoParams: async (_, ctx) => {
+      console.log(ctx.params)
+      return ctx.params
+    },
   },
 })
 
@@ -42,6 +46,7 @@ const interval = new Interval({
   actions: {
     'long-return-string': async io => {
       return {
+        date: new Date(),
         url: 'http://chart.apis.google.com/chart?chs=500x500&chma=0,0,100,100&cht=p&chco=FF0000%2CFFFF00%7CFF8000%2C00FF00%7C00FF00%2C0000FF&chd=t%3A122%2C42%2C17%2C10%2C8%2C7%2C7%2C7%2C7%2C6%2C6%2C6%2C6%2C5%2C5&chl=122%7C42%7C17%7C10%7C8%7C7%7C7%7C7%7C7%7C6%7C6%7C6%7C6%7C5%7C5&chdl=android%7Cjava%7Cstack-trace%7Cbroadcastreceiver%7Candroid-ndk%7Cuser-agent%7Candroid-webview%7Cwebview%7Cbackground%7Cmultithreading%7Candroid-source%7Csms%7Cadb%7Csollections%7Cactivity|Chart',
         something:
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed sit amet quam in lorem sagittis accumsan malesuada nec mauris. Nulla cursus dolor id augue sodales, et consequat elit mattis. Suspendisse nec sollicitudin ex. Pellentesque laoreet nulla nec malesuada consequat. Donec blandit leo id tincidunt tristique. Mauris vehicula metus sed ex bibendum, nec bibendum urna tincidunt. Curabitur porttitor euismod velit sed interdum. Suspendisse at dapibus eros. Vestibulum varius, est vel luctus pellentesque, risus lorem ullamcorper est, a ullamcorper metus dolor eget neque. Donec sit amet nulla tempus, fringilla magna eu, bibendum tortor. Nam pulvinar diam id vehicula posuere. Praesent non turpis et nibh dictum suscipit non nec ante. Phasellus vulputate egestas nisl a dapibus. Duis augue lorem, mattis auctor condimentum a, convallis sed elit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Pellentesque bibendum, magna vel pharetra fermentum, eros mi vulputate enim, in consectetur est quam quis felis.',
@@ -256,6 +261,18 @@ interval.listen()
 /*
 setTimeout(async () => {
   await prod.actions.enqueue('enter_one_number')
+
+  await prod.actions.enqueue('echoParams', {
+    params: {
+      true: true,
+      false: false,
+      number: 1337,
+      string: 'string',
+      date: new Date(),
+      null: null,
+      undefined: undefined,
+    },
+  })
 
   await interval.actions.enqueue('helloCurrentUser', {
     assignee: 'alex@interval.com',
