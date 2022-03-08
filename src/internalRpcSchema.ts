@@ -69,7 +69,7 @@ export const wsServerSchema = {
       assignee: z.string().optional(),
       params: z.record(z.string()).optional(),
     }),
-    returns: z.union([
+    returns: z.discriminatedUnion('type', [
       z.object({
         type: z.literal('success'),
         id: z.string(),
@@ -84,7 +84,7 @@ export const wsServerSchema = {
     inputs: z.object({
       id: z.string(),
     }),
-    returns: z.union([
+    returns: z.discriminatedUnion('type', [
       z.object({
         type: z.literal('success'),
         id: z.string(),
