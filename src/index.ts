@@ -15,6 +15,7 @@ import {
 import createIOClient, { IOClient } from './io'
 import { z } from 'zod'
 import { v4 } from 'uuid'
+import * as pkg from '../package.json'
 
 type ActionCtx = Pick<
   z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>,
@@ -347,6 +348,8 @@ export default class Interval {
     const loggedIn = await this.#serverRpc.send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
       callableActionNames: slugs,
+      sdkName: pkg.name,
+      sdkVersion: pkg.version,
     })
 
     if (!loggedIn) throw new Error('The provided API key is not valid')
