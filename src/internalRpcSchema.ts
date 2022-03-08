@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { serializableRecord } from './ioSchema'
 
 export const DUPLEX_MESSAGE_SCHEMA = z.object({
   id: z.string(),
@@ -67,7 +68,7 @@ export const wsServerSchema = {
       // TODO: Change to slug in breaking release
       actionName: z.string(),
       assignee: z.string().optional(),
-      params: z.record(z.string()).optional(),
+      params: serializableRecord.optional(),
     }),
     returns: z.discriminatedUnion('type', [
       z.object({
@@ -89,7 +90,7 @@ export const wsServerSchema = {
         type: z.literal('success'),
         id: z.string(),
         assignee: z.string().optional(),
-        params: z.record(z.string()).optional(),
+        params: serializableRecord.optional(),
       }),
       z.object({
         type: z.literal('error'),
@@ -144,7 +145,7 @@ export const hostSchema = {
         firstName: z.string().nullable(),
         lastName: z.string().nullable(),
       }),
-      params: z.record(z.string()),
+      params: serializableRecord,
     }),
     returns: z.void(),
   },

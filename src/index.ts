@@ -11,11 +11,13 @@ import {
   IOFunctionReturnType,
   IO_RESPONSE,
   T_IO_RESPONSE,
+  serializableRecord,
 } from './ioSchema'
 import createIOClient, { IOClient } from './io'
 import { z } from 'zod'
 import { v4 } from 'uuid'
 import * as pkg from '../package.json'
+import { deserializeDates } from './utils/deserialize'
 
 type ActionCtx = Pick<
   z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>,
@@ -73,7 +75,7 @@ export class Logger {
 export interface QueuedAction {
   id: string
   assignee?: string
-  params?: Record<string, string>
+  params?: z.infer<typeof serializableRecord>
 }
 
 class IntervalError extends Error {
@@ -125,15 +127,8 @@ export default class Interval {
     }
 
     if (config.params) {
-      if (
-        typeof config.params !== 'object' ||
-        Array.isArray(config.params) ||
-        Object.entries(config.params).some(
-          ([key, val]) =>
-            typeof key !== 'string' ||
-            (typeof val !== 'string' && typeof val !== 'number')
-        )
-      ) {
+      const parsed = serializableRecord.safeParse(config.params)
+      if (!parsed.success) {
         throw new IntervalError(
           'Invalid params, please pass an object of strings or numbers'
         )
@@ -280,7 +275,7 @@ export default class Interval {
 
           const ctx: ActionCtx = {
             user: inputs.user,
-            params: inputs.params,
+            params: deserializeDates(inputs.params),
             environment: inputs.environment,
           }
 
