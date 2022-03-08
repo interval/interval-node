@@ -9,7 +9,7 @@ const editEmailForUser: IntervalActionHandler = async io => {
   const resp = await io.group([
     io.display.heading('Edit email address for user'),
     io.experimental.findAndSelect('Select a user', {
-      options: initialUsers.map(mapToSelectOption),
+      initialOptions: initialUsers.map(mapToSelectOption),
       onSearch: async query => {
         const resp = await fakeDb.find(query)
         return resp.map(mapToSelectOption)

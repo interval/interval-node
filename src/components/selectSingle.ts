@@ -23,19 +23,25 @@ export default function findAndSelect(
   constructor: IOPromiseConstructor<'SELECT_SINGLE'>
 ) {
   return <
-    Props extends T_IO_PROPS<'SELECT_SINGLE'> & {
-      onSearch?: (query: string) => Promise<Options>
+    Props extends Omit<T_IO_PROPS<'SELECT_SINGLE'>, 'options'> & {
+      initialOptions?: Options
+      onSearch: (
+        query: string
+      ) => Promise<T_IO_PROPS<'SELECT_SINGLE'>['options']>
     },
-    Options extends Props['options']
+    Options extends Awaited<ReturnType<Props['onSearch']>>
   >(
     label: string,
     props: Props
   ) => {
-    const { onSearch, ...rest } = props
+    const { onSearch, initialOptions, ...rest } = props
     const c = component(
       'SELECT_SINGLE',
       label,
-      rest,
+      {
+        ...rest,
+        options: initialOptions ?? [],
+      },
       onSearch
         ? async newState => {
             const options = await onSearch(newState.queryTerm)
