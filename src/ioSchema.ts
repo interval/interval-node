@@ -225,13 +225,11 @@ export const ioSchema = {
     props: z.object({}),
     state: z.null(),
     returns: z.null(),
-    immediate: z.literal(true),
   },
   DISPLAY_MARKDOWN: {
     props: z.object({}),
     state: z.null(),
     returns: z.null(),
-    immediate: z.literal(true),
   },
   DISPLAY_OBJECT: {
     props: z.object({
@@ -239,7 +237,6 @@ export const ioSchema = {
     }),
     state: z.null(),
     returns: z.null(),
-    immediate: z.literal(true),
   },
   DISPLAY_TABLE: {
     props: z.object({
