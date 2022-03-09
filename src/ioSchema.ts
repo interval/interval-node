@@ -246,7 +246,6 @@ export const ioSchema = {
     }),
     state: z.null(),
     returns: z.null(),
-    immediate: z.literal(true),
   },
   DISPLAY_PROGRESS_STEPS: {
     props: z.object({
