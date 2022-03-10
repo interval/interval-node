@@ -13,7 +13,7 @@ import {
   T_IO_RESPONSE,
   serializableRecord,
 } from './ioSchema'
-import createIOClient, { IOClient } from './io'
+import createIOClient, { IOError, IOClient } from './io'
 import { z } from 'zod'
 import { v4 } from 'uuid'
 import * as pkg from '../package.json'
@@ -281,6 +281,8 @@ export default class Interval {
 
           fn(client.io, ctx)
             .then(res => {
+              // Allow actions to return data even after being canceled
+
               const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
                 status: 'SUCCESS',
@@ -289,11 +291,14 @@ export default class Interval {
 
               return result
             })
-            .catch(e => {
+            .catch(err => {
+              // Action did not catch the cancellation error
+              if (err instanceof IOError && err.kind === 'CANCELED') throw err
+
               const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
                 status: 'FAILURE',
-                data: e.message ? { message: e.message } : null,
+                data: err.message ? { message: err.message } : null,
               }
 
               return result
@@ -303,6 +308,21 @@ export default class Interval {
                 transactionId: inputs.transactionId,
                 result: JSON.stringify(res),
               })
+            })
+            .catch(err => {
+              if (err instanceof IOError) {
+                switch (err.kind) {
+                  case 'CANCELED':
+                    this.#log.prod('Transaction canceled for action', slug)
+                    break
+                  case 'TRANSACTION_CLOSED':
+                    this.#log.prod(
+                      'Attempted to make IO call after transaction already closed in action',
+                      slug
+                    )
+                    break
+                }
+              }
             })
 
           return
@@ -376,4 +396,4 @@ export default class Interval {
   }
 }
 
-export { Interval }
+export { Interval, IOError }

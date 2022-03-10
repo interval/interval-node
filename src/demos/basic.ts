@@ -1,4 +1,4 @@
-import Interval from '../index'
+import Interval, { IOError } from '../index'
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from './helpers'
 import { table_basic, table_custom_columns } from './selectFromTable'
@@ -16,14 +16,29 @@ const prod = new Interval({
     enter_two_numbers: async io => {
       const num1 = await io.input.number('Enter a number')
 
-      const num2 = await io.input.number(
-        `Enter a second number that's greater than ${num1}`,
-        {
-          min: num1 + 1,
-        }
-      )
+      try {
+        const num2 = await io.input.number(
+          `Enter a second number that's greater than ${num1}`,
+          {
+            min: num1 + 1,
+          }
+        )
 
-      return { num1, num2 }
+        return { num1, num2 }
+      } catch (err) {
+        if (err instanceof IOError) {
+          // Do some long cleanup work
+          await sleep(num1 * 1000)
+
+          return {
+            'Cleanup time': `${num1} seconds`,
+            'Cleanup completed': new Date(),
+          }
+        }
+
+        // Other error in host code
+        throw new Error('Something bad happened!')
+      }
     },
     enter_one_number: async io => {
       const num = await io.input.number('Enter a number')

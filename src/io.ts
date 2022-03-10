@@ -72,15 +72,29 @@ interface ClientConfig {
   send: (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 }
 
+export type IOErrorKind = 'CANCELED' | 'TRANSACTION_CLOSED'
+
+export class IOError extends Error {
+  kind: IOErrorKind
+
+  constructor(kind: IOErrorKind, message?: string) {
+    super(message)
+    this.kind = kind
+  }
+}
+
 export type Executor<
   MethodName extends T_IO_METHOD_NAMES,
   Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
-> = (resolve: (output: Output) => void, reject?: () => void) => void
+> = (resolve: (output: Output) => void, reject?: (err: IOError) => void) => void
 
 export type OptionalExecutor<
   MethodName extends T_IO_METHOD_NAMES,
   Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
-> = (resolve: (output: Output | undefined) => void, reject?: () => void) => void
+> = (
+  resolve: (output: Output | undefined) => void,
+  reject?: (err: IOError) => void
+) => void
 
 export type IOPromiseMap = {
   [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName>
@@ -113,11 +127,15 @@ type MaybeOptionalGroupIOPromise = GroupIOPromise | OptionalGroupIOPromise
 export default function createIOClient(clientConfig: ClientConfig) {
   type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
   let onResponseHandler: ResponseHandlerFn | null = null
+  let isCanceled = false
 
   async function renderComponents<
     Instances extends Readonly<[AnyComponentType, ...AnyComponentType[]]>
   >(componentInstances: Instances) {
-    const inputGroupKey = v4()
+    if (isCanceled) {
+      // Transaction is already canceled, host attempted more IO calls
+      throw new IOError('TRANSACTION_CLOSED')
+    }
 
     type ReturnValues = {
       -readonly [Idx in keyof Instances]: Instances[Idx] extends AnyComponentType
@@ -125,56 +143,69 @@ export default function createIOClient(clientConfig: ClientConfig) {
         : Instances[Idx]
     }
 
-    async function render() {
-      const packed: T_IO_RENDER_INPUT = {
-        id: v4(),
-        inputGroupKey: inputGroupKey,
-        toRender: componentInstances.map(inst => inst.getRenderInfo()),
-        kind: 'RENDER',
-      }
+    return new Promise<ReturnValues>(async (resolve, reject) => {
+      const inputGroupKey = v4()
 
-      await clientConfig.send(packed)
-    }
-
-    onResponseHandler = async result => {
-      if (result.values.length !== componentInstances.length) {
-        throw new Error('Mismatch in return array length')
-      }
-
-      if (result.kind === 'RETURN') {
-        result.values.map((v, index) =>
-          // @ts-ignore
-          componentInstances[index].setReturnValue(v)
-        )
-
-        return
-      }
-
-      if (result.kind === 'SET_STATE') {
-        for (const [index, newState] of result.values.entries()) {
-          const prevState = componentInstances[index].getInstance().state
-
-          if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
-            console.log(`New state at ${index}`, newState)
-            // @ts-ignore
-            await componentInstances[index].setState(newState)
-          }
+      async function render() {
+        const packed: T_IO_RENDER_INPUT = {
+          id: v4(),
+          inputGroupKey: inputGroupKey,
+          toRender: componentInstances.map(inst => inst.getRenderInfo()),
+          kind: 'RENDER',
         }
-        render()
+
+        await clientConfig.send(packed)
       }
-    }
 
-    for (const c of componentInstances) {
-      // every time any component changes their state, we call render (again)
-      c.onStateChange(render)
-    }
+      onResponseHandler = async result => {
+        // Transaction canceled from Interval cloud UI
+        if (result.kind === 'CANCELED') {
+          isCanceled = true
+          reject(new IOError('CANCELED'))
+          return
+        }
 
-    // Initial render
-    render()
+        if (result.values.length !== componentInstances.length) {
+          throw new Error('Mismatch in return array length')
+        }
 
-    return Promise.all(
-      componentInstances.map(comp => comp.returnValue)
-    ) as unknown as Promise<ReturnValues>
+        if (result.kind === 'RETURN') {
+          result.values.map((v, index) =>
+            // @ts-ignore
+            componentInstances[index].setReturnValue(v)
+          )
+
+          return
+        }
+
+        if (result.kind === 'SET_STATE') {
+          for (const [index, newState] of result.values.entries()) {
+            const prevState = componentInstances[index].getInstance().state
+
+            if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
+              console.log(`New state at ${index}`, newState)
+              // @ts-ignore
+              await componentInstances[index].setState(newState)
+            }
+          }
+          render()
+        }
+      }
+
+      for (const c of componentInstances) {
+        // every time any component changes their state, we call render (again)
+        c.onStateChange(render)
+      }
+
+      // Initial render
+      render()
+
+      const response = (await Promise.all(
+        componentInstances.map(comp => comp.returnValue)
+      )) as unknown as Promise<ReturnValues>
+
+      resolve(response)
+    })
   }
 
   async function group<
@@ -225,25 +256,37 @@ export default function createIOClient(clientConfig: ClientConfig) {
         return {
           ...rest,
           isOptional: true,
-          then(resolve) {
+          then(resolve, reject) {
             const componentInstances = [component] as unknown as Readonly<
               [AnyComponentType, ...AnyComponentType[]]
             >
 
-            renderComponents(componentInstances).then(([result]) => {
-              resolve(result as typeof _output)
-            })
+            renderComponents(componentInstances)
+              .then(([result]) => {
+                resolve(result as typeof _output)
+              })
+              .catch(err => {
+                if (reject) {
+                  reject(err)
+                }
+              })
           },
         }
       },
-      then(resolve) {
+      then(resolve, reject) {
         const componentInstances = [component] as unknown as Readonly<
           [AnyComponentType, ...AnyComponentType[]]
         >
 
-        renderComponents(componentInstances).then(([result]) => {
-          resolve(result as NonNullable<typeof _output>)
-        })
+        renderComponents(componentInstances)
+          .then(([result]) => {
+            resolve(result as NonNullable<typeof _output>)
+          })
+          .catch(err => {
+            if (reject) {
+              reject(err)
+            }
+          })
       },
     }
   }
@@ -311,9 +354,14 @@ export default function createIOClient(clientConfig: ClientConfig) {
         },
       },
     },
+    isCanceled: () => isCanceled,
     onResponse: (result: T_IO_RESPONSE) => {
       if (onResponseHandler) {
-        onResponseHandler?.(result)
+        try {
+          onResponseHandler(result)
+        } catch (err) {
+          console.error('Error in onResponseHandler:', err)
+        }
       }
     },
   }

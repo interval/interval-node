@@ -19,7 +19,11 @@ export const IO_RENDER = z.object({
 export const IO_RESPONSE = z.object({
   id: z.string(),
   transactionId: z.string(),
-  kind: z.union([z.literal('RETURN'), z.literal('SET_STATE')]),
+  kind: z.union([
+    z.literal('RETURN'),
+    z.literal('SET_STATE'),
+    z.literal('CANCELED'),
+  ]),
   values: z.array(z.any()),
 })
 
