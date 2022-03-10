@@ -2,7 +2,7 @@ import { v4 } from 'uuid'
 import { z } from 'zod'
 import type { Logger } from '.'
 import type {
-  T_IO_RENDER,
+  T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
   T_IO_Schema,
   T_IO_METHOD_NAMES,
@@ -47,10 +47,19 @@ export interface IOPromise<
   component: ComponentType<MethodName>
   _output: Output | undefined
   then: Executor<MethodName, Output>
+  optional: () => OptionalIOPromise<MethodName, Output>
   // This doesn't actually do anything, we only use it as a marker to provide
   // slightly better error messages to users if they use an exclusive method
   // inside a group.
   groupable: true
+}
+
+export interface OptionalIOPromise<
+  MethodName extends T_IO_METHOD_NAMES,
+  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+> extends Omit<IOPromise<MethodName, Output>, 'optional' | 'then'> {
+  isOptional: true
+  then: OptionalExecutor<MethodName, Output>
 }
 
 export type ExclusiveIOPromise<
@@ -60,7 +69,7 @@ export type ExclusiveIOPromise<
 
 interface ClientConfig {
   logger: Logger
-  send: (ioToRender: T_IO_RENDER) => Promise<void>
+  send: (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 }
 
 export type Executor<
@@ -68,21 +77,38 @@ export type Executor<
   Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
 > = (resolve: (output: Output) => void, reject?: () => void) => void
 
-type IOPromiseMap = {
+export type OptionalExecutor<
+  MethodName extends T_IO_METHOD_NAMES,
+  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+> = (resolve: (output: Output | undefined) => void, reject?: () => void) => void
+
+export type IOPromiseMap = {
   [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName>
 }
+export type AnyIOPromise = IOPromiseMap[T_IO_METHOD_NAMES]
 
 /**
  * Map of IOPromises that can be rendered in a group.
  */
 type GroupIOPromiseMap = {
-  [MethodName in keyof IOPromiseMap]: T_IO_Schema[MethodName] extends {
+  [MethodName in T_IO_METHOD_NAMES]: T_IO_Schema[MethodName] extends {
     exclusive: z.ZodLiteral<true>
   }
     ? never
-    : IOPromiseMap[MethodName]
+    : IOPromise<MethodName>
 }
 type GroupIOPromise = GroupIOPromiseMap[T_IO_METHOD_NAMES]
+
+type OptionalGroupIOPromiseMap = {
+  [MethodName in T_IO_METHOD_NAMES]: T_IO_Schema[MethodName] extends {
+    exclusive: z.ZodLiteral<true>
+  }
+    ? never
+    : OptionalIOPromise<MethodName>
+}
+type OptionalGroupIOPromise = OptionalGroupIOPromiseMap[T_IO_METHOD_NAMES]
+
+type MaybeOptionalGroupIOPromise = GroupIOPromise | OptionalGroupIOPromise
 
 export default function createIOClient(clientConfig: ClientConfig) {
   type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
@@ -95,12 +121,12 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
     type ReturnValues = {
       -readonly [Idx in keyof Instances]: Instances[Idx] extends AnyComponentType
-        ? z.infer<Instances[Idx]['schema']['returns']>
+        ? z.infer<Instances[Idx]['schema']['returns']> | undefined
         : Instances[Idx]
     }
 
     async function render() {
-      const packed: T_IO_RENDER = {
+      const packed: T_IO_RENDER_INPUT = {
         id: v4(),
         inputGroupKey: inputGroupKey,
         toRender: componentInstances.map(inst => inst.getRenderInfo()),
@@ -152,7 +178,9 @@ export default function createIOClient(clientConfig: ClientConfig) {
   }
 
   async function group<
-    PromiseInstances extends Readonly<[GroupIOPromise, ...GroupIOPromise[]]>,
+    PromiseInstances extends Readonly<
+      [MaybeOptionalGroupIOPromise, ...MaybeOptionalGroupIOPromise[]]
+    >,
     ComponentInstances extends Readonly<
       [AnyComponentType, ...AnyComponentType[]]
     >
@@ -171,6 +199,8 @@ export default function createIOClient(clientConfig: ClientConfig) {
     type ReturnValues = {
       -readonly [Idx in keyof PromiseInstances]: PromiseInstances[Idx] extends GroupIOPromise
         ? NonNullable<PromiseInstances[Idx]['_output']>
+        : PromiseInstances[Idx] extends OptionalGroupIOPromise
+        ? PromiseInstances[Idx]['_output']
         : PromiseInstances[Idx]
     }
 
@@ -187,6 +217,25 @@ export default function createIOClient(clientConfig: ClientConfig) {
       groupable: true,
       component,
       _output,
+      optional() {
+        const { optional, then, ...rest } = this
+
+        rest.component.setOptional(true)
+
+        return {
+          ...rest,
+          isOptional: true,
+          then(resolve) {
+            const componentInstances = [component] as unknown as Readonly<
+              [AnyComponentType, ...AnyComponentType[]]
+            >
+
+            renderComponents(componentInstances).then(([result]) => {
+              resolve(result as typeof _output)
+            })
+          },
+        }
+      },
       then(resolve) {
         const componentInstances = [component] as unknown as Readonly<
           [AnyComponentType, ...AnyComponentType[]]

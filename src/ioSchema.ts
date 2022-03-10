@@ -9,7 +9,8 @@ export const IO_RENDER = z.object({
       methodName: z.string(),
       label: z.string(),
       props: z.any(),
-      isStateful: z.boolean().optional(),
+      isStateful: z.boolean().optional().default(false),
+      isOptional: z.boolean().optional().default(false),
     })
   ),
   kind: z.literal('RENDER'),
@@ -23,6 +24,7 @@ export const IO_RESPONSE = z.object({
 })
 
 export type T_IO_RENDER = z.infer<typeof IO_RENDER>
+export type T_IO_RENDER_INPUT = z.input<typeof IO_RENDER>
 export type T_IO_RESPONSE = z.infer<typeof IO_RESPONSE>
 export type T_IO_RESPONSE_KIND = T_IO_RESPONSE['kind']
 

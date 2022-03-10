@@ -70,13 +70,35 @@ const interval = new Interval({
       await io.display.heading('I block :(')
       console.log('done!')
     },
-    'Unique ID tester': async io => {
-      await io.input.number('Hi')
-
-      const [name, id] = await io.group([
+    optional_values: async io => {
+      const [name, num, color] = await io.group([
         io.input.text('Your name'),
-        io.input.number('Pick a number'),
+        io.input.number('Pick a number').optional(),
+        io.select
+          .single('Your favorite color', {
+            options: [
+              {
+                label: 'Red',
+                value: 'red',
+              },
+              {
+                label: 'Blue',
+                value: 'blue',
+              },
+              {
+                label: 'Orange',
+                value: 'orange',
+              },
+            ],
+          })
+          .optional(),
       ])
+
+      return {
+        Name: name,
+        Number: num ?? 'No number selected',
+        'Favorite color': color?.label ?? 'Unknown',
+      }
     },
     'unauthorized-error': unauthorized,
     enter_a_number: async io => {
