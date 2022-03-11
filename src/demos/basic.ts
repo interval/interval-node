@@ -285,16 +285,17 @@ const interval = new Interval({
         completed += 1
       }
     },
+    echoParams: async (_, ctx) => {
+      console.log(ctx.params)
+      return ctx.params
+    },
   },
 })
 
 interval.listen()
 
-/*
 setTimeout(async () => {
-  await prod.actions.enqueue('enter_one_number')
-
-  await prod.actions.enqueue('echoParams', {
+  await interval.actions.enqueue('echoParams', {
     params: {
       true: true,
       false: false,
@@ -303,14 +304,6 @@ setTimeout(async () => {
       date: new Date(),
       null: null,
       undefined: undefined,
-    },
-  })
-  await prod.actions.enqueue('echoParams', {
-    params: {
-      firstName: 'A rather long string words words words words words words',
-      middleName: 'A rather long string words words words words words words',
-      lastName: 'A rather long string words words words words words words',
-      address: 'Some place, somewhere',
     },
   })
 
@@ -329,4 +322,3 @@ setTimeout(async () => {
 
   await interval.actions.dequeue(queuedAction.id)
 }, 1000)
-*/
