@@ -25,10 +25,9 @@ export default function findAndSelect(
   return <
     Props extends Omit<T_IO_PROPS<'SELECT_SINGLE'>, 'options'> & {
       initialOptions?: Options
-      onSearch: (
-        query: string
-      ) => Promise<T_IO_PROPS<'SELECT_SINGLE'>['options']>
+      onSearch: (query: string) => Promise<OptionsLike>
     },
+    OptionsLike extends T_IO_PROPS<'SELECT_SINGLE'>['options'],
     Options extends Awaited<ReturnType<Props['onSearch']>>
   >(
     label: string,
