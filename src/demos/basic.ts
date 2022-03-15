@@ -295,7 +295,7 @@ const interval = new Interval({
 interval.listen()
 
 setTimeout(async () => {
-  await interval.actions.enqueue('echoParams', {
+  await prod.actions.enqueue('echoParams', {
     params: {
       true: true,
       false: false,
