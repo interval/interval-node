@@ -43,52 +43,6 @@ function packageCall({ id, methodName, data }: Omit<DuplexMessage, 'kind'>) {
   return JSON.stringify(callerData)
 }
 
-type SendFn = (rawInput: string) => void
-
-export function createCaller<Methods extends MethodDef>({
-  schema,
-  send,
-}: {
-  schema: Methods
-  send: SendFn
-}) {
-  const pending = new Map<string, OnReplyFn>()
-
-  return {
-    replyHandler(rawReply: string) {
-      const parsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(rawReply))
-      if (parsed.kind !== 'RESPONSE') return
-      const onReplyFn = pending.get(parsed.id)
-      if (!onReplyFn) return
-
-      onReplyFn(parsed.data)
-      pending.delete(parsed.id)
-    },
-    client<MethodName extends keyof Methods>(
-      methodName: MethodName,
-      inputs: z.infer<typeof schema[MethodName]['inputs']>
-    ) {
-      const id = generateId()
-
-      const msg = packageCall({
-        id,
-        data: inputs,
-        methodName: methodName as string,
-      })
-
-      type ReturnType = z.infer<typeof schema[MethodName]['returns']>
-
-      return new Promise<ReturnType>(resolve => {
-        pending.set(id, (anyObject: string) => {
-          const parsed = schema[methodName]['returns'].parse(anyObject)
-          return resolve(parsed)
-        })
-        send(msg)
-      })
-    },
-  }
-}
-
 export type DuplexRPCClient<CallerSchema extends MethodDef> = {
   setCommunicator: (newCommunicator: ISocket) => void
   send: <MethodName extends keyof CallerSchema>(
