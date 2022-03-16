@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ioSchema, resolvesImmediately } from './ioSchema'
+import { deserializeDates } from './utils/deserialize'
 
 type IoSchema = typeof ioSchema
 export interface ComponentInstance<MN extends keyof IoSchema> {
@@ -80,7 +81,14 @@ const component = <MN extends keyof IoSchema>(
       : schema.returns
 
     try {
-      const parsed = returnSchema.parse(value)
+      let parsed: ReturnType<typeof returnSchema.parse>
+
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        parsed = returnSchema.parse(deserializeDates(value))
+      } else {
+        parsed = returnSchema.parse(value)
+      }
+
       if (resolver) {
         resolver(parsed)
       }

@@ -287,6 +287,9 @@ export default function createIOClient(clientConfig: ClientConfig) {
         boolean: aliasComponentName('INPUT_BOOLEAN'),
         number: aliasComponentName('INPUT_NUMBER'),
         email: aliasComponentName('INPUT_EMAIL'),
+        date: aliasComponentName('INPUT_DATE'),
+        time: aliasComponentName('INPUT_TIME'),
+        datetime: aliasComponentName('INPUT_DATETIME'),
         richText: aliasComponentName('INPUT_RICH_TEXT'),
       },
       select: {

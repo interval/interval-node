@@ -158,6 +158,64 @@ export const ioSchema = {
     state: z.null(),
     returns: z.string(),
   },
+  INPUT_DATE: {
+    props: z.object({
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(
+        z.object({
+          year: z.number(),
+          month: z.number(),
+          day: z.number(),
+        })
+      ),
+    }),
+    state: z.null(),
+    returns: z.object({
+      year: z.number(),
+      month: z.number(),
+      day: z.number(),
+      date: z.date(),
+    }),
+  },
+  INPUT_TIME: {
+    props: z.object({
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(
+        z.object({
+          hour: z.number(),
+          minute: z.number(),
+        })
+      ),
+    }),
+    state: z.null(),
+    returns: z.object({
+      hour: z.number(),
+      minute: z.number(),
+    }),
+  },
+  INPUT_DATETIME: {
+    props: z.object({
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(
+        z.object({
+          year: z.number(),
+          month: z.number(),
+          day: z.number(),
+          hour: z.number(),
+          minute: z.number(),
+        })
+      ),
+    }),
+    state: z.null(),
+    returns: z.object({
+      year: z.number(),
+      month: z.number(),
+      day: z.number(),
+      hour: z.number(),
+      minute: z.number(),
+      date: z.date(),
+    }),
+  },
   INPUT_SPREADSHEET: {
     props: z.object({
       helpText: z.string().optional(),

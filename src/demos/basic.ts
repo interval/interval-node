@@ -131,6 +131,17 @@ const interval = new Interval({
 
       io.display.heading(heading).then(() => {})
     },
+    dates: async io => {
+      const [date, time, datetime] = await io.group([
+        io.input.date('Enter a date'),
+        io.input.time('Enter a time'),
+        io.input.datetime('Enter a datetime'),
+      ])
+
+      await io.display.object('Result', { data: { date, time, datetime } })
+
+      return datetime
+    },
     optionalCheckboxes: async io => {
       const options = [
         {
