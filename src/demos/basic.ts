@@ -136,6 +136,7 @@ const interval = new Interval({
         io.input.date('Enter a date'),
         io.input.time('Enter a time'),
         io.input.datetime('Enter a datetime'),
+        io.input.text('Text input'),
       ])
 
       await io.display.object('Result', { data: { date, time, datetime } })
