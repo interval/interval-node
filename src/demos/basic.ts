@@ -133,9 +133,9 @@ const interval = new Interval({
     },
     dates: async io => {
       const [date, time, datetime] = await io.group([
-        io.input.date('Enter a date'),
-        io.input.time('Enter a time'),
-        io.input.datetime('Enter a datetime'),
+        io.experimental.date('Enter a date'),
+        io.experimental.time('Enter a time'),
+        io.experimental.datetime('Enter a datetime'),
         io.input.text('Text input'),
       ])
 
