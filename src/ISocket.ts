@@ -145,8 +145,6 @@ export default class ISocket {
         }
       }
       if (meta.type === 'MESSAGE') {
-        console.debug('received message', meta)
-
         ws.send(JSON.stringify({ type: 'ACK', id: meta.id }))
         if (meta.data === 'authenticated') {
           this.isAuthenticated = true
