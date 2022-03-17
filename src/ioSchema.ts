@@ -174,7 +174,7 @@ export const ioSchema = {
       year: z.number(),
       month: z.number(),
       day: z.number(),
-      date: z.date(),
+      jsDate: z.date(),
     }),
   },
   INPUT_TIME: {
@@ -213,7 +213,7 @@ export const ioSchema = {
       day: z.number(),
       hour: z.number(),
       minute: z.number(),
-      date: z.date(),
+      jsDate: z.date(),
     }),
   },
   INPUT_SPREADSHEET: {
