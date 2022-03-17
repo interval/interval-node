@@ -380,10 +380,6 @@ export default class Interval {
         '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
       )
 
-      this.#log.warn(
-        'Please rename your action name keys to slugs and deploy again.\n'
-      )
-
       if (loggedIn.invalidSlugs.length === slugs.length) {
         throw new Error('No valid slugs provided')
       }

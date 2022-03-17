@@ -137,6 +137,8 @@ export default class ISocket {
       const data = JSON.parse(evt.data.toString())
       const meta = MESSAGE_META.parse(data)
 
+      console.debug('received message', data)
+
       if (meta.type === 'ACK') {
         const pm = this.pendingMessages.get(meta.id)
         if (pm) {
