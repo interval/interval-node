@@ -137,8 +137,6 @@ export default class ISocket {
       const data = JSON.parse(evt.data.toString())
       const meta = MESSAGE_META.parse(data)
 
-      console.debug('received message', data)
-
       if (meta.type === 'ACK') {
         const pm = this.pendingMessages.get(meta.id)
         if (pm) {
@@ -147,6 +145,8 @@ export default class ISocket {
         }
       }
       if (meta.type === 'MESSAGE') {
+        console.debug('received message', meta)
+
         ws.send(JSON.stringify({ type: 'ACK', id: meta.id }))
         if (meta.data === 'authenticated') {
           this.isAuthenticated = true
