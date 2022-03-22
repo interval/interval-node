@@ -39,13 +39,20 @@ export const table_basic: IntervalActionHandler = async io => {
 }
 
 export const table_custom_columns: IntervalActionHandler = async io => {
+  const chargesWithUrls = charges.map(ch => ({
+    ...ch,
+    id: {
+      value: ch.id,
+      href: 'https://interval.com/charges/' + ch.id,
+    },
+  }))
+
   const selections = await io.select.table('Select from this table', {
-    data: charges,
+    data: chargesWithUrls,
     columns: [
       {
         key: 'id',
         formatter: value => value.slice(0, 5),
-        href: 'https://interval.com',
       },
       { key: 'name', label: 'Name' },
       {

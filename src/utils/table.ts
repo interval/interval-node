@@ -1,4 +1,4 @@
-import { tableRow, T_IO_PROPS } from '../ioSchema'
+import { tableRow, tableRowValue, T_IO_PROPS } from '../ioSchema'
 import { z } from 'zod'
 
 /**
@@ -11,7 +11,7 @@ export function columnsBuilder(props: T_IO_PROPS<'SELECT_TABLE'>) {
     ).map(key => ({ key, label: key }))
   }
 
-  return props.columns.map(({ formatter, href, ...rest }) => {
+  return props.columns.map(({ formatter, ...rest }) => {
     return {
       ...rest,
       label: rest.label ?? rest.key,
@@ -30,14 +30,8 @@ export function tableRowSerializer(
 
   const finalRow: { [key: string]: any } = {}
 
-  for (const { key, href: _href, formatter } of columns) {
-    // This is a private object schema that we use to store the original value inside the row.
-    // When this object is returned to us, we'll replace the object with the value of `_value`.
-    finalRow[key] = {
-      _label: formatter ? formatter(row[key]) : row[key],
-      _value: row[key],
-      _href,
-    }
+  for (const { key, formatter } of columns) {
+    finalRow[key] = buildRow(row[key], formatter)
   }
 
   return finalRow
@@ -60,4 +54,31 @@ export function tableRowDeserializer(rows: z.infer<typeof tableRow>[]) {
       return result
     }, {})
   })
+}
+
+function buildRow(
+  row: z.infer<typeof tableRowValue>,
+  formatter?: (value: any) => string
+) {
+  let _href: string | undefined
+  let _label: z.infer<typeof tableRowValue> | undefined = row
+  let _value: z.infer<typeof tableRowValue> | undefined = row
+
+  if (row && typeof row === 'object' && 'href' in row) {
+    _href = row.href
+    _label = row.value
+    _value = row.value
+  }
+
+  if (formatter) {
+    _label = formatter(_label)
+  }
+
+  // This is a private object schema that we use to store the original value inside the row.
+  // When this object is returned to us, we'll replace the object with the value of `_value`.
+  return {
+    _value,
+    _label,
+    _href,
+  }
 }
