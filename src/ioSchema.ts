@@ -105,13 +105,18 @@ const tableRowValue = z.union([
   z.date(),
   z.undefined(),
   // this is a private schema that we use internally to store the original value inside the row.
-  z.object({ _label: z.string(), _value: objectLiteralSchema }),
+  z.object({
+    _label: z.string(),
+    _value: objectLiteralSchema,
+    _href: z.optional(z.string()),
+  }),
 ])
 export const tableRow = z.record(tableRowValue)
 
 const tableColumnDef = z.object({
   key: z.string(),
   label: z.optional(z.string()),
+  href: z.optional(z.string()),
   formatter: z.optional(z.function().args(z.any()).returns(z.string())),
 })
 

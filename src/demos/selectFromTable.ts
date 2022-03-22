@@ -42,7 +42,11 @@ export const table_custom_columns: IntervalActionHandler = async io => {
   const selections = await io.select.table('Select from this table', {
     data: charges,
     columns: [
-      { key: 'id', formatter: value => value.slice(0, 5) },
+      {
+        key: 'id',
+        formatter: value => value.slice(0, 5),
+        href: 'https://interval.com',
+      },
       { key: 'name', label: 'Name' },
       {
         key: 'amount',

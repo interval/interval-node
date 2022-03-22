@@ -11,7 +11,7 @@ export function columnsBuilder(props: T_IO_PROPS<'SELECT_TABLE'>) {
     ).map(key => ({ key, label: key }))
   }
 
-  return props.columns.map(({ formatter, ...rest }) => {
+  return props.columns.map(({ formatter, href, ...rest }) => {
     return {
       ...rest,
       label: rest.label ?? rest.key,
@@ -30,13 +30,13 @@ export function tableRowSerializer(
 
   const finalRow: { [key: string]: any } = {}
 
-  for (const { key, formatter } of columns) {
-    if (formatter) {
-      // this is a private object schema that we use to store the original value inside the row.
-      // when this data is returned to us, we'll replace the object with the value of `_value`.
-      finalRow[key] = { _label: formatter(row[key]), _value: row[key] }
-    } else {
-      finalRow[key] = row[key]
+  for (const { key, href: _href, formatter } of columns) {
+    // This is a private object schema that we use to store the original value inside the row.
+    // When this object is returned to us, we'll replace the object with the value of `_value`.
+    finalRow[key] = {
+      _label: formatter ? formatter(row[key]) : row[key],
+      _value: row[key],
+      _href,
     }
   }
 
