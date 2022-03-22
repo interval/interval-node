@@ -105,7 +105,7 @@ export const tableRowValue = z.union([
   z.date(),
   z.undefined(),
   z.object({
-    value: z.string(),
+    label: z.string(),
     href: z.string(),
   }),
   // this is a private schema that we use internally to store the original value inside the row.

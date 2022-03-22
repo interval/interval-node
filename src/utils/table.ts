@@ -66,8 +66,8 @@ function buildRow(
 
   if (row && typeof row === 'object' && 'href' in row) {
     _href = row.href
-    _label = row.value
-    _value = row.value
+    _label = row.label
+    _value = row.label
   }
 
   if (formatter) {

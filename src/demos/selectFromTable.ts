@@ -42,7 +42,7 @@ export const table_custom_columns: IntervalActionHandler = async io => {
   const chargesWithUrls = charges.map(ch => ({
     ...ch,
     id: {
-      value: ch.id,
+      label: ch.id,
       href: 'https://interval.com/charges/' + ch.id,
     },
   }))
