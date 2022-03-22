@@ -68,13 +68,18 @@ const objectLiteralSchema = z.union([
 ])
 
 type Literal = boolean | null | number | string | Date | undefined
-type KeyValue = Literal | { [key: string]: KeyValue } | KeyValue[]
+// `object` is workaround for https://github.com/microsoft/TypeScript/issues/15300
+type KeyValue = Literal | { [key: string]: KeyValue } | KeyValue[] | object
 
 const keyValueObject: z.ZodSchema<KeyValue> = z.lazy(() =>
   z.union([
     objectLiteralSchema,
     z.record(keyValueObject),
     z.array(keyValueObject),
+    // This `any` isn't ideal, but at the end of the day this is going to be
+    // passed through `JSON.serialize`, which accepts `any`.
+    // Worst case scenario is something will be stringified, which is fine for display anyway.
+    z.any(),
   ])
 )
 
