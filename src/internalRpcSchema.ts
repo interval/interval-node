@@ -67,8 +67,8 @@ export const wsServerSchema = {
       // Actually slugs, for backward compatibility
       // TODO: Change to slug in breaking release
       actionName: z.string(),
-      assignee: z.string().optional(),
-      params: serializableRecord.optional(),
+      assignee: z.string().nullish(),
+      params: serializableRecord.nullish(),
     }),
     returns: z.discriminatedUnion('type', [
       z.object({
