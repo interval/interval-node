@@ -125,9 +125,11 @@ type OptionalGroupIOPromise = OptionalGroupIOPromiseMap[T_IO_METHOD_NAMES]
 type MaybeOptionalGroupIOPromise = GroupIOPromise | OptionalGroupIOPromise
 
 export default function createIOClient(clientConfig: ClientConfig) {
+  const { logger } = clientConfig
   type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
   let onResponseHandler: ResponseHandlerFn | null = null
   let isCanceled = false
+  let isReturned = false
 
   async function renderComponents<
     Instances extends Readonly<[AnyComponentType, ...AnyComponentType[]]>
@@ -158,6 +160,10 @@ export default function createIOClient(clientConfig: ClientConfig) {
       }
 
       onResponseHandler = async result => {
+        if (isCanceled || isReturned) {
+          logger.debug('Received response after IO call complete')
+        }
+
         // Transaction canceled from Interval cloud UI
         if (result.kind === 'CANCELED') {
           isCanceled = true
@@ -170,6 +176,8 @@ export default function createIOClient(clientConfig: ClientConfig) {
         }
 
         if (result.kind === 'RETURN') {
+          isReturned = true
+
           result.values.map((v, index) =>
             // @ts-ignore
             componentInstances[index].setReturnValue(v)
@@ -219,7 +227,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
     const componentInstances = promiseInstances.map(pi => {
       // In case user is using JavaScript or ignores the type error
       if (!pi.groupable) {
-        clientConfig.logger.warn(
+        logger.warn(
           '[Interval]',
           `Component with label "${pi.component.label}" is not supported inside a group, please remove it from the group`
         )
