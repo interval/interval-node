@@ -129,7 +129,6 @@ export default function createIOClient(clientConfig: ClientConfig) {
   type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
   let onResponseHandler: ResponseHandlerFn | null = null
   let isCanceled = false
-  let isReturned = false
 
   async function renderComponents<
     Instances extends Readonly<[AnyComponentType, ...AnyComponentType[]]>
@@ -147,6 +146,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
     return new Promise<ReturnValues>(async (resolve, reject) => {
       const inputGroupKey = v4()
+      let isReturned = false
 
       async function render() {
         const packed: T_IO_RENDER_INPUT = {
@@ -162,6 +162,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       onResponseHandler = async result => {
         if (isCanceled || isReturned) {
           logger.debug('Received response after IO call complete')
+          return
         }
 
         // Transaction canceled from Interval cloud UI
