@@ -324,6 +324,9 @@ export default class Interval {
                 }
               }
             })
+            .finally(() => {
+              this.#ioResponseHandlers.delete(inputs.transactionId)
+            })
 
           return
         },
@@ -341,7 +344,6 @@ export default class Interval {
           }
 
           replyHandler(ioResp)
-          this.#ioResponseHandlers.delete(ioResp.id)
         },
       },
     })
