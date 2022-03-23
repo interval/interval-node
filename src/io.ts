@@ -151,7 +151,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       async function render() {
         const packed: T_IO_RENDER_INPUT = {
           id: v4(),
-          inputGroupKey: inputGroupKey,
+          inputGroupKey,
           toRender: componentInstances.map(inst => inst.getRenderInfo()),
           kind: 'RENDER',
         }
@@ -160,6 +160,11 @@ export default function createIOClient(clientConfig: ClientConfig) {
       }
 
       onResponseHandler = async result => {
+        if (result.inputGroupKey && result.inputGroupKey !== inputGroupKey) {
+          logger.debug('Received response for other input group')
+          return
+        }
+
         if (isCanceled || isReturned) {
           logger.debug('Received response after IO call complete')
           return

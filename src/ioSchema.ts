@@ -18,6 +18,7 @@ export const IO_RENDER = z.object({
 
 export const IO_RESPONSE = z.object({
   id: z.string(),
+  inputGroupKey: z.string().optional(),
   transactionId: z.string(),
   kind: z.union([
     z.literal('RETURN'),
