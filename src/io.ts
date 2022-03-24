@@ -18,6 +18,7 @@ import selectTable from './components/selectTable'
 import findAndSelectUser from './components/selectUser'
 import findAndSelect, { selectSingle } from './components/selectSingle'
 import selectMultiple from './components/selectMultiple'
+import { date, datetime } from './components/inputDate'
 
 export type IOPromiseConstructor<
   MethodName extends T_IO_METHOD_NAMES,
@@ -47,6 +48,7 @@ export interface IOPromise<
   component: ComponentType<MethodName>
   _output: Output | undefined
   then: Executor<MethodName, Output>
+  getValue: (response: ComponentReturnValue<MethodName>) => Output
   optional: () => OptionalIOPromise<MethodName, Output>
   // This doesn't actually do anything, we only use it as a marker to provide
   // slightly better error messages to users if they use an exclusive method
@@ -57,8 +59,14 @@ export interface IOPromise<
 export interface OptionalIOPromise<
   MethodName extends T_IO_METHOD_NAMES,
   Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
-> extends Omit<IOPromise<MethodName, Output>, 'optional' | 'then'> {
+> extends Omit<
+    IOPromise<MethodName, Output>,
+    'optional' | 'then' | 'getValue'
+  > {
   isOptional: true
+  getValue: (
+    response: ComponentReturnValue<MethodName> | undefined
+  ) => Output | undefined
   then: OptionalExecutor<MethodName, Output>
 }
 
@@ -249,7 +257,9 @@ export default function createIOClient(clientConfig: ClientConfig) {
         : PromiseInstances[Idx]
     }
 
-    return renderComponents(componentInstances) as unknown as ReturnValues
+    return renderComponents(componentInstances).then(values =>
+      values.map((val, i) => promiseInstances[i].getValue(val as never))
+    ) as unknown as ReturnValues
   }
 
   function ioPromiseConstructor<
@@ -270,6 +280,11 @@ export default function createIOClient(clientConfig: ClientConfig) {
         return {
           ...rest,
           isOptional: true,
+          getValue(result: ComponentReturnValue<MethodName> | undefined) {
+            if (result === undefined) return undefined
+
+            return rest.getValue(result)
+          },
           then(resolve, reject) {
             const componentInstances = [component] as unknown as Readonly<
               [AnyComponentType, ...AnyComponentType[]]
@@ -277,7 +292,11 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
             renderComponents(componentInstances)
               .then(([result]) => {
-                resolve(result as typeof _output)
+                resolve(
+                  this.getValue(
+                    result as ComponentReturnValue<MethodName> | undefined
+                  )
+                )
               })
               .catch(err => {
                 if (reject) {
@@ -287,6 +306,9 @@ export default function createIOClient(clientConfig: ClientConfig) {
           },
         }
       },
+      getValue(result: ComponentReturnValue<MethodName>) {
+        return result as Output
+      },
       then(resolve, reject) {
         const componentInstances = [component] as unknown as Readonly<
           [AnyComponentType, ...AnyComponentType[]]
@@ -294,7 +316,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
         renderComponents(componentInstances)
           .then(([result]) => {
-            resolve(result as NonNullable<typeof _output>)
+            resolve(this.getValue(result as ComponentReturnValue<MethodName>))
           })
           .catch(err => {
             if (reject) {
@@ -362,9 +384,9 @@ export default function createIOClient(clientConfig: ClientConfig) {
         spreadsheet: spreadsheet(ioPromiseConstructor),
         findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
         findAndSelect: findAndSelect(ioPromiseConstructor),
-        date: aliasComponentName('INPUT_DATE'),
+        date: date(ioPromiseConstructor),
         time: aliasComponentName('INPUT_TIME'),
-        datetime: aliasComponentName('INPUT_DATETIME'),
+        datetime: datetime(ioPromiseConstructor),
         progress: {
           steps: aliasComponentName('DISPLAY_PROGRESS_STEPS'),
           indeterminate: aliasComponentName('DISPLAY_PROGRESS_INDETERMINATE'),
