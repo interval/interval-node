@@ -19,13 +19,15 @@ import { v4 } from 'uuid'
 import * as pkg from '../package.json'
 import { deserializeDates } from './utils/deserialize'
 
-type ActionCtx = Pick<
+export type ActionCtx = Pick<
   z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>,
   'user' | 'params' | 'environment'
 >
 
+export type IO = IOClient['io']
+
 export type IntervalActionHandler = (
-  io: IOClient['io'],
+  io: IO,
   ctx: ActionCtx
 ) => Promise<IOFunctionReturnType | void>
 
