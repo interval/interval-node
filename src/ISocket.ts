@@ -90,7 +90,7 @@ export default class ISocket {
     })
   }
 
-  /** Client **/
+  /** Both **/
   close() {
     return this.ws.close()
   }
