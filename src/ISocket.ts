@@ -35,7 +35,7 @@ export default class ISocket {
 
   private pendingMessages = new Map<string, PendingMessage>()
 
-  connect() {
+  async connect() {
     return new Promise<void>((resolve, reject) => {
       if (this.ws.readyState === this.ws.OPEN && this.isAuthenticated) {
         return resolve()
@@ -62,7 +62,7 @@ export default class ISocket {
     // .catch(e => console.log('client does not know its authenticated'))
   }
 
-  send(data: string) {
+  async send(data: string) {
     return new Promise<void>((resolve, reject) => {
       const id = v4()
 

@@ -399,7 +399,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
         try {
           onResponseHandler(result)
         } catch (err) {
-          console.error('Error in onResponseHandler:', err)
+          clientConfig.logger.error('Error in onResponseHandler:', err)
         }
       }
     },

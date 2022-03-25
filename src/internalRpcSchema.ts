@@ -67,8 +67,8 @@ export const wsServerSchema = {
       // Actually slugs, for backward compatibility
       // TODO: Change to slug in breaking release
       actionName: z.string(),
-      assignee: z.string().optional(),
-      params: serializableRecord.optional(),
+      assignee: z.string().nullish(),
+      params: serializableRecord.nullish(),
     }),
     returns: z.discriminatedUnion('type', [
       z.object({
@@ -103,19 +103,19 @@ export const wsServerSchema = {
 export const clientSchema = {
   CLIENT_USURPED: {
     inputs: z.undefined(),
-    returns: z.void(),
+    returns: z.void().nullable(),
   },
   TRANSACTION_COMPLETED: {
     inputs: z.undefined(),
-    returns: z.void(),
+    returns: z.void().nullable(),
   },
   HOST_CLOSED_UNEXPECTEDLY: {
     inputs: z.undefined(),
-    returns: z.void(),
+    returns: z.void().nullable(),
   },
   HOST_RECONNECTED: {
     inputs: z.undefined(),
-    returns: z.void(),
+    returns: z.void().nullable(),
   },
   RENDER: {
     inputs: z.object({
@@ -131,7 +131,7 @@ export const hostSchema = {
       value: z.string(),
       transactionId: z.string(),
     }),
-    returns: z.void(),
+    returns: z.void().nullable(),
   },
   START_TRANSACTION: {
     inputs: z.object({
@@ -147,6 +147,6 @@ export const hostSchema = {
       }),
       params: serializableRecord,
     }),
-    returns: z.void(),
+    returns: z.void().nullable(),
   },
 }
