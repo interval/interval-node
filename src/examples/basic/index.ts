@@ -1,6 +1,6 @@
 import Interval, { IOError } from '../../index'
 import editEmailForUser from './editEmail'
-import { fakeDb, mapToIntervalUser, sleep } from './helpers'
+import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import { table_basic, table_custom_columns } from './selectFromTable'
 import unauthorized from './unauthorized'
 
