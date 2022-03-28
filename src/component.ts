@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { ioSchema, resolvesImmediately } from './ioSchema'
 import { deserializeDates } from './utils/deserialize'
 
-export type IoSchema = typeof ioSchema
+type IoSchema = typeof ioSchema
 export interface ComponentInstance<MN extends keyof IoSchema> {
   methodName: MN
   label: string
@@ -49,11 +49,6 @@ const component = <MN extends keyof IoSchema>(
   handleStateChange?: (
     incomingState: z.infer<IoSchema[MN]['state']>
   ) => Promise<Partial<z.input<IoSchema[MN]['props']>>>
-  // a new, optional function that can further transform the return value w/ access to the original props
-  // transformer?: (
-  //   returnValue: z.infer<IoSchema[MN]['returns']>,
-  //   initialProps?: z.input<IoSchema[MN]['props']>
-  // ) => z.infer<IoSchema[MN]['returns']>
 ): ComponentType<MN> => {
   const instance: ComponentInstance<MN> = {
     methodName,
