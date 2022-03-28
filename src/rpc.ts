@@ -47,7 +47,7 @@ export type DuplexRPCClient<CallerSchema extends MethodDef> = {
   setCommunicator: (newCommunicator: ISocket) => void
   send: <MethodName extends keyof CallerSchema>(
     methodName: MethodName,
-    inputs: z.infer<CallerSchema[MethodName]['inputs']>
+    inputs: z.input<CallerSchema[MethodName]['inputs']>
   ) => Promise<z.infer<CallerSchema[MethodName]['returns']>>
 }
 
@@ -116,7 +116,11 @@ export function createDuplexRPCClient<
       data: returnValue,
     })
 
-    await communicator.send(preparedResponseText)
+    try {
+      await communicator.send(preparedResponseText)
+    } catch (err) {
+      console.error('Failed sending response', preparedResponseText, err)
+    }
 
     return
   }
@@ -134,7 +138,7 @@ export function createDuplexRPCClient<
     }
   }
 
-  function send<MethodName extends keyof CallerSchema>(
+  async function send<MethodName extends keyof CallerSchema>(
     methodName: MethodName,
     inputs: z.infer<typeof canCall[MethodName]['inputs']>
   ) {
@@ -148,13 +152,15 @@ export function createDuplexRPCClient<
 
     type ReturnType = z.infer<typeof canCall[MethodName]['returns']>
 
-    return new Promise<ReturnType>(resolve => {
+    return new Promise<ReturnType>((resolve, reject) => {
       pendingCalls.set(id, (rawResponseText: string) => {
         const parsed = canCall[methodName]['returns'].parse(rawResponseText)
         return resolve(parsed)
       })
-      // tbd but I think you should await this
-      communicator.send(msg)
+
+      communicator.send(msg).catch(err => {
+        reject(err)
+      })
     })
   }
 

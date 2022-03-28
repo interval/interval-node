@@ -9,6 +9,8 @@ const MESSAGE_META = z.object({
   type: z.union([z.literal('ACK'), z.literal('MESSAGE')]),
 })
 
+export class TimeoutError extends Error {}
+
 interface PendingMessage {
   data: string
   onAckReceived: () => void
@@ -42,7 +44,7 @@ export default class ISocket {
       }
 
       const failTimeout = setTimeout(
-        () => reject('Socket did not connect on time'),
+        () => reject(new TimeoutError()),
         this.connectTimeout
       )
 
@@ -56,8 +58,8 @@ export default class ISocket {
     })
   }
 
-  confirmAuthentication() {
-    this.send('authenticated')
+  async confirmAuthentication() {
+    return this.send('authenticated')
     // .then(() => console.log('Client knows it is authenticated'))
     // .catch(e => console.log('client does not know its authenticated'))
   }
@@ -66,10 +68,11 @@ export default class ISocket {
     return new Promise<void>((resolve, reject) => {
       const id = v4()
 
-      const failTimeout = setTimeout(
-        () => reject('Socket did not respond on time'),
-        this.sendTimeout
-      )
+      const failTimeout = setTimeout(() => {
+        reject(new TimeoutError())
+      }, this.sendTimeout)
+
+      this.timeouts.add(failTimeout)
 
       this.pendingMessages.set(id, {
         data,
@@ -80,8 +83,6 @@ export default class ISocket {
         },
       })
       this.ws.send(JSON.stringify({ id, data, type: 'MESSAGE' }))
-    }).catch(err => {
-      console.error(err)
     })
   }
 
