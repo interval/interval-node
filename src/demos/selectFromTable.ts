@@ -34,36 +34,31 @@ export const table_basic: IntervalActionHandler = async io => {
   const selections = await io.select.table('Select from this table', {
     data: charges,
   })
-
   await io.display.object('Selected', { data: selections })
 }
 
 export const table_custom_columns: IntervalActionHandler = async io => {
-  const chargesWithUrls = charges.map(ch => ({
-    ...ch,
-    id: {
-      label: ch.id,
-      href: 'https://interval.com/charges/' + ch.id,
-    },
-  }))
-
   const selections = await io.select.table('Select from this table', {
-    data: chargesWithUrls,
+    data: charges,
     columns: [
       {
-        key: 'id',
-        formatter: value => value.slice(0, 5),
+        label: 'ID',
+        render: row => ({
+          label: row.id.slice(0, 5),
+          href: `https://dashboard.stripe.com/${row.id}`,
+        }),
       },
-      { key: 'name', label: 'Name' },
       {
-        key: 'amount',
+        label: 'Name',
+        render: row => row.name,
+      },
+      {
         label: 'Price',
-        formatter: value => formatCurrency(value ? value / 100 : 0),
+        render: row => formatCurrency(row.amount ? row.amount / 100 : 0),
       },
       {
-        key: 'promoCode',
-        label: 'Promo code',
-        formatter: value => value ?? '(None)',
+        label: 'Promo Code',
+        render: row => row.promoCode ?? 'None',
       },
     ],
   })

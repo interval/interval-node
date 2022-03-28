@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { tableRowDeserializer } from './utils/table'
 
 export const IO_RENDER = z.object({
   id: z.string(),
@@ -106,21 +105,40 @@ export const tableRowValue = z.union([
   z.undefined(),
   z.object({
     label: z.string(),
-    href: z.string(),
-  }),
-  // this is a private schema that we use internally to store the original value inside the row.
-  z.object({
-    _label: z.string(),
-    _value: objectLiteralSchema,
-    _href: z.optional(z.string()),
+    href: z.string().optional(),
   }),
 ])
+
 export const tableRow = z.record(tableRowValue)
 
-const tableColumnDef = z.object({
+export const internalTableRow = z.object({
   key: z.string(),
+  data: tableRow,
+})
+
+export const tableColumn = z.object({
+  label: z.string(),
+  render: z
+    .function()
+    .args(z.any())
+    .returns(
+      z.union([
+        z.object({
+          label: z.string(),
+          href: z.string().optional(),
+        }),
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.date(),
+        z.null(),
+        z.undefined(),
+      ])
+    ),
+})
+
+export const internalTableColumn = z.object({
   label: z.optional(z.string()),
-  formatter: z.optional(z.function().args(z.any()).returns(z.string())),
 })
 
 /**
@@ -251,11 +269,11 @@ export const ioSchema = {
   SELECT_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      columns: z.optional(z.array(tableColumnDef)),
-      data: z.array(tableRow),
+      columns: z.optional(z.array(internalTableColumn)),
+      data: z.array(internalTableRow),
     }),
     state: z.null(),
-    returns: z.array(tableRow).transform(tableRowDeserializer),
+    returns: z.array(internalTableRow),
   },
   SELECT_SINGLE: {
     props: z.object({
@@ -317,8 +335,8 @@ export const ioSchema = {
   DISPLAY_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      columns: z.optional(z.array(tableColumnDef)),
-      data: z.array(tableRow),
+      columns: z.optional(z.array(internalTableColumn)),
+      data: z.array(internalTableRow),
     }),
     state: z.null(),
     returns: z.null(),

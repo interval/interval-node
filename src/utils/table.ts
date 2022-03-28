@@ -1,84 +1,53 @@
-import { tableRow, tableRowValue, T_IO_PROPS } from '../ioSchema'
+import {
+  tableColumn,
+  internalTableColumn,
+  tableRow,
+  internalTableRow,
+} from '../ioSchema'
 import { z } from 'zod'
 
 /**
- * Removes formatter functions & generates headers from keys if none are provided
+ * Generates column headers from rows if no columns are provided.
  */
-export function columnsBuilder(props: T_IO_PROPS<'SELECT_TABLE'>) {
+export function columnsBuilder(props: {
+  columns?: z.infer<typeof tableColumn>[]
+  data: z.infer<typeof tableRow>[]
+}): z.infer<typeof internalTableColumn>[] {
   if (!props.columns) {
     return Array.from(
       new Set(props.data.flatMap(record => Object.keys(record))).values()
-    ).map(key => ({ key, label: key }))
+    ).map(key => ({ label: key }))
   }
 
-  return props.columns.map(({ formatter, ...rest }) => {
-    return {
-      ...rest,
-      label: rest.label ?? rest.key,
-    }
-  })
+  return props.columns
 }
 
 /**
- * Applies column selectors & formatters to a row of table data
+ * Applies cell renderers to a row.
  */
 export function tableRowSerializer(
-  row: T_IO_PROPS<'SELECT_TABLE'>['data'][0],
-  columns: T_IO_PROPS<'SELECT_TABLE'>['columns']
-) {
-  if (!columns) return row
+  idx: number,
+  row: z.infer<typeof tableRow>,
+  columns?: z.infer<typeof tableColumn>[]
+): z.infer<typeof internalTableRow> {
+  const key = idx.toString()
+
+  if (!columns) {
+    return {
+      key,
+      data: row,
+    }
+  }
 
   const finalRow: { [key: string]: any } = {}
 
-  for (const { key, formatter } of columns) {
-    finalRow[key] = buildRow(row[key], formatter)
+  for (let i = 0; i < columns.length; i++) {
+    const col = columns[i]
+    finalRow[i.toString()] = col.render(row)
   }
 
-  return finalRow
-}
-
-/**
- * Transforms a `tableRow` and its private _key/_label properties back into the original object shape.
- */
-export function tableRowDeserializer(rows: z.infer<typeof tableRow>[]) {
-  return rows.map(row => {
-    return Object.keys(row).reduce<{ [key: string]: any }>((result, key) => {
-      const v = row[key]
-
-      if (v && typeof v === 'object' && '_label' in v) {
-        result[key] = v._value
-      } else {
-        result[key] = v
-      }
-
-      return result
-    }, {})
-  })
-}
-
-function buildRow(
-  row: z.infer<typeof tableRowValue>,
-  formatter?: (value: any) => string
-) {
-  let _href: string | undefined
-  let _label: z.infer<typeof tableRowValue> | undefined = row
-  let _value: z.infer<typeof tableRowValue> | undefined = row
-
-  if (row && typeof row === 'object' && 'href' in row) {
-    _href = row.href
-    _label = row.label
-    _value = row.label
-  }
-
-  if (formatter) {
-    _label = formatter(_label)
-  }
-
-  // This is a private object schema that we use to store the original value inside the row.
-  // When this object is returned to us, we'll replace the object with the value of `_value`.
   return {
-    _value,
-    _label,
-    _href,
+    key,
+    data: finalRow,
   }
 }
