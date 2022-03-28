@@ -1,4 +1,4 @@
-import { T_IO_METHOD } from '../ioSchema'
+import { T_IO_METHOD } from '../../ioSchema'
 import fakeUsers from './fakeUsers'
 
 export function sleep(ms: number) {

@@ -1,5 +1,5 @@
-import Interval from '../index'
-import { DEMO_API_KEY } from '../env'
+import Interval from '../../index'
+import { DEMO_API_KEY } from '../../env'
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
