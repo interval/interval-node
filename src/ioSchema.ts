@@ -138,7 +138,7 @@ export const tableColumn = z.object({
 })
 
 export const internalTableColumn = z.object({
-  label: z.optional(z.string()),
+  label: z.string(),
 })
 
 /**
