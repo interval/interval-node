@@ -14,7 +14,7 @@ import component, {
 } from './component'
 import progressThroughList from './components/progressThroughList'
 import spreadsheet from './components/spreadsheet'
-import selectTable from './components/selectTable'
+import { selectTable, displayTable } from './components/table'
 import findAndSelectUser from './components/selectUser'
 import findAndSelect, { selectSingle } from './components/selectSingle'
 import selectMultiple from './components/selectMultiple'
@@ -377,7 +377,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
         heading: aliasComponentName('DISPLAY_HEADING'),
         markdown: aliasComponentName('DISPLAY_MARKDOWN'),
         object: aliasComponentName('DISPLAY_OBJECT'),
-        table: aliasComponentName('DISPLAY_TABLE'),
+        table: displayTable(ioPromiseConstructor),
       },
       experimental: {
         progressThroughList: progressThroughList(ioPromiseConstructor),

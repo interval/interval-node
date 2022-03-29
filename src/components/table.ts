@@ -10,7 +10,7 @@ type InputProps = Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
   data: z.input<typeof tableRow>[]
 }
 
-export default function selectTable<
+export function selectTable<
   Props extends InputProps,
   DataList extends Props['data']
 >(constructor: IOPromiseConstructor<'SELECT_TABLE', DataList>) {
@@ -37,5 +37,25 @@ export default function selectTable<
         return rows as DataList
       },
     } as IOPromise<'SELECT_TABLE', DataList>
+  }
+}
+
+export function displayTable<Props extends InputProps>(
+  constructor: IOPromiseConstructor<'DISPLAY_TABLE'>
+) {
+  return (label: string, props: Props) => {
+    const data = props.data.map((row, idx) =>
+      tableRowSerializer(idx, row, props.columns)
+    )
+
+    const columns = columnsBuilder(props)
+
+    return constructor(
+      component('DISPLAY_TABLE', label, {
+        ...props,
+        data,
+        columns,
+      })
+    )
   }
 }
