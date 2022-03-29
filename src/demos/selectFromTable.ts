@@ -54,7 +54,10 @@ export const table_custom_columns: IntervalActionHandler = async io => {
       },
       {
         label: 'Price',
-        render: row => formatCurrency(row.amount ? row.amount / 100 : 0),
+        render: row => ({
+          label: formatCurrency(row.amount ? row.amount / 100 : 0),
+          value: row.amount,
+        }),
       },
       {
         label: 'Promo Code',

@@ -106,6 +106,16 @@ export const tableRowValue = z.union([
   z.object({
     label: z.string(),
     href: z.string().optional(),
+    value: z
+      .union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.date(),
+        z.undefined(),
+      ])
+      .optional(),
   }),
 ])
 
@@ -126,6 +136,16 @@ export const tableColumn = z.object({
         z.object({
           label: z.string(),
           href: z.string().optional(),
+          value: z
+            .union([
+              z.string(),
+              z.number(),
+              z.boolean(),
+              z.null(),
+              z.date(),
+              z.undefined(),
+            ])
+            .optional(),
         }),
         z.string(),
         z.number(),
