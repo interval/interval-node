@@ -6,17 +6,15 @@ import { z } from 'zod'
 
 // Overrides internal schema with user-facing defs for columns & data
 type InputProps = Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
-  columns?: z.infer<typeof tableColumn>[]
-  data: z.infer<typeof tableRow>[]
+  columns?: z.input<typeof tableColumn>[]
+  data: z.input<typeof tableRow>[]
 }
 
-export default function selectTable(
-  constructor: IOPromiseConstructor<'SELECT_TABLE'>
-) {
-  return <Props extends InputProps, DataList extends Props['data']>(
-    label: string,
-    props: Props
-  ) => {
+export default function selectTable<
+  Props extends InputProps,
+  DataList extends Props['data']
+>(constructor: IOPromiseConstructor<'SELECT_TABLE', DataList>) {
+  return (label: string, props: Props) => {
     const data = props.data.map((row, idx) =>
       tableRowSerializer(idx, row, props.columns)
     )
@@ -34,11 +32,10 @@ export default function selectTable(
       getValue(response) {
         const indices = response.map(row => Number(row.key))
 
-        const rows = props.data.filter((row, idx) => indices.includes(idx))
+        const rows = props.data.filter((_, idx) => indices.includes(idx))
 
-        return rows
+        return rows as DataList
       },
-      // TODO: smarter type here
-    } as IOPromise<'SELECT_TABLE', any[]>
+    } as IOPromise<'SELECT_TABLE', DataList>
   }
 }

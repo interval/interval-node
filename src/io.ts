@@ -22,12 +22,12 @@ import { date, datetime } from './components/inputDate'
 
 export type IOPromiseConstructor<
   MethodName extends T_IO_METHOD_NAMES,
-  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>
 > = (c: ComponentType<MethodName>) => IOPromise<MethodName, Output>
 
 export type IOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
-  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>
 > = (
   label: string,
   props?: z.input<T_IO_Schema[MethodName]['props']>
@@ -35,7 +35,7 @@ export type IOComponentFunction<
 
 export type ExclusiveIOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
-  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>
 > = (
   label: string,
   props?: z.input<T_IO_Schema[MethodName]['props']>
@@ -43,7 +43,7 @@ export type ExclusiveIOComponentFunction<
 
 export interface IOPromise<
   MethodName extends T_IO_METHOD_NAMES,
-  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>
 > {
   component: ComponentType<MethodName>
   _output: Output | undefined
@@ -58,7 +58,7 @@ export interface IOPromise<
 
 export interface OptionalIOPromise<
   MethodName extends T_IO_METHOD_NAMES,
-  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>
 > extends Omit<
     IOPromise<MethodName, Output>,
     'optional' | 'then' | 'getValue'
@@ -72,7 +72,7 @@ export interface OptionalIOPromise<
 
 export type ExclusiveIOPromise<
   MethodName extends T_IO_METHOD_NAMES,
-  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>
 > = Omit<IOPromise<MethodName, Output>, 'groupable'>
 
 interface ClientConfig {
@@ -93,19 +93,19 @@ export class IOError extends Error {
 
 export type Executor<
   MethodName extends T_IO_METHOD_NAMES,
-  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>
 > = (resolve: (output: Output) => void, reject?: (err: IOError) => void) => void
 
 export type OptionalExecutor<
   MethodName extends T_IO_METHOD_NAMES,
-  Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>
 > = (
   resolve: (output: Output | undefined) => void,
   reject?: (err: IOError) => void
 ) => void
 
 export type IOPromiseMap = {
-  [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName>
+  [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName, any>
 }
 export type AnyIOPromise = IOPromiseMap[T_IO_METHOD_NAMES]
 
@@ -117,7 +117,7 @@ type GroupIOPromiseMap = {
     exclusive: z.ZodLiteral<true>
   }
     ? never
-    : IOPromise<MethodName>
+    : IOPromise<MethodName, any>
 }
 type GroupIOPromise = GroupIOPromiseMap[T_IO_METHOD_NAMES]
 
@@ -264,7 +264,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
   function ioPromiseConstructor<
     MethodName extends T_IO_METHOD_NAMES,
-    Output extends ComponentReturnValue<MethodName> = ComponentReturnValue<MethodName>
+    Output = ComponentReturnValue<MethodName>
   >(component: ComponentType<MethodName>): IOPromise<MethodName, Output> {
     const _output: Output | undefined = undefined
 
@@ -307,7 +307,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
         }
       },
       getValue(result: ComponentReturnValue<MethodName>) {
-        return result as Output
+        return result as unknown as Output
       },
       then(resolve, reject) {
         const componentInstances = [component] as unknown as Readonly<

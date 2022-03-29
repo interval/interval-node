@@ -1,5 +1,5 @@
 import { T_IO_PROPS } from '../ioSchema'
-import component, { ComponentReturnValue } from '../component'
+import component from '../component'
 import type { IOPromiseConstructor, IOPromise } from '../io'
 
 export function date(constructor: IOPromiseConstructor<'INPUT_DATE'>) {
