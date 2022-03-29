@@ -16,6 +16,42 @@ export const actionEnvironment = z.enum(['live', 'development'])
 
 export type ActionEnvironment = z.infer<typeof actionEnvironment>
 
+export const ENQUEUE_ACTION = {
+  inputs: z.object({
+    slug: z.string(),
+    assignee: z.string().nullish(),
+    params: serializableRecord.nullish(),
+  }),
+  returns: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('success'),
+      id: z.string(),
+    }),
+    z.object({
+      type: z.literal('error'),
+      message: z.string(),
+    }),
+  ]),
+}
+
+export const DEQUEUE_ACTION = {
+  inputs: z.object({
+    id: z.string(),
+  }),
+  returns: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('success'),
+      id: z.string(),
+      assignee: z.string().optional(),
+      params: serializableRecord.optional(),
+    }),
+    z.object({
+      type: z.literal('error'),
+      message: z.string(),
+    }),
+  ]),
+}
+
 export const wsServerSchema = {
   CONNECT_TO_TRANSACTION_AS_CLIENT: {
     inputs: z.object({
