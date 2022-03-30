@@ -13,7 +13,6 @@
     "build:envoy": "yarn envoy $INIT_CWD/envoy.config.ts $INIT_CWD/.env $INIT_CWD/src/env.ts",
     "build": "yarn build:envoy && tsc",
     "demo:basic": "node ./dist/examples/basic/index.js",
-    "demo:prod": "node ./dist/examples/prod-demo/index.js",
     "dev": "run(){ yarn build:envoy && nodemon --watch src -e ts src/examples/${1:-basic}/index.ts; }; run"
   },
   "dependencies": {
