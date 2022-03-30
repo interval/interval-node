@@ -1,0 +1,3 @@
+# ignore folders prefixed with an underscore.
+# use these to create your own examples that aren't committed to git.
+_*/

@@ -12,9 +12,8 @@
     "tar": "yarn pack",
     "build:envoy": "yarn envoy $INIT_CWD/envoy.config.ts $INIT_CWD/.env $INIT_CWD/src/env.ts",
     "build": "yarn build:envoy && tsc",
-    "demo:basic": "node ./dist/demos/basic.js",
-    "demo:prod": "node ./dist/demos/prodDemo.js",
-    "dev": "yarn build:envoy && nodemon --watch src -e ts src/demos/basic.ts"
+    "demo:basic": "node ./dist/examples/basic/index.js",
+    "dev": "run(){ yarn build:envoy && nodemon --watch src -e ts src/examples/${1:-basic}/index.ts; }; run"
   },
   "dependencies": {
     "evt": "^1.10.2",

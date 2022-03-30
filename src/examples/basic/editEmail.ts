@@ -1,5 +1,5 @@
-import { IntervalActionHandler } from '..'
-import { fakeDb, mapToSelectOption } from './helpers'
+import { IntervalActionHandler } from '../..'
+import { fakeDb, mapToSelectOption } from '../utils/helpers'
 
 const editEmailForUser: IntervalActionHandler = async io => {
   console.log("Let's say hello...")
