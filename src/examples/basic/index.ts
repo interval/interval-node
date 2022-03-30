@@ -1,6 +1,6 @@
-import Interval, { IOError } from '../index'
+import Interval, { IOError } from '../../index'
 import editEmailForUser from './editEmail'
-import { fakeDb, mapToIntervalUser, sleep } from './helpers'
+import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import { table_basic, table_custom_columns } from './selectFromTable'
 import unauthorized from './unauthorized'
 
@@ -320,32 +320,3 @@ const interval = new Interval({
 })
 
 interval.listen()
-
-setTimeout(async () => {
-  await prod.actions.enqueue('echoParams', {
-    params: {
-      true: true,
-      false: false,
-      number: 1337,
-      string: 'string',
-      date: new Date(),
-      null: null,
-      undefined: undefined,
-    },
-  })
-
-  await interval.actions.enqueue('helloCurrentUser', {
-    assignee: 'alex@interval.com',
-    params: {
-      message: 'Hello, queue!',
-    },
-  })
-
-  const queuedAction = await interval.actions.enqueue('helloCurrentUser', {
-    params: {
-      message: 'Hello, anyone!',
-    },
-  })
-
-  await interval.actions.dequeue(queuedAction.id)
-}, 1000)

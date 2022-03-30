@@ -3,4 +3,5 @@ src/
 envoy.config.ts
 *.tar.gz
 dist/demos/
+dist/examples/
 dist/env.*

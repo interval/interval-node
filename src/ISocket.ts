@@ -9,6 +9,8 @@ const MESSAGE_META = z.object({
   type: z.union([z.literal('ACK'), z.literal('MESSAGE')]),
 })
 
+export class TimeoutError extends Error {}
+
 interface PendingMessage {
   data: string
   onAckReceived: () => void
@@ -17,6 +19,7 @@ interface PendingMessage {
 interface ISocketConfig {
   connectTimeout?: number
   sendTimeout?: number
+  pingTimeout?: number
   id?: string // manually specifying ids is helpful for debugging
 }
 
@@ -24,6 +27,7 @@ export default class ISocket {
   private ws: WebSocket | NodeWebSocket
   private connectTimeout: number
   private sendTimeout: number
+  private pingTimeout: number
   private isAuthenticated: boolean
   private timeouts: Set<NodeJS.Timeout>
   onMessage: Evt<string>
@@ -35,6 +39,7 @@ export default class ISocket {
 
   private pendingMessages = new Map<string, PendingMessage>()
 
+  /** Client **/
   async connect() {
     return new Promise<void>((resolve, reject) => {
       if (this.ws.readyState === this.ws.OPEN && this.isAuthenticated) {
@@ -42,7 +47,7 @@ export default class ISocket {
       }
 
       const failTimeout = setTimeout(
-        () => reject('Socket did not connect on time'),
+        () => reject(new TimeoutError()),
         this.connectTimeout
       )
 
@@ -56,20 +61,23 @@ export default class ISocket {
     })
   }
 
-  confirmAuthentication() {
-    this.send('authenticated')
+  /** Server **/
+  async confirmAuthentication() {
+    return this.send('authenticated')
     // .then(() => console.log('Client knows it is authenticated'))
     // .catch(e => console.log('client does not know its authenticated'))
   }
 
+  /** Both **/
   async send(data: string) {
     return new Promise<void>((resolve, reject) => {
       const id = v4()
 
-      const failTimeout = setTimeout(
-        () => reject('Socket did not respond on time'),
-        this.sendTimeout
-      )
+      const failTimeout = setTimeout(() => {
+        reject(new TimeoutError())
+      }, this.sendTimeout)
+
+      this.timeouts.add(failTimeout)
 
       this.pendingMessages.set(id, {
         data,
@@ -80,11 +88,10 @@ export default class ISocket {
         },
       })
       this.ws.send(JSON.stringify({ id, data, type: 'MESSAGE' }))
-    }).catch(err => {
-      console.error(err)
     })
   }
 
+  /** Both **/
   close() {
     return this.ws.close()
   }
@@ -106,8 +113,9 @@ export default class ISocket {
     this.ws = ws
 
     this.id = config?.id || v4()
-    this.connectTimeout = config?.connectTimeout || 15_000
-    this.sendTimeout = config?.sendTimeout || 3000
+    this.connectTimeout = config?.connectTimeout ?? 15_000
+    this.sendTimeout = config?.sendTimeout ?? 3000
+    this.pingTimeout = config?.pingTimeout ?? 3000
     this.isAuthenticated = false
 
     this.onClose.attach(() => {
@@ -125,8 +133,9 @@ export default class ISocket {
       this.onClose.post([ev.code, ev.reason])
     }
 
-    this.ws.onerror = (ev: any) => {
-      /* */
+    this.ws.onerror = (ev: ErrorEvent | Event) => {
+      const message = 'message' in ev ? ev.message : 'Unknown error'
+      this.onError.post(new Error(message))
     }
 
     this.ws.onmessage = (evt: MessageEvent) => {
@@ -154,5 +163,53 @@ export default class ISocket {
         this.onMessage.post(meta.data)
       }
     }
+
+    if ('pong' in ws) {
+      ws.on('pong', buf => {
+        const id = buf.toString()
+        const pm = this.pendingMessages.get(id)
+        if (pm?.data === 'ping') {
+          pm.onAckReceived()
+        }
+      })
+    }
+  }
+
+  get isPingSupported() {
+    return 'ping' in this.ws
+  }
+
+  /** Both **/
+  async ping() {
+    if (!('ping' in this.ws)) {
+      // Not supported in web client WebSocket
+      throw new Error(
+        'ping not supported in this underlying websocket connection'
+      )
+    }
+
+    const ws = this.ws
+    return new Promise<void>((resolve, reject) => {
+      const pongTimeout = setTimeout(
+        () => reject('Pong not received in time'),
+        this.pingTimeout
+      )
+      this.timeouts.add(pongTimeout)
+
+      const id = v4()
+      this.pendingMessages.set(id, {
+        data: 'ping',
+        onAckReceived: () => {
+          clearTimeout(pongTimeout)
+          this.timeouts.delete(pongTimeout)
+          resolve()
+        },
+      })
+      ws.ping(id, undefined, err => {
+        if (err) {
+          reject(err)
+        }
+      })
+    })
   }
 }

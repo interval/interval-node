@@ -1,4 +1,4 @@
-import { IntervalActionHandler } from '..'
+import { IntervalActionHandler } from '../..'
 
 const unauthorized: IntervalActionHandler = async io => {
   const email = await io.input.email('Email address')

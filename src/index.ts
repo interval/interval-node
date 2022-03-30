@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws'
-import ISocket from './ISocket'
+import ISocket, { TimeoutError } from './ISocket'
 import { createDuplexRPCClient, DuplexRPCClient } from './rpc'
 import {
   wsServerSchema,
@@ -137,7 +137,7 @@ export default class Interval {
       }
     }
 
-    const response = await this.#serverRpc.send('ENQUEUE_ACTION', {
+    const response = await this.#send('ENQUEUE_ACTION', {
       actionName: slug,
       ...config,
     })
@@ -163,7 +163,7 @@ export default class Interval {
       )
     }
 
-    const response = await this.#serverRpc.send('DEQUEUE_ACTION', { id })
+    const response = await this.#send('DEQUEUE_ACTION', { id })
 
     if (response.type === 'error') {
       throw new IntervalError('There was a problem dequeuing the action')
@@ -266,7 +266,7 @@ export default class Interval {
           const client = createIOClient({
             logger: this.#logger,
             send: async ioRenderInstruction => {
-              await serverRpc.send('SEND_IO_CALL', {
+              await this.#send('SEND_IO_CALL', {
                 transactionId: inputs.transactionId,
                 ioCall: JSON.stringify(ioRenderInstruction),
               })
@@ -306,7 +306,7 @@ export default class Interval {
               return result
             })
             .then((res: ActionResultSchema) => {
-              serverRpc.send('MARK_TRANSACTION_COMPLETE', {
+              this.#send('MARK_TRANSACTION_COMPLETE', {
                 transactionId: inputs.transactionId,
                 result: JSON.stringify(res),
               })
@@ -364,7 +364,7 @@ export default class Interval {
 
     const slugs = Object.keys(this.#actions)
 
-    const loggedIn = await this.#serverRpc.send('INITIALIZE_HOST', {
+    const loggedIn = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
       callableActionNames: slugs,
       sdkName: pkg.name,
@@ -393,6 +393,27 @@ export default class Interval {
       `🔗 Connected! Access your actions at: ${loggedIn.dashboardUrl}`
     )
     this.#log.debug('Host ID:', this.#ws.id)
+  }
+
+  async #send<MethodName extends keyof typeof wsServerSchema>(
+    methodName: MethodName,
+    inputs: z.input<typeof wsServerSchema[MethodName]['inputs']>
+  ) {
+    if (!this.#serverRpc) throw new Error('serverRpc not initialized')
+
+    while (true) {
+      try {
+        return await this.#serverRpc.send(methodName, inputs)
+      } catch (err) {
+        if (err instanceof TimeoutError) {
+          this.#log.debug('RPC call timed out, retrying in 3s...')
+          this.#log.debug(err)
+          sleep(3000)
+        } else {
+          throw err
+        }
+      }
+    }
   }
 }
 

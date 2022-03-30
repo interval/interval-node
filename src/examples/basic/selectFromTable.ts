@@ -1,4 +1,4 @@
-import { IntervalActionHandler } from '..'
+import { IntervalActionHandler } from '../..'
 
 const charges = [
   {
