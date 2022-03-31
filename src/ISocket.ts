@@ -191,7 +191,7 @@ export default class ISocket {
     const ws = this.ws
     return new Promise<void>((resolve, reject) => {
       const pongTimeout = setTimeout(
-        () => reject('Pong not received in time'),
+        () => reject(new TimeoutError('Pong not received in time')),
         this.pingTimeout
       )
       this.timeouts.add(pongTimeout)
