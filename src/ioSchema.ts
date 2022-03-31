@@ -121,10 +121,12 @@ export const tableRowValue = z.union([
 
 export const tableRow = z.record(tableRowValue)
 
-export const internalTableRow = z.object({
+export const newInternalTableRow = z.object({
   key: z.string(),
   data: tableRow,
 })
+
+export const internalTableRow = z.union([newInternalTableRow, tableRow])
 
 export const tableColumn = z.object({
   label: z.string(),
