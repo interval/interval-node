@@ -4,7 +4,7 @@ import { DEMO_API_KEY } from '../../env'
 const interval = new Interval({
   apiKey: DEMO_API_KEY,
   logLevel: 'debug',
-  endpoint: 'ws://localhost:3002',
+  endpoint: 'ws://localhost:3000/websocket',
   actions: {
     helloCurrentUser: async (io, ctx) => {
       console.log(ctx.params)

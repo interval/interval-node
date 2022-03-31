@@ -1,10 +1,13 @@
 import { WebSocket } from 'ws'
+import fetch from 'node-fetch'
 import ISocket, { TimeoutError } from './ISocket'
 import { createDuplexRPCClient, DuplexRPCClient } from './rpc'
 import {
   wsServerSchema,
   hostSchema,
   TRANSACTION_RESULT_SCHEMA_VERSION,
+  ENQUEUE_ACTION,
+  DEQUEUE_ACTION,
 } from './internalRpcSchema'
 import {
   ActionResultSchema,
@@ -86,61 +89,53 @@ class IntervalError extends Error {
   }
 }
 
-export default class Interval {
-  #actions: Record<string, IntervalActionHandler>
+class Actions {
   #apiKey: string
-  #endpoint: string = 'wss://intervalkit.com/websocket'
-  #logger: Logger
+  #endpoint: string
 
-  constructor(config: InternalConfig) {
-    this.#apiKey = config.apiKey
-    this.#actions = config.actions
-    this.#logger = new Logger(config.logLevel)
+  constructor(apiKey: string, endpoint: string) {
+    this.#apiKey = apiKey
+    const url = new URL(endpoint)
+    url.protocol = url.protocol.replace('ws', 'http')
+    url.pathname = '/api/actions'
+    this.#endpoint = url.toString()
+  }
 
-    if (config.endpoint) {
-      this.#endpoint = config.endpoint
+  #getAddress(path: string): string {
+    if (path.startsWith('/')) {
+      path = path.substring(1)
     }
+
+    return `${this.#endpoint}/${path}`
   }
 
-  get #log() {
-    return this.#logger
-  }
-
-  // It feels a little wasteful to create a new object every time this getter
-  // is called, but defining it ahead of time allows consumers to reassign to it
-  // statefully which I think we would rather avoid.
-  get actions() {
-    return {
-      enqueue: this.#enqueueAction.bind(this),
-      dequeue: this.#dequeueAction.bind(this),
-    }
-  }
-
-  async #enqueueAction(
+  async enqueue(
     slug: string,
     config: Pick<QueuedAction, 'assignee' | 'params'> = {}
   ): Promise<QueuedAction> {
-    // TODO: Richer error types
-
-    if (!this.#isConnected || !this.#ws || !this.#serverRpc) {
-      throw new IntervalError(
-        'Connection not established. Please be sure to call listen() before enqueueing actions.'
-      )
+    let body: z.infer<typeof ENQUEUE_ACTION['inputs']>
+    try {
+      body = ENQUEUE_ACTION.inputs.parse({
+        ...config,
+        slug,
+      })
+    } catch (err) {
+      throw new IntervalError('Invalid input.')
     }
 
-    if (config.params) {
-      const parsed = serializableRecord.safeParse(config.params)
-      if (!parsed.success) {
-        throw new IntervalError(
-          'Invalid params, please pass an object of strings or numbers'
-        )
-      }
-    }
-
-    const response = await this.#send('ENQUEUE_ACTION', {
-      actionName: slug,
-      ...config,
+    const response = await fetch(this.#getAddress('enqueue'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.#apiKey}`,
+      },
+      body: JSON.stringify(body),
     })
+      .then(r => r.json())
+      .then(r => ENQUEUE_ACTION.returns.parseAsync(r))
+      .catch(() => {
+        throw new IntervalError('Received invalid API response.')
+      })
 
     if (response.type === 'error') {
       throw new IntervalError(
@@ -154,24 +149,63 @@ export default class Interval {
     }
   }
 
-  async #dequeueAction(id: string): Promise<QueuedAction> {
-    // TODO: Richer error types
-
-    if (!this.#isConnected || !this.#ws || !this.#serverRpc) {
-      throw new IntervalError(
-        'Connection not established. Please be sure to call listen() before enqueueing actions.'
-      )
+  async dequeue(id: string): Promise<QueuedAction> {
+    let body: z.infer<typeof DEQUEUE_ACTION['inputs']>
+    try {
+      body = DEQUEUE_ACTION.inputs.parse({
+        id,
+      })
+    } catch (err) {
+      throw new IntervalError('Invalid input.')
     }
 
-    const response = await this.#send('DEQUEUE_ACTION', { id })
+    const response = await fetch(this.#getAddress('dequeue'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.#apiKey}`,
+      },
+      body: JSON.stringify(body),
+    })
+      .then(r => r.json())
+      .then(r => DEQUEUE_ACTION.returns.parseAsync(r))
+      .catch(() => {
+        throw new IntervalError('Received invalid API response.')
+      })
 
     if (response.type === 'error') {
-      throw new IntervalError('There was a problem dequeuing the action')
+      throw new IntervalError(
+        `There was a problem enqueuing the action: ${response.message}`
+      )
     }
 
     const { type, ...rest } = response
 
     return rest
+  }
+}
+
+export default class Interval {
+  #actions: Record<string, IntervalActionHandler>
+  #apiKey: string
+  #endpoint: string = 'wss://intervalkit.com/websocket'
+  #logger: Logger
+  actions: Actions
+
+  constructor(config: InternalConfig) {
+    this.#apiKey = config.apiKey
+    this.#actions = config.actions
+    this.#logger = new Logger(config.logLevel)
+
+    if (config.endpoint) {
+      this.#endpoint = config.endpoint
+    }
+
+    this.actions = new Actions(this.#apiKey, this.#endpoint)
+  }
+
+  get #log() {
+    return this.#logger
   }
 
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
