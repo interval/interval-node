@@ -2,6 +2,7 @@ src/
 .prettierrc
 envoy.config.ts
 *.tar.gz
+*.tgz
 dist/demos/
 dist/examples/
 dist/env.*
