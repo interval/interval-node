@@ -7,13 +7,11 @@ import { COLUMN_DEFS } from '../utils/spreadsheet'
 export default function spreadsheet(
   constructor: IOPromiseConstructor<'INPUT_SPREADSHEET'>
 ) {
-  return <
-    Props extends T_IO_PROPS<'INPUT_SPREADSHEET'>,
-    Columns extends Props['columns']
-  >(
+  return <Props extends T_IO_PROPS<'INPUT_SPREADSHEET'>>(
     label: string,
     props: Props
   ) => {
+    type Columns = typeof props['columns']
     const c = component('INPUT_SPREADSHEET', label, {
       ...props,
     })

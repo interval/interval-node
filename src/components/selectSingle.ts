@@ -5,13 +5,11 @@ import type { IOPromiseConstructor, IOPromise } from '../io'
 export function selectSingle(
   constructor: IOPromiseConstructor<'SELECT_SINGLE'>
 ) {
-  return <
-    Props extends T_IO_PROPS<'SELECT_SINGLE'>,
-    Options extends Props['options']
-  >(
+  return <Props extends T_IO_PROPS<'SELECT_SINGLE'>>(
     label: string,
     props: Props
   ) => {
+    type Options = typeof props['options']
     return constructor(component('SELECT_SINGLE', label, props)) as IOPromise<
       'SELECT_SINGLE',
       Options[0]
@@ -24,15 +22,16 @@ export default function findAndSelect(
 ) {
   return <
     Props extends Omit<T_IO_PROPS<'SELECT_SINGLE'>, 'options'> & {
-      initialOptions?: Options
+      initialOptions?: InputOptions
       onSearch: (query: string) => Promise<OptionsLike>
     },
     OptionsLike extends T_IO_PROPS<'SELECT_SINGLE'>['options'],
-    Options extends Awaited<ReturnType<Props['onSearch']>>
+    InputOptions extends Awaited<ReturnType<Props['onSearch']>>
   >(
     label: string,
     props: Props
   ) => {
+    type Options = Awaited<ReturnType<typeof props['onSearch']>>
     const { onSearch, initialOptions, ...rest } = props
     const c = component(
       'SELECT_SINGLE',
