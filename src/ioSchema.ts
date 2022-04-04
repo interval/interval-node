@@ -179,6 +179,7 @@ export const ioSchema = {
   INPUT_TEXT: {
     props: z.object({
       helpText: z.optional(z.string()),
+      placeholder: z.optional(z.string()),
       defaultValue: z.optional(z.string()),
       multiline: z.optional(z.boolean()),
       lines: z.optional(z.number()),
@@ -189,6 +190,7 @@ export const ioSchema = {
   INPUT_EMAIL: {
     props: z.object({
       helpText: z.optional(z.string()),
+      placeholder: z.optional(z.string()),
       defaultValue: z.optional(z.string()),
     }),
     state: z.null(),
@@ -200,6 +202,7 @@ export const ioSchema = {
       max: z.optional(z.number()),
       prepend: z.optional(z.string()),
       helpText: z.optional(z.string()),
+      placeholder: z.optional(z.string()),
       defaultValue: z.optional(z.number()),
       decimals: z.optional(z.number().positive().int()),
     }),
@@ -217,6 +220,7 @@ export const ioSchema = {
   INPUT_RICH_TEXT: {
     props: z.object({
       helpText: z.optional(z.string()),
+      placeholder: z.optional(z.string()),
     }),
     state: z.null(),
     returns: z.string(),
