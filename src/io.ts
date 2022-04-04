@@ -204,7 +204,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
             const prevState = componentInstances[index].getInstance().state
 
             if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
-              console.log(`New state at ${index}`, newState)
+              logger.debug(`New state at ${index}`, newState)
               // @ts-ignore
               await componentInstances[index].setState(newState)
             }
