@@ -201,6 +201,7 @@ export const ioSchema = {
       prepend: z.optional(z.string()),
       helpText: z.optional(z.string()),
       defaultValue: z.optional(z.number()),
+      decimals: z.optional(z.number().positive().int()),
     }),
     state: z.null(),
     returns: z.number(),

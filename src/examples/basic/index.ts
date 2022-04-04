@@ -20,7 +20,8 @@ const prod = new Interval({
         const num2 = await io.input.number(
           `Enter a second number that's greater than ${num1}`,
           {
-            min: num1 + 1,
+            min: num1 + 0.01,
+            decimals: 2,
           }
         )
 
@@ -125,6 +126,19 @@ const interval = new Interval({
           min: num + 1,
         }
       )
+    },
+    enter_two_numbers: async io => {
+      const num1 = await io.input.number('Enter a number')
+
+      const num2 = await io.input.number(
+        `Enter a second number that's greater than ${num1}`,
+        {
+          min: num1 + 0.01,
+          decimals: 2,
+        }
+      )
+
+      return { num1, num2, sum: num1 + num2 }
     },
     confirmBeforeDelete: async io => {
       const email = await io.input.email('Enter an email address')
