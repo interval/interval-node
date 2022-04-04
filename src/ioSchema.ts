@@ -140,7 +140,7 @@ export const tableColumn = z.object({
     .returns(
       z.union([
         z.object({
-          label: z.string(),
+          label: z.string().nullish(),
           href: z.string().optional(),
           value: z
             .union([

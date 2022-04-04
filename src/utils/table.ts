@@ -43,7 +43,16 @@ export function tableRowSerializer(
 
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i]
-    finalRow[i.toString()] = col.render(row)
+    const val = col.render(row) ?? null
+    if (
+      !!val &&
+      typeof val === 'object' &&
+      'label' in val &&
+      val.label === undefined
+    ) {
+      val.label = null
+    }
+    finalRow[i.toString()] = val
   }
 
   return {

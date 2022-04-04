@@ -42,6 +42,7 @@ export const table_basic: IntervalActionHandler = async io => {
 }
 
 export const table_custom_columns: IntervalActionHandler = async io => {
+  type Charge = typeof charges[0]
   const selections = await io.select.table('Select from this table', {
     data: charges,
     columns: [
@@ -69,7 +70,9 @@ export const table_custom_columns: IntervalActionHandler = async io => {
       },
       {
         label: 'Promo Code',
-        render: row => row.promoCode ?? 'None',
+        render: (row: Charge) => ({
+          label: row.promoCode,
+        }),
       },
     ],
   })
