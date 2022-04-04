@@ -46,7 +46,6 @@ export interface IOPromise<
   Output = ComponentReturnValue<MethodName>
 > {
   component: ComponentType<MethodName>
-  _output: Output | undefined
   then: Executor<MethodName, Output>
   getValue: (response: ComponentReturnValue<MethodName>) => Output
   optional: () => OptionalIOPromise<MethodName, Output>
@@ -251,9 +250,9 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
     type ReturnValues = {
       -readonly [Idx in keyof PromiseInstances]: PromiseInstances[Idx] extends GroupIOPromise
-        ? NonNullable<PromiseInstances[Idx]['_output']>
+        ? ReturnType<PromiseInstances[Idx]['getValue']>
         : PromiseInstances[Idx] extends OptionalGroupIOPromise
-        ? PromiseInstances[Idx]['_output']
+        ? ReturnType<PromiseInstances[Idx]['getValue']>
         : PromiseInstances[Idx]
     }
 
@@ -266,12 +265,9 @@ export default function createIOClient(clientConfig: ClientConfig) {
     MethodName extends T_IO_METHOD_NAMES,
     Output = ComponentReturnValue<MethodName>
   >(component: ComponentType<MethodName>): IOPromise<MethodName, Output> {
-    const _output: Output | undefined = undefined
-
     return {
       groupable: true,
       component,
-      _output,
       optional() {
         const { optional, then, ...rest } = this
 
