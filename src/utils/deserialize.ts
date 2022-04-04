@@ -1,25 +1,32 @@
-import { DeserializableRecord, SerializableRecord } from '../ioSchema'
-
-export function serializeDates(
-  record: SerializableRecord
-): DeserializableRecord {
-  const ret: DeserializableRecord = {}
+export function serializeDates<V extends any>(
+  record: Record<string, V>
+): Record<string, Exclude<V, Date> | string> {
+  type Dateless = Exclude<V, Date>
+  const ret: Record<string, Dateless | string> = {}
 
   for (const [key, val] of Object.entries(record)) {
     if (val instanceof Date) {
       ret[key] = val.toISOString()
+    } else if (val && typeof val === 'object') {
+      if (Array.isArray(val)) {
+        ret[key] = val.map(v => serializeDates(v)) as Dateless
+      } else {
+        try {
+          ret[key] = serializeDates(val as Record<string, V>) as Dateless
+        } catch {}
+      }
     } else {
-      ret[key] = val
+      ret[key] = val as Exclude<V, Date>
     }
   }
 
   return ret
 }
 
-export function deserializeDates(
-  record: DeserializableRecord | SerializableRecord
-): SerializableRecord {
-  const ret: SerializableRecord = {}
+export function deserializeDates<V extends any>(
+  record: Record<string, V>
+): Record<string, V | Date> {
+  const ret: Record<string, V | Date> = {}
 
   for (const [key, val] of Object.entries(record)) {
     if (typeof val === 'string') {
@@ -28,6 +35,16 @@ export function deserializeDates(
         ret[key] = date
       } else {
         ret[key] = val
+      }
+    } else if (val && typeof val === 'object' && !(val instanceof Date)) {
+      if (Array.isArray(val)) {
+        ret[key] = val.map(v => deserializeDates(v)) as V
+      } else {
+        try {
+          ret[key] = deserializeDates(val as Record<string, V>) as V
+        } catch {
+          ret[key] = val
+        }
       }
     } else {
       ret[key] = val

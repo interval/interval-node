@@ -83,8 +83,12 @@ const component = <MN extends keyof IoSchema>(
     try {
       let parsed: ReturnType<typeof returnSchema.parse>
 
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        parsed = returnSchema.parse(deserializeDates(value))
+      if (value && typeof value === 'object') {
+        if (Array.isArray(value)) {
+          parsed = returnSchema.parse(value.map(v => deserializeDates<any>(v)))
+        } else {
+          parsed = returnSchema.parse(deserializeDates<any>(value))
+        }
       } else {
         parsed = returnSchema.parse(value)
       }
