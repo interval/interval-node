@@ -1,4 +1,9 @@
-import { T_IO_PROPS, tableColumn, tableRow } from '../ioSchema'
+import {
+  T_IO_PROPS,
+  tableColumn,
+  tableRow,
+  newInternalTableRow,
+} from '../ioSchema'
 import component from '../component'
 import type { IOPromiseConstructor, IOPromise } from '../io'
 import { columnsBuilder, tableRowSerializer } from '../utils/table'
@@ -29,7 +34,9 @@ export function selectTable(constructor: IOPromiseConstructor<'SELECT_TABLE'>) {
         })
       ),
       getValue(response) {
-        const indices = response.map(row => Number(row.key))
+        const indices = response.map(row =>
+          Number((row as z.infer<typeof newInternalTableRow>).key)
+        )
 
         const rows = props.data.filter((_, idx) => indices.includes(idx))
 

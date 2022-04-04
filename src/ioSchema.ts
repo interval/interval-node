@@ -119,7 +119,11 @@ export const tableRowValue = z.union([
   }),
 ])
 
-export const tableRow = z.record(tableRowValue)
+export const tableRow = z
+  .record(tableRowValue)
+  // Allow arbitrary objects/interfaces with specified column mappings.
+  // If no columns specified, we'll just serialize any nested objects.
+  .or(z.object({}).passthrough())
 
 export const newInternalTableRow = z.object({
   key: z.string(),
