@@ -19,18 +19,18 @@ export function selectTable(constructor: IOPromiseConstructor<'SELECT_TABLE'>) {
   return <Props extends InputProps>(label: string, props: Props) => {
     type DataList = typeof props['data']
 
-    const data = props.data.map((row, idx) =>
-      tableRowSerializer(idx, row, props.columns)
-    )
-
     const columns = columnsBuilder(props)
+
+    const data = props.data.map((row, idx) =>
+      tableRowSerializer(idx, row, columns)
+    )
 
     return {
       ...constructor(
         component('SELECT_TABLE', label, {
           ...props,
           data,
-          columns,
+          columns: columns.map(({ render, ...column }) => column),
         })
       ),
       getValue(response) {
@@ -50,17 +50,17 @@ export function displayTable(
   constructor: IOPromiseConstructor<'DISPLAY_TABLE'>
 ) {
   return <Props extends InputProps>(label: string, props: Props) => {
-    const data = props.data.map((row, idx) =>
-      tableRowSerializer(idx, row, props.columns)
-    )
-
     const columns = columnsBuilder(props)
+
+    const data = props.data.map((row, idx) =>
+      tableRowSerializer(idx, row, columns)
+    )
 
     return constructor(
       component('DISPLAY_TABLE', label, {
         ...props,
         data,
-        columns,
+        columns: columns.map(({ render, ...column }) => column),
       })
     )
   }

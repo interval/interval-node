@@ -12,14 +12,28 @@ import { z } from 'zod'
 export function columnsBuilder(props: {
   columns?: z.infer<typeof tableColumn>[]
   data: z.infer<typeof tableRow>[]
-}): z.infer<typeof internalTableColumn>[] {
+}): z.infer<typeof tableColumn>[] {
   if (!props.columns) {
-    return Array.from(
+    const labels = Array.from(
       new Set(props.data.flatMap(record => Object.keys(record))).values()
-    ).map(key => ({ label: key }))
+    )
+
+    return labels.map(label => ({
+      label,
+      render: row => row[label],
+    }))
   }
 
   return props.columns
+}
+
+/**
+ * Removes the `render` function from column defs before sending data up to the server.
+ */
+export function columnsWithoutRender(
+  columns: z.infer<typeof tableColumn>[]
+): z.infer<typeof internalTableColumn>[] {
+  return columns.map(({ render, ...column }) => column)
 }
 
 /**
@@ -28,16 +42,9 @@ export function columnsBuilder(props: {
 export function tableRowSerializer(
   idx: number,
   row: z.infer<typeof tableRow>,
-  columns?: z.infer<typeof tableColumn>[]
+  columns: z.infer<typeof tableColumn>[]
 ): z.infer<typeof internalTableRow> {
   const key = idx.toString()
-
-  if (!columns) {
-    return {
-      key,
-      data: row,
-    }
-  }
 
   const finalRow: { [key: string]: any } = {}
 
