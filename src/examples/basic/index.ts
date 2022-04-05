@@ -333,6 +333,18 @@ const interval = new Interval({
       console.log(ctx.params)
       return ctx.params
     },
+    invalid_props: async io => {
+      await io.select.single('This is broken', {
+        options: [
+          { label: 'Works', value: 'works' },
+          // @ts-expect-error
+          { label: "Doesn't" },
+        ],
+      })
+    },
+    error: async () => {
+      throw new Error('This is a regular error!')
+    },
   },
 })
 
