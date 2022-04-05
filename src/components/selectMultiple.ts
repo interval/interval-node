@@ -11,9 +11,13 @@ export default function selectMultiple(
   ) => {
     type Options = typeof props['options']
 
-    return constructor(component('SELECT_MULTIPLE', label, props)) as IOPromise<
-      'SELECT_MULTIPLE',
-      Options
-    >
+    const optionMap = new Map(props.options.map(o => [o.value, o]))
+
+    return {
+      ...constructor(component('SELECT_MULTIPLE', label, props)),
+      getValue(response) {
+        return response.map(r => optionMap.get(r.value))
+      },
+    } as IOPromise<'SELECT_MULTIPLE', Options>
   }
 }

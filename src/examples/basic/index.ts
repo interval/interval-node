@@ -177,14 +177,17 @@ const interval = new Interval({
         {
           value: 'A',
           label: 'A',
+          extraData: 'A',
         },
         {
           value: 'B',
           label: 'B',
+          extraData: 'B',
         },
         {
           value: 'C',
           label: 'C',
+          extraData: 'C',
         },
       ]
 
