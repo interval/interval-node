@@ -75,6 +75,8 @@ export const table_custom_columns: IntervalActionHandler = async io => {
         }),
       },
     ],
+    minSelections: 1,
+    maxSelections: 2,
   })
 
   await io.display.object('Selected', { data: selections })
