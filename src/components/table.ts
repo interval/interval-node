@@ -6,7 +6,11 @@ import {
 } from '../ioSchema'
 import component from '../component'
 import type { IOPromiseConstructor, IOPromise } from '../io'
-import { columnsBuilder, tableRowSerializer } from '../utils/table'
+import {
+  columnsBuilder,
+  tableRowSerializer,
+  columnsWithoutRender,
+} from '../utils/table'
 import { z } from 'zod'
 
 // Overrides internal schema with user-facing defs for columns & data
@@ -30,7 +34,7 @@ export function selectTable(constructor: IOPromiseConstructor<'SELECT_TABLE'>) {
         component('SELECT_TABLE', label, {
           ...props,
           data,
-          columns: columns.map(({ render, ...column }) => column),
+          columns: columnsWithoutRender(columns),
         })
       ),
       getValue(response) {
@@ -60,7 +64,7 @@ export function displayTable(
       component('DISPLAY_TABLE', label, {
         ...props,
         data,
-        columns: columns.map(({ render, ...column }) => column),
+        columns: columnsWithoutRender(columns),
       })
     )
   }
