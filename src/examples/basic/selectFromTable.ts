@@ -44,7 +44,14 @@ export const table_basic: IntervalActionHandler = async io => {
 export const table_custom_columns: IntervalActionHandler = async io => {
   type Charge = typeof charges[0]
   const selections = await io.select.table('Select from this table', {
-    data: charges,
+    data: [
+      ...charges,
+      ...charges,
+      ...charges,
+      ...charges,
+      ...charges,
+      ...charges,
+    ],
     columns: [
       {
         label: 'ID',
