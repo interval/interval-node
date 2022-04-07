@@ -1,4 +1,3 @@
-import { T_IO_METHOD } from '../../ioSchema'
 import fakeUsers from './fakeUsers'
 
 export function sleep(ms: number) {
@@ -10,9 +9,10 @@ export function mapToSelectOption(inputUser: {
   first_name: string
   last_name: string
   email: string
-}): T_IO_METHOD<'SELECT_SINGLE', 'props'>['options'][0] {
+}) {
   const name = `${inputUser.first_name} ${inputUser.last_name}`
   return {
+    ...inputUser,
     value: inputUser.username,
     label: name,
     description: inputUser.email,

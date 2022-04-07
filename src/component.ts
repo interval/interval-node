@@ -50,6 +50,15 @@ const component = <MN extends keyof IoSchema>(
     incomingState: z.infer<IoSchema[MN]['state']>
   ) => Promise<Partial<z.input<IoSchema[MN]['props']>>>
 ): ComponentType<MN> => {
+  const schema = ioSchema[methodName]
+  try {
+    initialProps = schema.props.parse(initialProps ?? {})
+  } catch (err) {
+    console.error(`Invalid props found for IO call with label "${label}":`)
+    console.error(err)
+    throw err
+  }
+
   const instance: ComponentInstance<MN> = {
     methodName,
     label,
@@ -68,8 +77,6 @@ const component = <MN extends keyof IoSchema>(
       resolver = resolve
     }
   )
-
-  const schema = ioSchema[methodName]
 
   function setReturnValue(value: z.input<IoSchema[MN]['returns']>) {
     const returnSchema = instance.isOptional
