@@ -5,14 +5,14 @@ const charges = [
     id: 'b717a9cf-4a3e-41ab-bcda-e2f3ff35c974',
     name: 'Alex',
     amount: 15000,
-    purchasedAt: new Date(),
+    purchasedAt: new Date(2022, 0, 15),
   },
   {
     id: 'acc14b04-60d8-4f9d-9907-10ea1ed05fe2',
     name: 'Dan',
     amount: 0,
     promoCode: 'APPLE',
-    purchasedAt: new Date(),
+    purchasedAt: new Date(2015, 3, 22),
   },
   {
     id: '91032195-6836-4573-9cd5-0b06ea2379ec',
@@ -20,7 +20,7 @@ const charges = [
     amount: 1200,
     promoCode: 'BANANA',
     arr: [1, 2, 3],
-    purchasedAt: new Date(),
+    purchasedAt: new Date(2018, 10, 7),
   },
   {
     id: '48d10a1a-9c8c-4426-8d0c-796610c652f3',
@@ -30,7 +30,7 @@ const charges = [
     nested: {
       a: 'b',
     },
-    purchasedAt: new Date(),
+    purchasedAt: new Date(2000, 12, 15),
   },
 ]
 
