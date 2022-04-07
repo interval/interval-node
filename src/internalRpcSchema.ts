@@ -74,6 +74,13 @@ export const wsServerSchema = {
     }),
     returns: z.boolean(),
   },
+  SEND_LOG: {
+    inputs: z.object({
+      transactionId: z.string(),
+      data: z.string(),
+    }),
+    returns: z.boolean(),
+  },
   MARK_TRANSACTION_COMPLETE: {
     inputs: z.object({
       transactionId: z.string(),
@@ -156,6 +163,12 @@ export const clientSchema = {
   RENDER: {
     inputs: z.object({
       toRender: z.string(),
+    }),
+    returns: z.boolean(),
+  },
+  LOG: {
+    inputs: z.object({
+      data: z.string(),
     }),
     returns: z.boolean(),
   },

@@ -117,15 +117,21 @@ const interval = new Interval({
       }
     },
     'unauthorized-error': unauthorized,
-    enter_a_number: async io => {
+    enter_a_number: async (io, ctx) => {
+      ctx.log('Started')
+
       const num = await io.input.number('Enter a number')
 
-      await io.input.number(
+      ctx.log('Received', num, true, null, undefined, { obj: 'a' }, [1, 2, 3])
+
+      const num2 = await io.input.number(
         `Enter a second number that's greater than ${num}`,
         {
           min: num + 1,
         }
       )
+
+      ctx.log('Received', { num, num2 })
     },
     enter_two_numbers: async io => {
       const num1 = await io.input.number('Enter a number')
