@@ -342,8 +342,22 @@ const interval = new Interval({
         ],
       })
     },
-    error: async () => {
-      throw new Error('This is a regular error!')
+    error: async io => {
+      class CustomError extends Error {
+        name = 'CustomError'
+      }
+
+      const errors = [
+        new Error('This is a regular error'),
+        new TypeError('This is a type error.'),
+        new CustomError('This is a custom error!'),
+      ]
+
+      const selected = await io.select.single('Select an error', {
+        options: errors.map((e, i) => ({ label: e.name, value: i.toString() })),
+      })
+
+      throw errors[Number(selected.value)]
     },
   },
 })
