@@ -197,19 +197,15 @@ const interval = new Interval({
 
       console.log(r)
 
-      r = await io.select.multiple('Optionally modify the selection', {
-        options,
-        defaultValue: [
-          {
-            value: 'A',
-            label: 'A',
-          },
-          {
-            value: 'C',
-            label: 'C',
-          },
-        ],
-      })
+      r = await io.select.multiple(
+        'Modify the selection, selecting between 1 and 2',
+        {
+          options,
+          defaultValue: r,
+          minSelections: 1,
+          maxSelections: 2,
+        }
+      )
 
       console.log(r)
     },
