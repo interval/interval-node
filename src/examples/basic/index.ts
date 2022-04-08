@@ -118,8 +118,6 @@ const interval = new Interval({
     },
     'unauthorized-error': unauthorized,
     enter_a_number: async (io, ctx) => {
-      ctx.log('Started')
-
       const num = await io.input.number('Enter a number')
 
       ctx.log('Received', num, true, null, undefined, { obj: 'a' }, [1, 2, 3])
@@ -146,12 +144,21 @@ const interval = new Interval({
 
       return { num1, num2, sum: num1 + num2 }
     },
-    confirmBeforeDelete: async io => {
+    confirmBeforeDelete: async (io, ctx) => {
       const email = await io.input.email('Enter an email address')
 
       const didDelete = await io.confirm(`Delete this user?`, {
         helpText: 'All of their data will be removed.',
       })
+
+      await sleep(500)
+      ctx.log('Deleted 1 subscription')
+      await sleep(500)
+      ctx.log('Deleted 27 post drafts')
+      await sleep(500)
+      ctx.log('Skipped 13 published posts')
+      await sleep(1500)
+      ctx.log('Deleted 13 comments')
 
       return { didDelete, email }
     },
