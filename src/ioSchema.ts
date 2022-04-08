@@ -368,6 +368,7 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
       columns: z.optional(z.array(internalTableColumn)),
       data: z.array(internalTableRow),
+      orientation: z.enum(['vertical', 'horizontal']).default('horizontal'),
     }),
     state: z.null(),
     returns: z.null(),
