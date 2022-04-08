@@ -334,7 +334,9 @@ export default class Interval {
               const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
                 status: 'FAILURE',
-                data: err.message ? { message: err.message } : null,
+                data: err.message
+                  ? { error: err.name, message: err.message }
+                  : null,
               }
 
               return result

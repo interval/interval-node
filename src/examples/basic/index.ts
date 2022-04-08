@@ -177,14 +177,17 @@ const interval = new Interval({
         {
           value: 'A',
           label: 'A',
+          extraData: 'A',
         },
         {
           value: 'B',
           label: 'B',
+          extraData: 'B',
         },
         {
           value: 'C',
           label: 'C',
+          extraData: 'C',
         },
       ]
 
@@ -329,6 +332,32 @@ const interval = new Interval({
     echoParams: async (_, ctx) => {
       console.log(ctx.params)
       return ctx.params
+    },
+    invalid_props: async io => {
+      await io.select.single('This is broken', {
+        options: [
+          { label: 'Works', value: 'works' },
+          // @ts-expect-error
+          { label: "Doesn't" },
+        ],
+      })
+    },
+    error: async io => {
+      class CustomError extends Error {
+        name = 'CustomError'
+      }
+
+      const errors = [
+        new Error('This is a regular error'),
+        new TypeError('This is a type error.'),
+        new CustomError('This is a custom error!'),
+      ]
+
+      const selected = await io.select.single('Select an error', {
+        options: errors.map((e, i) => ({ label: e.name, value: i.toString() })),
+      })
+
+      throw errors[Number(selected.value)]
     },
   },
 })
