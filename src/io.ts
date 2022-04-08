@@ -372,6 +372,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
       display: {
         heading: aliasComponentName('DISPLAY_HEADING'),
         markdown: aliasComponentName('DISPLAY_MARKDOWN'),
+        link: aliasComponentName('DISPLAY_LINK'),
         object: aliasComponentName('DISPLAY_OBJECT'),
         table: displayTable(ioPromiseConstructor),
       },

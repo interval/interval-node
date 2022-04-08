@@ -101,7 +101,6 @@ export const tableRowValue = z.union([
   z.undefined(),
   z.object({
     label: z.string(),
-    href: z.string().optional(),
     value: z
       .union([
         z.string(),
@@ -112,6 +111,9 @@ export const tableRowValue = z.union([
         z.undefined(),
       ])
       .optional(),
+    href: z.string().optional(),
+    action: z.string().optional(),
+    params: serializableRecord.optional(),
   }),
 ])
 
@@ -135,20 +137,31 @@ export const tableColumn = z.object({
     .args(z.any())
     .returns(
       z.union([
-        z.object({
-          label: z.string().nullish(),
-          href: z.string().optional(),
-          value: z
-            .union([
-              z.string(),
-              z.number(),
-              z.boolean(),
-              z.null(),
-              z.date(),
-              z.undefined(),
-            ])
-            .optional(),
-        }),
+        z.intersection(
+          z.object({
+            label: z.string().nullish(),
+            value: z
+              .union([
+                z.string(),
+                z.number(),
+                z.boolean(),
+                z.null(),
+                z.date(),
+                z.undefined(),
+              ])
+              .optional(),
+          }),
+          z.union([
+            z.object({
+              href: z.string().optional(),
+            }),
+            z.object({
+              href: z.never(),
+              action: z.string(),
+              params: serializableRecord,
+            }),
+          ])
+        ),
         z.string(),
         z.number(),
         z.boolean(),
@@ -349,6 +362,34 @@ export const ioSchema = {
   },
   DISPLAY_MARKDOWN: {
     props: z.object({}),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_LINK: {
+    props: z.intersection(
+      z.object({
+        theme: z.enum(['primary', 'secondary', 'danger']).default('secondary'),
+      }),
+      z.union([
+        z.object({
+          href: z
+            .string()
+            .url()
+            .refine(
+              url =>
+                url.startsWith('https://') ||
+                url.startsWith('http://localhost:'),
+              {
+                message: 'Only absolute HTTPS URLs are supported',
+              }
+            ),
+        }),
+        z.object({
+          action: z.string(),
+          params: serializableRecord.optional(),
+        }),
+      ])
+    ),
     state: z.null(),
     returns: z.null(),
   },
