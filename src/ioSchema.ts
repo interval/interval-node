@@ -368,7 +368,7 @@ export const ioSchema = {
   DISPLAY_LINK: {
     props: z.intersection(
       z.object({
-        theme: z.enum(['primary', 'secondary', 'danger']).default('secondary'),
+        theme: z.enum(['default', 'danger']).default('default'),
       }),
       z.union([
         z.object({
