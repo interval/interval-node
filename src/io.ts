@@ -4,187 +4,112 @@ import type { Logger } from '.'
 import type {
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
-  T_IO_Schema,
+  T_IO_PROPS,
+  T_IO_RETURNS,
   T_IO_METHOD_NAMES,
 } from './ioSchema'
-import component, {
-  AnyComponentType,
-  ComponentType,
-  ComponentReturnValue,
-} from './component'
-import progressThroughList from './components/progressThroughList'
+import { AnyIOComponent } from './component'
 import spreadsheet from './components/spreadsheet'
 import { selectTable, displayTable } from './components/table'
 import findAndSelectUser from './components/selectUser'
 import findAndSelect, { selectSingle } from './components/selectSingle'
 import selectMultiple from './components/selectMultiple'
 import { date, datetime } from './components/inputDate'
-
-export type IOPromiseConstructor<
-  MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
-> = (c: ComponentType<MethodName>) => IOPromise<MethodName, Output>
-
-export type IOComponentFunction<
-  MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
-> = (
-  label: string,
-  props?: z.input<T_IO_Schema[MethodName]['props']>
-) => IOPromise<MethodName, Output>
-
-export type ExclusiveIOComponentFunction<
-  MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
-> = (
-  label: string,
-  props?: z.input<T_IO_Schema[MethodName]['props']>
-) => ExclusiveIOPromise<MethodName, Output>
-
-export interface IOPromise<
-  MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
-> {
-  component: ComponentType<MethodName>
-  then: Executor<MethodName, Output>
-  getValue: (response: ComponentReturnValue<MethodName>) => Output
-  optional: () => OptionalIOPromise<MethodName, Output>
-  // This doesn't actually do anything, we only use it as a marker to provide
-  // slightly better error messages to users if they use an exclusive method
-  // inside a group.
-  groupable: true
-}
-
-export interface OptionalIOPromise<
-  MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
-> extends Omit<
-    IOPromise<MethodName, Output>,
-    'optional' | 'then' | 'getValue'
-  > {
-  isOptional: true
-  getValue: (
-    response: ComponentReturnValue<MethodName> | undefined
-  ) => Output | undefined
-  then: OptionalExecutor<MethodName, Output>
-}
-
-export type ExclusiveIOPromise<
-  MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
-> = Omit<IOPromise<MethodName, Output>, 'groupable'>
+import {
+  IORenderSender,
+  ResponseHandlerFn,
+  IOError,
+  MaybeOptionalGroupIOPromise,
+  GroupIOPromise,
+  OptionalGroupIOPromise,
+  IOComponentFunction,
+  ExclusiveIOComponentFunction,
+  ComponentRenderer,
+  IOComponentDefinition,
+} from './types'
+import { IOPromise, ExclusiveIOPromise } from './IOPromise'
 
 interface ClientConfig {
   logger: Logger
-  send: (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
+  send: IORenderSender
 }
-
-export type IOErrorKind = 'CANCELED' | 'TRANSACTION_CLOSED'
-
-export class IOError extends Error {
-  kind: IOErrorKind
-
-  constructor(kind: IOErrorKind, message?: string) {
-    super(message)
-    this.kind = kind
-  }
-}
-
-export type Executor<
-  MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
-> = (resolve: (output: Output) => void, reject?: (err: IOError) => void) => void
-
-export type OptionalExecutor<
-  MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
-> = (
-  resolve: (output: Output | undefined) => void,
-  reject?: (err: IOError) => void
-) => void
-
-export type IOPromiseMap = {
-  [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName, any>
-}
-export type AnyIOPromise = IOPromiseMap[T_IO_METHOD_NAMES]
 
 /**
- * Map of IOPromises that can be rendered in a group.
+ * The client class that handles IO calls for a given transaction.
+ *
+ * Each transaction has its own IOClient which creates the IO argument
+ * passed to action handlers that are aware of the transaction in order
+ * to transmit IO calls correctly.
  */
-type GroupIOPromiseMap = {
-  [MethodName in T_IO_METHOD_NAMES]: T_IO_Schema[MethodName] extends {
-    exclusive: z.ZodLiteral<true>
+export class IOClient {
+  logger: Logger
+  send: IORenderSender
+
+  onResponseHandler: ResponseHandlerFn | undefined
+  isCanceled = false
+
+  constructor({ logger, send }: ClientConfig) {
+    this.logger = logger
+    this.send = send
   }
-    ? never
-    : IOPromise<MethodName, any>
-}
-type GroupIOPromise = GroupIOPromiseMap[T_IO_METHOD_NAMES]
 
-type OptionalGroupIOPromiseMap = {
-  [MethodName in T_IO_METHOD_NAMES]: T_IO_Schema[MethodName] extends {
-    exclusive: z.ZodLiteral<true>
-  }
-    ? never
-    : OptionalIOPromise<MethodName>
-}
-type OptionalGroupIOPromise = OptionalGroupIOPromiseMap[T_IO_METHOD_NAMES]
-
-type MaybeOptionalGroupIOPromise = GroupIOPromise | OptionalGroupIOPromise
-
-export default function createIOClient(clientConfig: ClientConfig) {
-  const { logger } = clientConfig
-  type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
-  let onResponseHandler: ResponseHandlerFn | null = null
-  let isCanceled = false
-
-  async function renderComponents<
-    Instances extends Readonly<[AnyComponentType, ...AnyComponentType[]]>
-  >(componentInstances: Instances) {
-    if (isCanceled) {
+  /**
+   * Creates a render loop for an IO call.
+   *
+   * Given a list of components (potentially only one if not rendering a group)
+   * this method is responsible for sending the initial render call and handling
+   * responses (returns, state updates, or cancellations) from Interval.
+   * Resolves when it receives final responses or from Interval,
+   * or throws an IOError of kind `CANCELED` if canceled.
+   */
+  async renderComponents<
+    Components extends Readonly<[AnyIOComponent, ...AnyIOComponent[]]>
+  >(components: Components) {
+    if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
       throw new IOError('TRANSACTION_CLOSED')
     }
 
     type ReturnValues = {
-      -readonly [Idx in keyof Instances]: Instances[Idx] extends AnyComponentType
-        ? z.infer<Instances[Idx]['schema']['returns']> | undefined
-        : Instances[Idx]
+      -readonly [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+        ? z.infer<Components[Idx]['schema']['returns']> | undefined
+        : Components[Idx]
     }
 
     return new Promise<ReturnValues>(async (resolve, reject) => {
       const inputGroupKey = v4()
       let isReturned = false
 
-      async function render() {
+      const render = async () => {
         const packed: T_IO_RENDER_INPUT = {
           id: v4(),
           inputGroupKey,
-          toRender: componentInstances.map(inst => inst.getRenderInfo()),
+          toRender: components.map(c => c.getRenderInfo()),
           kind: 'RENDER',
         }
 
-        await clientConfig.send(packed)
+        await this.send(packed)
       }
 
-      onResponseHandler = async result => {
+      this.onResponseHandler = async result => {
         if (result.inputGroupKey && result.inputGroupKey !== inputGroupKey) {
-          logger.debug('Received response for other input group')
+          this.logger.debug('Received response for other input group')
           return
         }
 
-        if (isCanceled || isReturned) {
-          logger.debug('Received response after IO call complete')
+        if (this.isCanceled || isReturned) {
+          this.logger.debug('Received response after IO call complete')
           return
         }
 
         // Transaction canceled from Interval cloud UI
         if (result.kind === 'CANCELED') {
-          isCanceled = true
+          this.isCanceled = true
           reject(new IOError('CANCELED'))
           return
         }
 
-        if (result.values.length !== componentInstances.length) {
+        if (result.values.length !== components.length) {
           throw new Error('Mismatch in return array length')
         }
 
@@ -193,7 +118,7 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
           result.values.map((v, index) =>
             // @ts-ignore
-            componentInstances[index].setReturnValue(v)
+            components[index].setReturnValue(v)
           )
 
           return
@@ -201,19 +126,19 @@ export default function createIOClient(clientConfig: ClientConfig) {
 
         if (result.kind === 'SET_STATE') {
           for (const [index, newState] of result.values.entries()) {
-            const prevState = componentInstances[index].getInstance().state
+            const prevState = components[index].getInstance().state
 
             if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
-              logger.debug(`New state at ${index}`, newState)
+              this.logger.debug(`New state at ${index}`, newState)
               // @ts-ignore
-              await componentInstances[index].setState(newState)
+              await components[index].setState(newState)
             }
           }
           render()
         }
       }
 
-      for (const c of componentInstances) {
+      for (const c of components) {
         // every time any component changes their state, we call render (again)
         c.onStateChange(render)
       }
@@ -222,184 +147,158 @@ export default function createIOClient(clientConfig: ClientConfig) {
       render()
 
       const response = (await Promise.all(
-        componentInstances.map(comp => comp.returnValue)
+        components.map(comp => comp.returnValue)
       )) as unknown as Promise<ReturnValues>
 
       resolve(response)
     })
   }
 
-  async function group<
-    PromiseInstances extends Readonly<
+  /**
+   * A thin wrapper around `renderComponents` that converts IOPromises into
+   * their inner components, sends those components through `renderComponents`,
+   * and transforms the response sent over the wire to the final return types
+   * for each given component using the corresponding IOPromise's `getValue`
+   * method.
+   */
+  async group<
+    IOPromises extends Readonly<
       [MaybeOptionalGroupIOPromise, ...MaybeOptionalGroupIOPromise[]]
     >,
-    ComponentInstances extends Readonly<
-      [AnyComponentType, ...AnyComponentType[]]
-    >
-  >(promiseInstances: PromiseInstances) {
-    const componentInstances = promiseInstances.map(pi => {
+    Components extends Readonly<[AnyIOComponent, ...AnyIOComponent[]]>
+  >(ioPromises: IOPromises) {
+    const components = ioPromises.map(pi => {
       // In case user is using JavaScript or ignores the type error
-      if (!pi.groupable) {
-        logger.warn(
+      if (pi instanceof ExclusiveIOPromise) {
+        this.logger.warn(
           '[Interval]',
           `Component with label "${pi.component.label}" is not supported inside a group, please remove it from the group`
         )
       }
       return pi.component
-    }) as unknown as ComponentInstances
+    }) as unknown as Components
 
     type ReturnValues = {
-      -readonly [Idx in keyof PromiseInstances]: PromiseInstances[Idx] extends GroupIOPromise
-        ? ReturnType<PromiseInstances[Idx]['getValue']>
-        : PromiseInstances[Idx] extends OptionalGroupIOPromise
-        ? ReturnType<PromiseInstances[Idx]['getValue']>
-        : PromiseInstances[Idx]
+      -readonly [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
+        ? ReturnType<IOPromises[Idx]['getValue']>
+        : IOPromises[Idx] extends OptionalGroupIOPromise
+        ? ReturnType<IOPromises[Idx]['getValue']>
+        : IOPromises[Idx]
     }
 
-    return renderComponents(componentInstances).then(values =>
-      values.map((val, i) => promiseInstances[i].getValue(val as never))
+    return this.renderComponents(components).then(values =>
+      values.map((val, i) => ioPromises[i].getValue(val as never))
     ) as unknown as ReturnValues
   }
 
-  function ioPromiseConstructor<
+  createIOMethod<
     MethodName extends T_IO_METHOD_NAMES,
-    Output = ComponentReturnValue<MethodName>
-  >(component: ComponentType<MethodName>): IOPromise<MethodName, Output> {
-    return {
-      groupable: true,
-      component,
-      optional() {
-        const { optional, then, ...rest } = this
+    Props extends object,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    componentDef?: IOComponentDefinition<MethodName, Props, Output>
+  ): IOComponentFunction<MethodName, Props, Output> {
+    return (label: string, props?: Props) => {
+      let internalProps = props ? (props as T_IO_PROPS<MethodName>) : {}
+      let getValue = (r: T_IO_RETURNS<MethodName>) => r as unknown as Output
+      let onStateChange: ReturnType<
+        IOComponentDefinition<MethodName, Props, Output>
+      >['onStateChange'] = undefined
 
-        rest.component.setOptional(true)
+      if (componentDef && props) {
+        const componentGetters = componentDef(props)
 
-        return {
-          ...rest,
-          isOptional: true,
-          getValue(result: ComponentReturnValue<MethodName> | undefined) {
-            if (result === undefined) return undefined
-
-            return rest.getValue(result)
-          },
-          then(resolve, reject) {
-            const componentInstances = [component] as unknown as Readonly<
-              [AnyComponentType, ...AnyComponentType[]]
-            >
-
-            renderComponents(componentInstances)
-              .then(([result]) => {
-                resolve(
-                  this.getValue(
-                    result as ComponentReturnValue<MethodName> | undefined
-                  )
-                )
-              })
-              .catch(err => {
-                if (reject) {
-                  reject(err)
-                }
-              })
-          },
+        if (componentGetters.props) {
+          internalProps = componentGetters.props
         }
-      },
-      getValue(result: ComponentReturnValue<MethodName>) {
-        return result as unknown as Output
-      },
-      then(resolve, reject) {
-        const componentInstances = [component] as unknown as Readonly<
-          [AnyComponentType, ...AnyComponentType[]]
-        >
 
-        renderComponents(componentInstances)
-          .then(([result]) => {
-            resolve(this.getValue(result as ComponentReturnValue<MethodName>))
-          })
-          .catch(err => {
-            if (reject) {
-              reject(err)
-            }
-          })
-      },
-    }
-  }
+        if (componentGetters.getValue) {
+          getValue = componentGetters.getValue
+        }
 
-  function aliasComponentName<MethodName extends T_IO_METHOD_NAMES>(
-    methodName: MethodName
-  ): IOComponentFunction<MethodName> {
-    return (
-      label: string,
-      props?: z.input<T_IO_Schema[MethodName]['props']>
-    ) => {
-      const c = component(methodName, label, props)
-      return ioPromiseConstructor(c)
+        if (componentGetters.onStateChange) {
+          onStateChange = componentGetters.onStateChange
+        }
+      }
+
+      return new IOPromise<MethodName, T_IO_PROPS<MethodName>, Output>({
+        methodName,
+        renderer: this.renderComponents.bind(
+          this
+        ) as ComponentRenderer<MethodName>,
+        label,
+        props: internalProps,
+        valueGetter: getValue,
+        onStateChange,
+      })
     }
   }
 
   /**
-   * A simple wrapper that strips the marker prop to create
-   * a type error if you try to use it in a group.
+   * A very thin wrapper function that converts an IOPromise to an
+   * ExclusiveIOPromise, which cannot be rendered in a group.
    */
-  function makeExclusive<MethodName extends T_IO_METHOD_NAMES>(
-    inner: IOComponentFunction<MethodName>
-  ): ExclusiveIOComponentFunction<MethodName> {
-    return (
-      label: string,
-      props?: z.input<T_IO_Schema[MethodName]['props']>
-    ) => {
-      const { groupable, ...rest } = inner(label, props)
-      return rest
+  makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
+    inner: IOComponentFunction<MethodName, Props, Output>
+  ): ExclusiveIOComponentFunction<MethodName, Props, Output> {
+    return (label: string, props?: Props) => {
+      return new ExclusiveIOPromise(inner(label, props))
     }
   }
 
-  return {
-    io: {
-      group,
+  /**
+   * The namespace of IO functions available in action handlers.
+   */
+  get io() {
+    return {
+      group: this.group.bind(this),
 
-      confirm: makeExclusive(aliasComponentName('CONFIRM')),
+      confirm: this.makeExclusive(this.createIOMethod('CONFIRM')),
 
       input: {
-        text: aliasComponentName('INPUT_TEXT'),
-        boolean: aliasComponentName('INPUT_BOOLEAN'),
-        number: aliasComponentName('INPUT_NUMBER'),
-        email: aliasComponentName('INPUT_EMAIL'),
-        richText: aliasComponentName('INPUT_RICH_TEXT'),
+        text: this.createIOMethod('INPUT_TEXT'),
+        boolean: this.createIOMethod('INPUT_BOOLEAN'),
+        number: this.createIOMethod('INPUT_NUMBER'),
+        email: this.createIOMethod('INPUT_EMAIL'),
+        richText: this.createIOMethod('INPUT_RICH_TEXT'),
       },
       select: {
-        single: selectSingle(ioPromiseConstructor),
-        multiple: selectMultiple(ioPromiseConstructor),
-        table: selectTable(ioPromiseConstructor),
+        single: this.createIOMethod('SELECT_SINGLE', selectSingle),
+        multiple: this.createIOMethod('SELECT_MULTIPLE', selectMultiple),
+        table: this.createIOMethod('SELECT_TABLE', selectTable),
       },
       display: {
-        heading: aliasComponentName('DISPLAY_HEADING'),
-        markdown: aliasComponentName('DISPLAY_MARKDOWN'),
-        object: aliasComponentName('DISPLAY_OBJECT'),
-        table: displayTable(ioPromiseConstructor),
+        heading: this.createIOMethod('DISPLAY_HEADING'),
+        markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
+        object: this.createIOMethod('DISPLAY_OBJECT'),
+        table: this.createIOMethod('DISPLAY_TABLE', displayTable),
       },
       experimental: {
-        progressThroughList: progressThroughList(ioPromiseConstructor),
-        spreadsheet: spreadsheet(ioPromiseConstructor),
-        findAndSelectUser: findAndSelectUser(ioPromiseConstructor),
-        findAndSelect: findAndSelect(ioPromiseConstructor),
-        date: date(ioPromiseConstructor),
-        time: aliasComponentName('INPUT_TIME'),
-        datetime: datetime(ioPromiseConstructor),
+        spreadsheet: this.createIOMethod('INPUT_SPREADSHEET', spreadsheet),
+        findAndSelectUser: this.createIOMethod(
+          'SELECT_USER',
+          findAndSelectUser
+        ),
+        findAndSelect: this.createIOMethod('SELECT_SINGLE', findAndSelect),
+        date: this.createIOMethod('INPUT_DATE', date),
+        time: this.createIOMethod('INPUT_TIME'),
+        datetime: this.createIOMethod('INPUT_DATETIME', datetime),
         progress: {
-          steps: aliasComponentName('DISPLAY_PROGRESS_STEPS'),
-          indeterminate: aliasComponentName('DISPLAY_PROGRESS_INDETERMINATE'),
+          steps: this.createIOMethod('DISPLAY_PROGRESS_STEPS'),
+          indeterminate: this.createIOMethod('DISPLAY_PROGRESS_INDETERMINATE'),
         },
       },
-    },
-    isCanceled: () => isCanceled,
-    onResponse: (result: T_IO_RESPONSE) => {
-      if (onResponseHandler) {
-        try {
-          onResponseHandler(result)
-        } catch (err) {
-          clientConfig.logger.error('Error in onResponseHandler:', err)
-        }
+    }
+  }
+
+  onResponse(result: T_IO_RESPONSE) {
+    if (this.onResponseHandler) {
+      try {
+        this.onResponseHandler(result)
+      } catch (err) {
+        this.logger.error('Error in onResponseHandler:', err)
       }
-    },
+    }
   }
 }
-
-export type IOClient = ReturnType<typeof createIOClient>

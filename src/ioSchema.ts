@@ -423,6 +423,14 @@ export type T_IO_PROPS<MN extends T_IO_METHOD_NAMES> = z.input<
   T_IO_Schema[MN]['props']
 >
 
+export type T_IO_RETURNS<MN extends T_IO_METHOD_NAMES> = z.infer<
+  T_IO_Schema[MN]['returns']
+>
+
+export type T_IO_STATE<MN extends T_IO_METHOD_NAMES> = z.infer<
+  T_IO_Schema[MN]['state']
+>
+
 type JSONPrimitive = string | number | boolean | null
 
 export type RawActionReturnData = Record<string, JSONPrimitive>

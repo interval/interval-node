@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import { ioSchema, resolvesImmediately } from './ioSchema'
+import {
+  ioSchema,
+  resolvesImmediately,
+  T_IO_METHOD_NAMES,
+  T_IO_RETURNS,
+} from './ioSchema'
 import { deserializeDates } from './utils/deserialize'
 
 type IoSchema = typeof ioSchema
@@ -12,80 +17,100 @@ export interface ComponentInstance<MN extends keyof IoSchema> {
   isOptional?: boolean
 }
 
-export interface ComponentType<MN extends keyof IoSchema> {
-  onStateChange: (fn: () => void) => void
-  schema: IoSchema[MN]
-  label: string
-  getInstance: () => ComponentInstance<MN>
-  getRenderInfo: () => ComponentRenderInfo<MN>
-  returnValue: Promise<ComponentReturnValue<MN> | undefined>
-  setState: (
-    newState: z.infer<IoSchema[MN]['state']>
-  ) => Promise<ComponentInstance<MN>>
-  setProps: (newProps: z.input<IoSchema[MN]['props']>) => void
-  setReturnValue: (value: z.infer<IoSchema[MN]['returns']>) => void
-  setOptional: (optional: boolean) => void
-}
-
-export type ComponentRenderInfo<MN extends keyof IoSchema> = Pick<
+export type ComponentRenderInfo<MN extends keyof IoSchema> = Omit<
   ComponentInstance<MN>,
-  'methodName' | 'label' | 'props' | 'isStateful' | 'isOptional'
+  'state'
 >
 
-export type ComponentReturnValue<MN extends keyof IoSchema> = z.infer<
-  IoSchema[MN]['returns']
->
+export type ComponentReturnValue<MN extends keyof IoSchema> = T_IO_RETURNS<MN>
 
-export type ComponentTypeMap = {
-  [MethodName in keyof IoSchema]: ComponentType<MethodName>
+export type IOComponentMap = {
+  [MethodName in T_IO_METHOD_NAMES]: IOComponent<MethodName>
 }
 
-export type AnyComponentType = ComponentTypeMap[keyof IoSchema]
+export type AnyIOComponent = IOComponentMap[keyof IoSchema]
 
-const component = <MN extends keyof IoSchema>(
-  methodName: MN,
-  label: string,
-  initialProps?: z.input<IoSchema[MN]['props']>,
-  handleStateChange?: (
-    incomingState: z.infer<IoSchema[MN]['state']>
-  ) => Promise<Partial<z.input<IoSchema[MN]['props']>>>
-): ComponentType<MN> => {
-  const schema = ioSchema[methodName]
-  try {
-    initialProps = schema.props.parse(initialProps ?? {})
-  } catch (err) {
-    console.error(`Invalid props found for IO call with label "${label}":`)
-    console.error(err)
-    throw err
-  }
+/**
+ * The internal model underlying each IOPromise, responsible for constructing
+ * the data transmitted to Interval for an IO component, and handling responses
+ * received from Interval.
+ */
+export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
+  schema: IoSchema[MethodName]
+  instance: ComponentInstance<MethodName>
+  resolver:
+    | ((v: ComponentReturnValue<MethodName> | undefined) => void)
+    | undefined
+  returnValue: Promise<ComponentReturnValue<MethodName> | undefined>
+  onStateChangeHandler: (() => void) | undefined
+  handleStateChange:
+    | ((
+        incomingState: z.infer<IoSchema[MethodName]['state']>
+      ) => Promise<Partial<z.input<IoSchema[MethodName]['props']>>>)
+    | undefined
 
-  const instance: ComponentInstance<MN> = {
-    methodName,
-    label,
-    props: initialProps,
-    state: null,
-    isStateful: !!handleStateChange,
-    isOptional: false,
-  }
+  /**
+   * @param methodName - The component's method name from ioSchema, used
+   * to determine the valid types for communication with Interval.
+   * @param label - The UI label to be displayed to the action runner.
+   * @param initialProps - The properties send to Interval for the initial
+   * render call.
+   * @param handleStateChange - A handler that converts new state received
+   * from Interval into a new set of props.
+   * @param isOptional - If true, the input can be omitted by the action
+   * runner, in which case the component will accept and return `undefined`.
+   */
+  constructor(
+    methodName: MethodName,
+    label: string,
+    initialProps?: z.input<IoSchema[MethodName]['props']>,
+    handleStateChange?: (
+      incomingState: z.infer<IoSchema[MethodName]['state']>
+    ) => Promise<Partial<z.input<IoSchema[MethodName]['props']>>>,
+    isOptional: boolean = false
+  ) {
+    this.handleStateChange = handleStateChange
+    this.schema = ioSchema[methodName]
 
-  let onStateChangeHandler: (() => void) | null = null
-
-  let resolver: ((v: ComponentReturnValue<MN> | undefined) => void) | null =
-    null
-  const returnValue = new Promise<ComponentReturnValue<MN> | undefined>(
-    resolve => {
-      resolver = resolve
+    try {
+      initialProps = this.schema.props.parse(initialProps ?? {})
+    } catch (err) {
+      console.error(`Invalid props found for IO call with label "${label}":`)
+      console.error(err)
+      throw err
     }
-  )
 
-  function setReturnValue(value: z.input<IoSchema[MN]['returns']>) {
-    const returnSchema = instance.isOptional
-      ? schema.returns
+    this.instance = {
+      methodName,
+      label,
+      props: initialProps,
+      state: null,
+      isStateful: !!handleStateChange,
+      isOptional: isOptional,
+    }
+
+    this.returnValue = new Promise<
+      ComponentReturnValue<MethodName> | undefined
+    >(resolve => {
+      this.resolver = resolve
+    })
+
+    // Immediately resolve any methods defined as immediate in schema
+    setImmediate(() => {
+      if (resolvesImmediately(methodName) && this.resolver) {
+        this.resolver(null)
+      }
+    })
+  }
+
+  setReturnValue(value: z.input<IoSchema[MethodName]['returns']>) {
+    const returnSchema = this.instance.isOptional
+      ? this.schema.returns
           .nullable()
           .optional()
           // JSON.stringify turns undefined into null in arrays
           .transform(value => value ?? undefined)
-      : schema.returns
+      : this.schema.returns
 
     try {
       let parsed: ReturnType<typeof returnSchema.parse>
@@ -100,82 +125,66 @@ const component = <MN extends keyof IoSchema>(
         parsed = returnSchema.parse(value)
       }
 
-      if (resolver) {
-        resolver(parsed)
+      if (this.resolver) {
+        this.resolver(parsed)
       }
     } catch (err) {
       console.error('Received invalid return value:', err)
     }
   }
 
-  async function setState(
-    newState: z.infer<IoSchema[MN]['state']>
-  ): Promise<ComponentInstance<MN>> {
+  async setState(
+    newState: z.infer<IoSchema[MethodName]['state']>
+  ): Promise<ComponentInstance<MethodName>> {
     try {
-      const parsedState = schema.state.parse(newState)
-      if (handleStateChange) {
-        instance.props = {
-          ...instance.props,
-          ...(await handleStateChange(parsedState)),
+      const parsedState = this.schema.state.parse(newState)
+      if (this.handleStateChange) {
+        this.instance.props = {
+          ...this.instance.props,
+          ...(await this.handleStateChange(parsedState)),
         }
       }
-      if (parsedState !== null && !handleStateChange) {
+      if (parsedState !== null && !this.handleStateChange) {
         console.warn(
           'Received non-null state, but no method was defined to handle.'
         )
       }
-      onStateChangeHandler && onStateChangeHandler()
+      this.onStateChangeHandler && this.onStateChangeHandler()
     } catch (err) {
       console.error('Received invalid state:', err)
     }
 
-    return instance
+    return this.instance
   }
 
-  function setProps(newProps: z.input<IoSchema[MN]['props']>) {
-    instance.props = newProps
-    onStateChangeHandler && onStateChangeHandler()
+  setProps(newProps: z.input<IoSchema[MethodName]['props']>) {
+    this.instance.props = newProps
+    this.onStateChangeHandler && this.onStateChangeHandler()
   }
 
-  function getInstance() {
-    return instance
+  getInstance() {
+    return this.instance
   }
 
-  function setOptional(optional: boolean) {
-    instance.isOptional = optional
+  setOptional(optional: boolean) {
+    this.instance.isOptional = optional
   }
 
-  function getRenderInfo(): ComponentRenderInfo<MN> {
+  get label() {
+    return this.instance.label
+  }
+
+  onStateChange(handler: () => void) {
+    this.onStateChangeHandler = handler
+  }
+
+  getRenderInfo(): ComponentRenderInfo<MethodName> {
     return {
-      methodName: instance.methodName,
-      label: instance.label,
-      props: instance.props,
-      isStateful: instance.isStateful,
-      isOptional: instance.isOptional,
+      methodName: this.instance.methodName,
+      label: this.instance.label,
+      props: this.instance.props,
+      isStateful: this.instance.isStateful,
+      isOptional: this.instance.isOptional,
     }
-  }
-
-  // Immediately resolve any methods defined as immediate in schema
-  setImmediate(() => {
-    if (resolvesImmediately(methodName) && resolver) {
-      resolver(null)
-    }
-  })
-
-  return {
-    onStateChange: (fn: () => void) => {
-      onStateChangeHandler = fn
-    },
-    schema,
-    label,
-    getInstance,
-    getRenderInfo,
-    returnValue,
-    setState,
-    setProps,
-    setReturnValue,
-    setOptional,
   }
 }
-
-export default component

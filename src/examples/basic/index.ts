@@ -72,18 +72,18 @@ const interval = new Interval({
     },
     table_basic,
     table_custom_columns,
-    'progress-through-long-list': async io => {
-      const resp = await io.experimental.progressThroughList(
-        'Here are some items',
-        ['Dan', 'Alex', 'Jacob'],
-        async person => {
-          await sleep(1000)
-          return `Hi, ${person}!`
-        }
-      )
-
-      console.log('done!', resp)
-    },
+    // 'progress-through-long-list': async io => {
+    //   const resp = await io.experimental.progressThroughList(
+    //     'Here are some items',
+    //     ['Dan', 'Alex', 'Jacob'],
+    //     async person => {
+    //       await sleep(1000)
+    //       return `Hi, ${person}!`
+    //     }
+    //   )
+    //
+    //   console.log('done!', resp)
+    // },
     noInteractiveElements: async io => {
       await io.display.heading('I block :(')
       console.log('done!')
@@ -262,14 +262,16 @@ const interval = new Interval({
         }
       )
 
-      await io.experimental.progressThroughList(
-        'Importing users...',
-        records.map(r => `${r.firstName} ${r.lastName}`),
-        async name => {
-          await sleep(1000)
-          return `Added ${name}!`
-        }
-      )
+      // await io.experimental.progressThroughList(
+      //   'Importing users...',
+      //   records.map(r => `${r.firstName} ${r.lastName}`),
+      //   async name => {
+      //     await sleep(1000)
+      //     return `Added ${name}!`
+      //   }
+      // )
+
+      console.log(records)
     },
     'Display-Does-Not-Return-Automatically': async io => {
       await io.group([

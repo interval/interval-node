@@ -6,7 +6,7 @@ import ISocket from './ISocket'
 let count = 0
 function generateId() {
   count = count + 1
-  return count + ''
+  return count.toString()
 }
 
 interface MethodDef {
@@ -43,14 +43,6 @@ function packageCall({ id, methodName, data }: Omit<DuplexMessage, 'kind'>) {
   return JSON.stringify(callerData)
 }
 
-export type DuplexRPCClient<CallerSchema extends MethodDef> = {
-  setCommunicator: (newCommunicator: ISocket) => void
-  send: <MethodName extends keyof CallerSchema>(
-    methodName: MethodName,
-    inputs: z.input<CallerSchema[MethodName]['inputs']>
-  ) => Promise<z.infer<CallerSchema[MethodName]['returns']>>
-}
-
 interface CreateDuplexRPCClientProps<
   CallerSchema extends MethodDef,
   ResponderSchema extends MethodDef
@@ -65,40 +57,63 @@ interface CreateDuplexRPCClientProps<
   }
 }
 
-export function createDuplexRPCClient<
+/**
+ * Responsible for making RPC calls to another DuplexRPCClient.
+ * Can send messages from CallerSchema and respond to messages
+ * from ResponderSchema.
+ *
+ * @property communicator - The ISocket instance responsible for
+ * sending the RPC messages.
+ * @property handlers - Defines the actions taken when receiving
+ * a given message, an object keyed by the message schema key.
+ */
+export class DuplexRPCClient<
   CallerSchema extends MethodDef,
   ResponderSchema extends MethodDef
->(
-  props: CreateDuplexRPCClientProps<CallerSchema, ResponderSchema>
-): DuplexRPCClient<CallerSchema> {
-  const { canCall, canRespondTo, handlers } = props
+> {
+  communicator: ISocket
+  canCall: CallerSchema
+  canRespondTo: ResponderSchema
+  handlers: {
+    [Property in keyof ResponderSchema]: (
+      inputs: z.infer<ResponderSchema[Property]['inputs']>
+    ) => Promise<z.infer<ResponderSchema[Property]['returns']>>
+  }
+  pendingCalls = new Map<string, OnReplyFn>()
 
-  const pendingCalls = new Map<string, OnReplyFn>()
-
-  let communicator: ISocket
-
-  function setCommunicator(newCommunicator: ISocket) {
-    if (communicator) communicator.onMessage.detach()
-    communicator = newCommunicator
-    communicator.onMessage.attach(onmessage)
+  constructor({
+    communicator,
+    canCall,
+    canRespondTo,
+    handlers,
+  }: CreateDuplexRPCClientProps<CallerSchema, ResponderSchema>) {
+    this.communicator = communicator
+    this.communicator.onMessage.attach(this.onmessage.bind(this))
+    this.canCall = canCall
+    this.canRespondTo = canRespondTo
+    this.handlers = handlers
   }
 
-  setCommunicator(props.communicator)
+  public setCommunicator(newCommunicator: ISocket): void {
+    this.communicator.onMessage.detach()
+    this.communicator = newCommunicator
+    this.communicator.onMessage.attach(this.onmessage.bind(this))
+  }
 
-  function handleReceivedResponse(parsed: DuplexMessage) {
-    const onReplyFn = pendingCalls.get(parsed.id)
+  private handleReceivedResponse(parsed: DuplexMessage) {
+    const onReplyFn = this.pendingCalls.get(parsed.id)
     if (!onReplyFn) return
 
     onReplyFn(parsed.data)
-    pendingCalls.delete(parsed.id)
+    this.pendingCalls.delete(parsed.id)
   }
 
-  async function handleReceivedCall(parsed: DuplexMessage) {
-    type MethodKeys = keyof typeof canRespondTo
+  private async handleReceivedCall(parsed: DuplexMessage) {
+    type MethodKeys = keyof typeof this.canRespondTo
 
     const methodName = parsed.methodName as MethodKeys
-    const method: typeof canRespondTo[MethodKeys] | undefined =
-      canRespondTo[methodName]
+    const method: ResponderSchema[MethodKeys] | undefined =
+      this.canRespondTo[methodName]
 
     if (!method) {
       throw new Error(`There is no method for ${parsed.methodName}`)
@@ -106,7 +121,7 @@ export function createDuplexRPCClient<
 
     // struggling to get real inference here
     const inputs = method.inputs.parse(parsed.data)
-    const handler = handlers[methodName]
+    const handler = this.handlers[methodName]
 
     const returnValue = await handler(inputs)
 
@@ -117,7 +132,7 @@ export function createDuplexRPCClient<
     })
 
     try {
-      await communicator.send(preparedResponseText)
+      await this.communicator.send(preparedResponseText)
     } catch (err) {
       console.error('Failed sending response', preparedResponseText, err)
     }
@@ -125,22 +140,22 @@ export function createDuplexRPCClient<
     return
   }
 
-  function onmessage(data: unknown) {
+  private onmessage(data: unknown) {
     const txt = data as string
     const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
 
     if (inputParsed.kind === 'RESPONSE') {
-      return handleReceivedResponse(inputParsed)
+      return this.handleReceivedResponse(inputParsed)
     }
 
     if (inputParsed.kind === 'CALL') {
-      return handleReceivedCall(inputParsed)
+      return this.handleReceivedCall(inputParsed)
     }
   }
 
-  async function send<MethodName extends keyof CallerSchema>(
+  public send<MethodName extends keyof CallerSchema>(
     methodName: MethodName,
-    inputs: z.infer<typeof canCall[MethodName]['inputs']>
+    inputs: z.infer<CallerSchema[MethodName]['inputs']>
   ) {
     const id = generateId()
 
@@ -150,19 +165,18 @@ export function createDuplexRPCClient<
       methodName: methodName as string, // ??
     })
 
-    type ReturnType = z.infer<typeof canCall[MethodName]['returns']>
+    type ReturnType = z.infer<CallerSchema[MethodName]['returns']>
 
     return new Promise<ReturnType>((resolve, reject) => {
-      pendingCalls.set(id, (rawResponseText: string) => {
-        const parsed = canCall[methodName]['returns'].parse(rawResponseText)
+      this.pendingCalls.set(id, (rawResponseText: string) => {
+        const parsed =
+          this.canCall[methodName]['returns'].parse(rawResponseText)
         return resolve(parsed)
       })
 
-      communicator.send(msg).catch(err => {
+      this.communicator.send(msg).catch(err => {
         reject(err)
       })
     })
   }
-
-  return { send, setCommunicator }
 }

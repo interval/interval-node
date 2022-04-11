@@ -1,7 +1,7 @@
 import { WebSocket } from 'ws'
 import fetch from 'node-fetch'
 import ISocket, { TimeoutError } from './ISocket'
-import { createDuplexRPCClient, DuplexRPCClient } from './rpc'
+import { DuplexRPCClient } from './rpc'
 import {
   wsServerSchema,
   hostSchema,
@@ -16,11 +16,12 @@ import {
   T_IO_RESPONSE,
   serializableRecord,
 } from './ioSchema'
-import createIOClient, { IOError, IOClient } from './io'
+import { IOClient } from './io'
 import { z } from 'zod'
 import { v4 } from 'uuid'
 import * as pkg from '../package.json'
 import { deserializeDates } from './utils/deserialize'
+import { IOError } from './types'
 
 export type ActionCtx = Pick<
   z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>,
@@ -214,7 +215,9 @@ export default class Interval {
 
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
   #ws: ISocket | undefined = undefined
-  #serverRpc: DuplexRPCClient<typeof wsServerSchema> | undefined = undefined
+  #serverRpc:
+    | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
+    | undefined = undefined
   #isConnected = false
 
   get isConnected() {
@@ -227,6 +230,9 @@ export default class Interval {
     await this.#initializeHost()
   }
 
+  /**
+   * Establishes the underlying ISocket connection to Interval.
+   */
   async #createSocketConnection(connectConfig?: SetupConfig) {
     const id = connectConfig?.instanceId ?? v4()
 
@@ -262,8 +268,6 @@ export default class Interval {
             /* */
           })
 
-        // we could do exponential backoff here, but in most cases (server restart, dev mode) the
-        // sever is back up within ~5-7 seconds, and when EB is enabled you just end up waiting longer than necessary.
         this.#log.prod(`Unable to connect. Retrying in 3s...`)
         await sleep(3000)
       }
@@ -281,12 +285,16 @@ export default class Interval {
     await this.#initializeHost()
   }
 
+  /**
+   * Creates the DuplexRPCClient responsible for sending
+   * messages to Interval.
+   */
   #createRPCClient() {
     if (!this.#ws) {
       throw new Error('ISocket not initialized')
     }
 
-    const serverRpc = createDuplexRPCClient({
+    const serverRpc = new DuplexRPCClient({
       communicator: this.#ws,
       canCall: wsServerSchema,
       canRespondTo: hostSchema,
@@ -301,7 +309,7 @@ export default class Interval {
             return
           }
 
-          const client = createIOClient({
+          const client = new IOClient({
             logger: this.#logger,
             send: async ioRenderInstruction => {
               await this.#send('SEND_IO_CALL', {
@@ -311,7 +319,10 @@ export default class Interval {
             },
           })
 
-          this.#ioResponseHandlers.set(inputs.transactionId, client.onResponse)
+          this.#ioResponseHandlers.set(
+            inputs.transactionId,
+            client.onResponse.bind(client)
+          )
 
           const ctx: ActionCtx = {
             user: inputs.user,
@@ -335,6 +346,8 @@ export default class Interval {
             .catch(err => {
               // Action did not catch the cancellation error
               if (err instanceof IOError && err.kind === 'CANCELED') throw err
+
+              this.#logger.error(err)
 
               const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
@@ -394,6 +407,10 @@ export default class Interval {
     this.#serverRpc = serverRpc
   }
 
+  /**
+   * Sends the `INITIALIZE_HOST` RPC call to Interval,
+   * declaring the actions that this host is responsible for handling.
+   */
   async #initializeHost() {
     if (!this.#serverRpc) {
       throw new Error('serverRpc not initialized')
