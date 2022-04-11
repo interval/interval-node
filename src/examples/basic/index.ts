@@ -155,14 +155,6 @@ const interval = new Interval({
         b: '2',
       })
 
-      // const longLog = [...Array(100_010)].map(() => '0').join('')
-      // ctx.log(longLog)
-
-      // for (let i = 0; i < 100; i++) {
-      //   await sleep(100)
-      //   ctx.log('Deleted 1 record')
-      // }
-
       return { name, email }
     },
     confirmBeforeDelete: async (io, ctx) => {
