@@ -41,8 +41,10 @@ const prod = new Interval({
         throw new Error('Something bad happened!')
       }
     },
-    enter_one_number: async io => {
+    enter_one_number: async (io, ctx) => {
+      ctx.log('Requesting a number')
       const num = await io.input.number('Enter a number')
+      ctx.log('Received', num)
 
       return { num }
     },
@@ -144,6 +146,19 @@ const interval = new Interval({
 
       return { num1, num2, sum: num1 + num2 }
     },
+    logTest: async (io, ctx) => {
+      ctx.log(new Date().toUTCString())
+      const name = await io.input.text('Your name')
+      ctx.log(new Date().toUTCString())
+      const email = await io.input.email('Your email')
+
+      // for (let i = 0; i < 100; i++) {
+      //   await sleep(100)
+      //   ctx.log('Deleted 1 record')
+      // }
+
+      return { name, email }
+    },
     confirmBeforeDelete: async (io, ctx) => {
       const email = await io.input.email('Enter an email address')
 
@@ -154,7 +169,7 @@ const interval = new Interval({
       await sleep(500)
       ctx.log('Deleted 1 subscription')
       await sleep(500)
-      ctx.log('Deleted 27 post drafts')
+      ctx.log(`Deleted ${Math.floor(Math.random() * 100)} post drafts`)
       await sleep(500)
       ctx.log('Skipped 13 published posts')
       await sleep(1500)
