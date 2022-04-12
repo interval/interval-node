@@ -41,8 +41,10 @@ const prod = new Interval({
         throw new Error('Something bad happened!')
       }
     },
-    enter_one_number: async io => {
+    enter_one_number: async (io, ctx) => {
+      ctx.log('Requesting a number')
       const num = await io.input.number('Enter a number')
+      ctx.log('Received', num)
 
       return { num }
     },
@@ -140,12 +142,36 @@ const interval = new Interval({
 
       return { num1, num2, sum: num1 + num2 }
     },
-    confirmBeforeDelete: async io => {
+    logTest: async (io, ctx) => {
+      ctx.log(new Date().toUTCString())
+      const name = await io.input.text('Your name')
+      ctx.log(new Date().toUTCString())
+      const email = await io.input.email('Your email')
+
+      ctx.log('Received', { name, email })
+
+      ctx.log('Data types: ', true, null, undefined, [1, 2, 3], {
+        a: 1,
+        b: '2',
+      })
+
+      return { name, email }
+    },
+    confirmBeforeDelete: async (io, ctx) => {
       const email = await io.input.email('Enter an email address')
 
       const didDelete = await io.confirm(`Delete this user?`, {
         helpText: 'All of their data will be removed.',
       })
+
+      await sleep(500)
+      ctx.log('Deleted 1 subscription')
+      await sleep(500)
+      ctx.log(`Deleted ${Math.floor(Math.random() * 100)} post drafts`)
+      await sleep(500)
+      ctx.log('Skipped 13 published posts')
+      await sleep(1500)
+      ctx.log('Deleted 13 comments')
 
       return { didDelete, email }
     },
