@@ -311,6 +311,8 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
       columns: z.optional(z.array(internalTableColumn)),
       data: z.array(internalTableRow),
+      minSelections: z.optional(z.number().int().min(0)),
+      maxSelections: z.optional(z.number().positive().int()),
     }),
     state: z.null(),
     returns: z.array(internalTableRow),
@@ -332,6 +334,8 @@ export const ioSchema = {
       defaultValue: z
         .array(labelValue)
         .default([] as z.infer<typeof labelValue>[]),
+      minSelections: z.optional(z.number().int().min(0)),
+      maxSelections: z.optional(z.number().positive().int()),
     }),
     state: z.null(),
     returns: z.array(labelValue),
@@ -405,6 +409,7 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
       columns: z.optional(z.array(internalTableColumn)),
       data: z.array(internalTableRow),
+      orientation: z.enum(['vertical', 'horizontal']).default('horizontal'),
     }),
     state: z.null(),
     returns: z.null(),

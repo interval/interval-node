@@ -26,7 +26,11 @@ import { deserializeDates } from './utils/deserialize'
 type ActionCtx = Pick<
   z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>,
   'user' | 'params' | 'environment'
->
+> & {
+  log: ActionLogFn
+}
+
+export type ActionLogFn = (...args: any[]) => void
 
 export type IO = IOClient['io']
 
@@ -316,6 +320,7 @@ export default class Interval {
             user: inputs.user,
             params: deserializeDates(inputs.params),
             environment: inputs.environment,
+            log: (...args) => this.#sendLog(inputs.transactionId, ...args),
           }
 
           fn(client.io, ctx)
@@ -458,6 +463,27 @@ export default class Interval {
         }
       }
     }
+  }
+
+  #sendLog(transactionId: string, ...args: any[]) {
+    if (!args.length) return
+
+    let data = args
+      .map(arg => {
+        if (arg === undefined) return 'undefined'
+        if (typeof arg === 'string') return arg
+        return JSON.stringify(arg, undefined, 2)
+      })
+      .join(' ')
+
+    if (data.length > 100_000) {
+      data =
+        data.slice(0, 100_000) +
+        '...' +
+        '\n^ Warning: 100k logline character limit reached.\nTo avoid this error, try separating your data into multiple ctx.log() calls.'
+    }
+
+    this.#send('SEND_LOG', { transactionId, data })
   }
 }
 
