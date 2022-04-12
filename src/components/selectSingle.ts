@@ -41,16 +41,14 @@ export default function findAndSelect<
     getValue(response: T_IO_RETURNS<'SELECT_SINGLE'>) {
       return searchedOptions.get(response.value) as Options[0]
     },
-    onStateChange: onSearch
-      ? async (newState: T_IO_STATE<'SELECT_SINGLE'>) => {
-          const options = await onSearch(newState.queryTerm)
+    async onStateChange(newState: T_IO_STATE<'SELECT_SINGLE'>) {
+      const options = await onSearch(newState.queryTerm)
 
-          // Could probably not await this, but could potentially cause race condition
-          // where response is received before it finishes resolving, though unlikely.
-          await addOptions(options)
+      // Could probably not await this, but could potentially cause race condition
+      // where response is received before it finishes resolving, though unlikely.
+      await addOptions(options)
 
-          return { options }
-        }
-      : undefined,
+      return { options }
+    },
   }
 }
