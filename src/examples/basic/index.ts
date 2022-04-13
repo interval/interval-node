@@ -383,6 +383,43 @@ const interval = new Interval({
 
       throw errors[Number(selected.value)]
     },
+    actionLinks: async io => {
+      await io.group([
+        io.display.table('In a table!', {
+          data: [
+            { slug: undefined },
+            { slug: 'noInteractiveElements' },
+            {
+              slug: 'helloCurrentUser',
+              params: { message: 'Hi from a table!' },
+            },
+          ],
+          columns: [
+            {
+              label: 'Action slug',
+              render: row => row.slug,
+            },
+            {
+              label: 'Link',
+              render: row => ({
+                label: row.slug ?? '(undefined)',
+                action: row.slug,
+                params: row.params,
+              }),
+            },
+          ],
+        }),
+        io.display.link('External link', {
+          href: 'https://example.com',
+        }),
+        io.display.link('Action link', {
+          action: 'helloCurrentUser',
+          params: {
+            message: 'From a button!',
+          },
+        }),
+      ])
+    },
   },
 })
 

@@ -271,6 +271,7 @@ export class IOClient {
       display: {
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
+        link: this.createIOMethod('DISPLAY_LINK'),
         object: this.createIOMethod('DISPLAY_OBJECT'),
         table: this.createIOMethod('DISPLAY_TABLE', displayTable),
       },

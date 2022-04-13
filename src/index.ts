@@ -8,13 +8,14 @@ import {
   TRANSACTION_RESULT_SCHEMA_VERSION,
   ENQUEUE_ACTION,
   DEQUEUE_ACTION,
+  ActionEnvironment,
 } from './internalRpcSchema'
 import {
   ActionResultSchema,
   IOFunctionReturnType,
   IO_RESPONSE,
   T_IO_RESPONSE,
-  serializableRecord,
+  SerializableRecord,
 } from './ioSchema'
 import { IOClient } from './io'
 import { z } from 'zod'
@@ -23,7 +24,7 @@ import * as pkg from '../package.json'
 import { deserializeDates } from './utils/deserialize'
 import { IOError } from './types'
 
-export type ActionCtx = Pick<
+type ActionCtx = Pick<
   z.infer<typeof hostSchema['START_TRANSACTION']['inputs']>,
   'user' | 'params' | 'environment'
 > & {
@@ -85,7 +86,7 @@ export class Logger {
 export interface QueuedAction {
   id: string
   assignee?: string
-  params?: z.infer<typeof serializableRecord>
+  params?: SerializableRecord
 }
 
 class IntervalError extends Error {
@@ -197,6 +198,8 @@ export default class Interval {
   #logger: Logger
   actions: Actions
 
+  environment: ActionEnvironment | undefined
+
   constructor(config: InternalConfig) {
     this.#apiKey = config.apiKey
     this.#actions = config.actions
@@ -300,12 +303,12 @@ export default class Interval {
       canRespondTo: hostSchema,
       handlers: {
         START_TRANSACTION: async inputs => {
-          const slug = inputs.actionName
-          const fn = this.#actions[slug]
+          const actionSlug = inputs.actionName
+          const fn = this.#actions[actionSlug]
           this.#log.debug(fn)
 
           if (!fn) {
-            this.#log.debug('No fn called', slug)
+            this.#log.debug('No fn called', actionSlug)
             return
           }
 
@@ -369,12 +372,15 @@ export default class Interval {
               if (err instanceof IOError) {
                 switch (err.kind) {
                   case 'CANCELED':
-                    this.#log.prod('Transaction canceled for action', slug)
+                    this.#log.prod(
+                      'Transaction canceled for action',
+                      actionSlug
+                    )
                     break
                   case 'TRANSACTION_CLOSED':
                     this.#log.prod(
                       'Attempted to make IO call after transaction already closed in action',
-                      slug
+                      actionSlug
                     )
                     break
                 }
@@ -446,6 +452,8 @@ export default class Interval {
         throw new Error('No valid slugs provided')
       }
     }
+
+    this.environment = loggedIn.environment
 
     this.#log.prod(
       `🔗 Connected! Access your actions at: ${loggedIn.dashboardUrl}`
