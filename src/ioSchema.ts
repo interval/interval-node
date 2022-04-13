@@ -42,17 +42,21 @@ export const typeValue = z.enum([
 ])
 export type TypeValue = z.infer<typeof typeValue>
 
-const labelValue = z.object({
-  label: z.string(),
-  value: z.string(),
-})
+const labelValue = z
+  .object({
+    label: z.string(),
+    value: z.string(),
+  })
+  .passthrough()
 
-export const richSelectOption = z.object({
-  label: z.string(),
-  value: z.string(),
-  description: z.string().nullish(),
-  imageUrl: z.string().nullish(),
-})
+export const richSelectOption = z
+  .object({
+    label: z.string(),
+    value: z.string(),
+    description: z.string().nullish(),
+    imageUrl: z.string().nullish(),
+  })
+  .passthrough()
 
 const objectLiteralSchema = z.union([
   z.string(),
