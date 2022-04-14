@@ -1,6 +1,6 @@
 {
   "name": "@interval/sdk",
-  "version": "0.14.0-dev",
+  "version": "0.15.0-dev",
   "private": true,
   "license": "MIT",
   "engines": {
