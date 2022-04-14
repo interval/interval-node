@@ -193,7 +193,7 @@ export class IOClient {
 
   createIOMethod<
     MethodName extends T_IO_METHOD_NAMES,
-    Props extends object,
+    Props extends object = T_IO_PROPS<MethodName>,
     Output = T_IO_RETURNS<MethodName>
   >(
     methodName: MethodName,
@@ -206,8 +206,8 @@ export class IOClient {
         IOComponentDefinition<MethodName, Props, Output>
       >['onStateChange'] = undefined
 
-      if (componentDef && props) {
-        const componentGetters = componentDef(props)
+      if (componentDef) {
+        const componentGetters = componentDef(props ?? ({} as Props))
 
         if (componentGetters.props) {
           internalProps = componentGetters.props
