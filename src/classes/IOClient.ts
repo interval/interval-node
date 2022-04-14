@@ -1,25 +1,25 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
-import type { Logger } from '.'
 import type {
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
   T_IO_PROPS,
   T_IO_RETURNS,
   T_IO_METHOD_NAMES,
-} from './ioSchema'
-import { AnyIOComponent } from './classes/IOComponent'
-import { IOPromise, ExclusiveIOPromise } from './classes/IOPromise'
-import spreadsheet from './components/spreadsheet'
-import { selectTable, displayTable } from './components/table'
-import findAndSelectUser from './components/selectUser'
-import findAndSelect, { selectSingle } from './components/selectSingle'
-import selectMultiple from './components/selectMultiple'
-import { date, datetime } from './components/inputDate'
+} from '../ioSchema'
+import Logger from './Logger'
+import { AnyIOComponent } from './IOComponent'
+import { IOPromise, ExclusiveIOPromise } from './IOPromise'
+import IOError from './IOError'
+import spreadsheet from '../components/spreadsheet'
+import { selectTable, displayTable } from '../components/table'
+import findAndSelectUser from '../components/selectUser'
+import findAndSelect, { selectSingle } from '../components/selectSingle'
+import selectMultiple from '../components/selectMultiple'
+import { date, datetime } from '../components/inputDate'
 import {
   IORenderSender,
   ResponseHandlerFn,
-  IOError,
   MaybeOptionalGroupIOPromise,
   GroupIOPromise,
   OptionalGroupIOPromise,
@@ -27,7 +27,7 @@ import {
   ExclusiveIOComponentFunction,
   ComponentRenderer,
   IOComponentDefinition,
-} from './types'
+} from '../types'
 
 interface ClientConfig {
   logger: Logger

@@ -7,7 +7,10 @@ import type {
   T_IO_STATE,
   T_IO_Schema,
   T_IO_METHOD_NAMES,
+  IOFunctionReturnType,
 } from './ioSchema'
+import type { HostSchema } from './internalRpcSchema'
+import type { IOClient } from './classes/IOClient'
 import type IOComponent from './classes/IOComponent'
 import type { ComponentReturnValue } from './classes/IOComponent'
 import type {
@@ -15,6 +18,23 @@ import type {
   OptionalIOPromise,
   ExclusiveIOPromise,
 } from './classes/IOPromise'
+import type IOError from './classes/IOError'
+
+export type ActionCtx = Pick<
+  z.infer<HostSchema['START_TRANSACTION']['inputs']>,
+  'user' | 'params' | 'environment'
+> & {
+  log: ActionLogFn
+}
+
+export type ActionLogFn = (...args: any[]) => void
+
+export type IO = IOClient['io']
+
+export type IntervalActionHandler = (
+  io: IO,
+  ctx: ActionCtx
+) => Promise<IOFunctionReturnType | void>
 
 export type IOPromiseConstructor<
   MethodName extends T_IO_METHOD_NAMES,
@@ -90,17 +110,6 @@ export type OptionalGroupIOPromise =
 export type MaybeOptionalGroupIOPromise =
   | GroupIOPromise
   | OptionalGroupIOPromise
-
-export type IOErrorKind = 'CANCELED' | 'TRANSACTION_CLOSED'
-
-export class IOError extends Error {
-  kind: IOErrorKind
-
-  constructor(kind: IOErrorKind, message?: string) {
-    super(message)
-    this.kind = kind
-  }
-}
 
 export type IOComponentDefinition<
   MethodName extends T_IO_METHOD_NAMES,

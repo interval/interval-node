@@ -1,6 +1,7 @@
 import { T_IO_METHOD_NAMES, T_IO_PROPS, T_IO_STATE } from '../ioSchema'
 import IOComponent, { ComponentReturnValue } from './IOComponent'
-import { IOError, ComponentRenderer } from '../types'
+import IOError from './IOError'
+import { ComponentRenderer } from '../types'
 
 /**
  * A custom wrapper class that handles creating the underlying component

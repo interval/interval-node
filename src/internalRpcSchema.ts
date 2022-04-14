@@ -143,6 +143,8 @@ export const wsServerSchema = {
   },
 }
 
+export type WSServerSchema = typeof wsServerSchema
+
 export const clientSchema = {
   CLIENT_USURPED: {
     inputs: z.undefined(),
@@ -174,6 +176,8 @@ export const clientSchema = {
   },
 }
 
+export type ClientSchema = typeof clientSchema
+
 export const hostSchema = {
   IO_RESPONSE: {
     inputs: z.object({
@@ -199,3 +203,5 @@ export const hostSchema = {
     returns: z.void().nullable(),
   },
 }
+
+export type HostSchema = typeof hostSchema
