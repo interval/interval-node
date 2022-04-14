@@ -8,7 +8,8 @@ import type {
   T_IO_RETURNS,
   T_IO_METHOD_NAMES,
 } from './ioSchema'
-import { AnyIOComponent } from './component'
+import { AnyIOComponent } from './classes/IOComponent'
+import { IOPromise, ExclusiveIOPromise } from './classes/IOPromise'
 import spreadsheet from './components/spreadsheet'
 import { selectTable, displayTable } from './components/table'
 import findAndSelectUser from './components/selectUser'
@@ -27,7 +28,6 @@ import {
   ComponentRenderer,
   IOComponentDefinition,
 } from './types'
-import { IOPromise, ExclusiveIOPromise } from './IOPromise'
 
 interface ClientConfig {
   logger: Logger

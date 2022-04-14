@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import type { DuplexMessage } from './internalRpcSchema'
-import { DUPLEX_MESSAGE_SCHEMA } from './internalRpcSchema'
+import type { DuplexMessage } from '../internalRpcSchema'
+import { DUPLEX_MESSAGE_SCHEMA } from '../internalRpcSchema'
 import ISocket from './ISocket'
 
 let count = 0

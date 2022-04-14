@@ -1,7 +1,7 @@
 import { WebSocket } from 'ws'
 import fetch from 'node-fetch'
-import ISocket, { TimeoutError } from './ISocket'
-import { DuplexRPCClient } from './rpc'
+import ISocket, { TimeoutError } from './classes/ISocket'
+import { DuplexRPCClient } from './classes/DuplexRPCClient'
 import {
   wsServerSchema,
   hostSchema,

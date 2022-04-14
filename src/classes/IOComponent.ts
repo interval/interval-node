@@ -4,8 +4,8 @@ import {
   resolvesImmediately,
   T_IO_METHOD_NAMES,
   T_IO_RETURNS,
-} from './ioSchema'
-import { deserializeDates } from './utils/deserialize'
+} from '../ioSchema'
+import { deserializeDates } from '../utils/deserialize'
 
 type IoSchema = typeof ioSchema
 export interface ComponentInstance<MN extends keyof IoSchema> {

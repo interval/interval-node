@@ -8,13 +8,13 @@ import type {
   T_IO_Schema,
   T_IO_METHOD_NAMES,
 } from './ioSchema'
-import type IOComponent from './component'
-import type { ComponentReturnValue } from './component'
+import type IOComponent from './classes/IOComponent'
+import type { ComponentReturnValue } from './classes/IOComponent'
 import type {
   IOPromise,
   OptionalIOPromise,
   ExclusiveIOPromise,
-} from './IOPromise'
+} from './classes/IOPromise'
 
 export type IOPromiseConstructor<
   MethodName extends T_IO_METHOD_NAMES,
