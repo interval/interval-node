@@ -36,11 +36,6 @@ export type IntervalActionHandler = (
   ctx: ActionCtx
 ) => Promise<IOFunctionReturnType | void>
 
-export type IOPromiseConstructor<
-  MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
-> = (c: IOComponent<MethodName>) => IOPromise<MethodName, Output>
-
 export type IOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
   Props,
@@ -81,7 +76,7 @@ export type OptionalExecutor<
 ) => void
 
 export type IOPromiseMap = {
-  [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName, any>
+  [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName, any, any>
 }
 export type AnyIOPromise = IOPromiseMap[T_IO_METHOD_NAMES]
 
@@ -93,7 +88,7 @@ export type GroupIOPromiseMap = {
     exclusive: z.ZodLiteral<true>
   }
     ? never
-    : IOPromise<MethodName, any>
+    : IOPromise<MethodName, any, any>
 }
 export type GroupIOPromise = GroupIOPromiseMap[T_IO_METHOD_NAMES]
 
@@ -102,7 +97,7 @@ export type OptionalGroupIOPromiseMap = {
     exclusive: z.ZodLiteral<true>
   }
     ? never
-    : OptionalIOPromise<MethodName>
+    : OptionalIOPromise<MethodName, any, any>
 }
 export type OptionalGroupIOPromise =
   OptionalGroupIOPromiseMap[T_IO_METHOD_NAMES]
