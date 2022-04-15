@@ -1,19 +1,20 @@
 import { IntervalActionHandler } from '../..'
-import { fakeDb, mapToSelectOption } from '../utils/helpers'
+import { fakeDb, getImageUrl } from '../utils/helpers'
 
 const editEmailForUser: IntervalActionHandler = async io => {
   console.log("Let's say hello...")
 
-  const initialUsers = await fakeDb.find('')
-
   const resp = await io.group([
     io.display.heading('Edit email address for user'),
-    io.experimental.findAndSelect('Select a user', {
-      initialOptions: initialUsers.map(mapToSelectOption),
+    io.search('Find a user', {
       onSearch: async query => {
-        const resp = await fakeDb.find(query)
-        return resp.map(mapToSelectOption)
+        return fakeDb.find(query)
       },
+      renderResult: user => ({
+        label: `${user.first_name} ${user.last_name}`,
+        description: user.email,
+        imageUrl: getImageUrl(user),
+      }),
     }),
     io.select.single('Choose role', {
       options: [
@@ -55,7 +56,10 @@ const editEmailForUser: IntervalActionHandler = async io => {
   console.log(found)
 
   io.group([
-    io.display.heading('You successfully edited email for ' + found.label),
+    io.display.heading(
+      'You successfully edited email for ' +
+        `${found.first_name} ${found.last_name}`
+    ),
   ])
 
   console.log('Resp', resp)

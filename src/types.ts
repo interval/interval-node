@@ -76,7 +76,11 @@ export type OptionalExecutor<
 ) => void
 
 export type IOPromiseMap = {
-  [MethodName in T_IO_METHOD_NAMES]: IOPromise<MethodName, any, any>
+  [MethodName in T_IO_METHOD_NAMES]: IOPromise<
+    MethodName,
+    T_IO_PROPS<MethodName>,
+    any
+  >
 }
 export type AnyIOPromise = IOPromiseMap[T_IO_METHOD_NAMES]
 
@@ -88,7 +92,7 @@ export type GroupIOPromiseMap = {
     exclusive: z.ZodLiteral<true>
   }
     ? never
-    : IOPromise<MethodName, any, any>
+    : IOPromise<MethodName, T_IO_PROPS<MethodName>, any>
 }
 export type GroupIOPromise = GroupIOPromiseMap[T_IO_METHOD_NAMES]
 
@@ -97,7 +101,7 @@ export type OptionalGroupIOPromiseMap = {
     exclusive: z.ZodLiteral<true>
   }
     ? never
-    : OptionalIOPromise<MethodName, any, any>
+    : OptionalIOPromise<MethodName, T_IO_PROPS<MethodName>, any>
 }
 export type OptionalGroupIOPromise =
   OptionalGroupIOPromiseMap[T_IO_METHOD_NAMES]
