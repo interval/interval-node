@@ -48,8 +48,11 @@ const prod = new Interval({
 
       return { num }
     },
-    echoParams: async (_, ctx) => {
-      console.log(ctx.params)
+    echoParams: async (io, ctx) => {
+      ctx.log(ctx.params)
+      await io.display.object('Params', {
+        data: ctx.params,
+      })
       return ctx.params
     },
   },
@@ -353,8 +356,11 @@ const interval = new Interval({
         completed += 1
       }
     },
-    echoParams: async (_, ctx) => {
-      console.log(ctx.params)
+    echoParams: async (io, ctx) => {
+      ctx.log(ctx.params)
+      await io.display.object('Params', {
+        data: ctx.params,
+      })
       return ctx.params
     },
     invalid_props: async io => {
