@@ -42,7 +42,7 @@ export const typeValue = z.enum([
 ])
 export type TypeValue = z.infer<typeof typeValue>
 
-const labelValue = z
+export const labelValue = z
   .object({
     label: z.string(),
     value: z.string(),
