@@ -136,7 +136,7 @@ export const internalTableRow = z.union([newInternalTableRow, tableRow])
 
 export const tableColumn = z.object({
   label: z.string(),
-  render: z
+  renderCell: z
     .function()
     .args(z.any())
     .returns(

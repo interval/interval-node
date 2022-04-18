@@ -397,11 +397,11 @@ const interval = new Interval({
           columns: [
             {
               label: 'Action slug',
-              render: row => row.slug,
+              renderCell: row => row.slug,
             },
             {
               label: 'Link',
-              render: row => ({
+              renderCell: row => ({
                 label: row.slug ?? '(undefined)',
                 action: row.slug,
                 params: row.params,
