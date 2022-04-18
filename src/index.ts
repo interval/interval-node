@@ -61,6 +61,12 @@ export default class Interval {
   #retryIntervalMs: number = 3000
   actions: Actions
 
+  organization:
+    | {
+        name: string
+        slug: string
+      }
+    | undefined
   environment: ActionEnvironment | undefined
 
   constructor(config: InternalConfig) {
@@ -225,6 +231,11 @@ export default class Interval {
       handlers: {
         START_TRANSACTION: async inputs => {
           const { actionName: actionSlug, transactionId } = inputs
+          if (!this.organization) {
+            this.#log.error('No organization defined')
+            return
+          }
+
           const fn = this.#actions[actionSlug]
           this.#log.debug(fn)
 
@@ -258,7 +269,12 @@ export default class Interval {
             user: inputs.user,
             params: deserializeDates(inputs.params),
             environment: inputs.environment,
-            log: (...args) => this.#sendLog(transactionId, logIndex++, ...args),
+            organization: this.organization,
+            action: {
+              slug: actionSlug,
+            },
+            log: (...args) =>
+              this.#sendLog(inputs.transactionId, logIndex++, ...args),
           }
 
           fn(client.io, ctx)
@@ -381,6 +397,7 @@ export default class Interval {
       }
     }
 
+    this.organization = loggedIn.organization
     this.environment = loggedIn.environment
 
     this.#log.prod(
