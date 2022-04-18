@@ -1,4 +1,4 @@
-import { T_IO_RETURNS } from '../ioSchema'
+import { T_IO_PROPS, T_IO_RETURNS } from '../ioSchema'
 
 export function date() {
   return {
@@ -21,8 +21,30 @@ export function date() {
   }
 }
 
-export function datetime() {
+export function datetime(
+  props: Omit<T_IO_PROPS<'INPUT_DATETIME'>, 'defaultValue'> & {
+    defaultValue?: T_IO_PROPS<'INPUT_DATETIME'>['defaultValue'] | Date
+  }
+) {
+  let defaultValue: T_IO_PROPS<'INPUT_DATETIME'>['defaultValue']
+
+  if (props.defaultValue && props.defaultValue instanceof Date) {
+    const d = props.defaultValue
+    defaultValue = {
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      day: d.getDate(),
+      hour: d.getHours(),
+      minute: d.getMinutes(),
+    }
+  } else {
+    defaultValue = props.defaultValue
+  }
   return {
+    props: {
+      ...props,
+      defaultValue,
+    },
     getValue(response: T_IO_RETURNS<'INPUT_DATETIME'>) {
       const jsDate = new Date(
         response.year,
