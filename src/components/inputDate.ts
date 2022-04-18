@@ -3,7 +3,15 @@ import { T_IO_RETURNS } from '../ioSchema'
 export function date() {
   return {
     getValue(response: T_IO_RETURNS<'INPUT_DATE'>) {
-      const jsDate = new Date(response.year, response.month - 1, response.day)
+      const jsDate = new Date(
+        response.year,
+        response.month - 1,
+        response.day,
+        0,
+        0,
+        0,
+        0
+      )
 
       return {
         ...response,
@@ -21,7 +29,9 @@ export function datetime() {
         response.month - 1,
         response.day,
         response.hour,
-        response.minute
+        response.minute,
+        0,
+        0
       )
 
       return {
