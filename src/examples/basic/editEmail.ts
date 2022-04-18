@@ -55,12 +55,7 @@ const editEmailForUser: IntervalActionHandler = async io => {
 
   console.log(found)
 
-  io.group([
-    io.display.heading(
-      'You successfully edited email for ' +
-        `${found.first_name} ${found.last_name}`
-    ),
-  ])
+  await io.display.object('Response', { data: resp })
 
   console.log('Resp', resp)
 }
