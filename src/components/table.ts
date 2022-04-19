@@ -9,9 +9,9 @@ import {
 } from '../ioSchema'
 import { columnsBuilder, tableRowSerializer } from '../utils/table'
 
-type CellValue = string | number | boolean | null | Date | undefined
+export type CellValue = string | number | boolean | null | Date | undefined
 
-type ColumnResult =
+export type ColumnResult =
   | ({
       label: string | null | undefined
       value?: CellValue
@@ -22,7 +22,7 @@ type ColumnResult =
     ))
   | CellValue
 
-interface Column<Row> extends z.input<typeof tableColumn> {
+export interface Column<Row> extends z.input<typeof tableColumn> {
   label: string
   renderCell: (row: Row) => ColumnResult
 }
