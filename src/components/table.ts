@@ -5,16 +5,34 @@ import {
   tableRow,
   newInternalTableRow,
   T_IO_RETURNS,
+  serializableRecord,
 } from '../ioSchema'
 import { columnsBuilder, tableRowSerializer } from '../utils/table'
 
-// Overrides internal schema with user-facing defs for columns & data
-type InputProps = Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
-  columns?: z.input<typeof tableColumn>[]
-  data: z.input<typeof tableRow>[]
+type CellValue = string | number | boolean | null | Date | undefined
+
+type ColumnResult =
+  | ({
+      label: string | null | undefined
+      value?: CellValue
+    } & (
+      | {}
+      | { href: string }
+      | { action: string; params?: z.infer<typeof serializableRecord> }
+    ))
+  | CellValue
+
+interface Column<Row> extends z.input<typeof tableColumn> {
+  label: string
+  renderCell: (row: Row) => ColumnResult
 }
 
-export function selectTable<Props extends InputProps>(props: Props) {
+export function selectTable<Row extends z.input<typeof tableRow> = any>(
+  props: Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
+    data: Row[]
+    columns?: Column<Row>[]
+  }
+) {
   type DataList = typeof props['data']
 
   const columns = columnsBuilder(props)
@@ -37,7 +55,12 @@ export function selectTable<Props extends InputProps>(props: Props) {
   }
 }
 
-export function displayTable<Props extends InputProps>(props: Props) {
+export function displayTable<Row = any>(
+  props: Omit<T_IO_PROPS<'DISPLAY_TABLE'>, 'data' | 'columns'> & {
+    data: Row[]
+    columns?: Column<Row>[]
+  }
+) {
   const columns = columnsBuilder(props)
 
   const data = props.data.map((row, idx) =>
