@@ -307,6 +307,7 @@ export const ioSchema = {
   SEARCH: {
     props: z.object({
       results: z.array(richSelectOption),
+      placeholder: z.optional(z.string()),
       helpText: z.optional(z.string()),
     }),
     state: z.object({ queryTerm: z.string() }),

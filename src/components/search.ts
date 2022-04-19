@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import type { T_IO_PROPS, T_IO_RETURNS, T_IO_STATE } from '../ioSchema'
 import IOError from '../classes/IOError'
 
@@ -14,9 +15,11 @@ type InternalResults = T_IO_PROPS<'SEARCH'>['results']
 export default function search<Result = any>({
   onSearch,
   initialResults = [],
+  placeholder,
   renderResult,
   helpText,
 }: {
+  placeholder?: string
   helpText?: string
   initialResults?: Result[]
   renderResult: (result: Result) => RenderResultDef
@@ -51,11 +54,14 @@ export default function search<Result = any>({
     })
   }
 
+  const props: T_IO_PROPS<'SEARCH'> = {
+    placeholder,
+    helpText,
+    results: renderResults(initialResults),
+  }
+
   return {
-    props: {
-      helpText,
-      results: renderResults(initialResults),
-    },
+    props,
     getValue(response: T_IO_RETURNS<'SEARCH'>) {
       try {
         const [batchIndex, index] = response.split(':')

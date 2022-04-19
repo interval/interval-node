@@ -9,6 +9,7 @@ const editEmailForUser: IntervalActionHandler = async io => {
   const resp = await io.group([
     io.display.heading('Edit email address for user'),
     io.search<User>('Find a user', {
+      placeholder: 'Search by name...',
       onSearch: async query => {
         return fakeDb.find(query)
       },
