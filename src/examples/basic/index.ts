@@ -45,6 +45,9 @@ const prod = new Interval({
       ctx.log('Requesting a number')
       const num = await io.input.number('Enter a number')
       ctx.log('Received', num)
+      ctx.log('Received 1', num)
+      ctx.log('Received 2', num)
+      ctx.log('Received 3', num)
 
       return { num }
     },

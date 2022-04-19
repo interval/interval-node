@@ -78,6 +78,8 @@ export const wsServerSchema = {
     inputs: z.object({
       transactionId: z.string(),
       data: z.string(),
+      index: z.number().optional(),
+      timestamp: z.number().optional(),
     }),
     returns: z.boolean(),
   },
@@ -170,7 +172,9 @@ export const clientSchema = {
   },
   LOG: {
     inputs: z.object({
-      data: z.string(),
+      data: z.string().nullable(),
+      index: z.number(),
+      timestamp: z.number(),
     }),
     returns: z.boolean(),
   },
