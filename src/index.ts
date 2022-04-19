@@ -23,11 +23,17 @@ import {
 import { IOClient } from './classes/IOClient'
 import * as pkg from '../package.json'
 import { deserializeDates } from './utils/deserialize'
-import type { ActionCtx, ActionLogFn, IO, IntervalActionHandler } from './types'
+import type {
+  ActionCtx,
+  ActionLogFn,
+  IO,
+  IntervalActionHandler,
+  IntervalActionDefinition,
+} from './types'
 
 export interface InternalConfig {
   apiKey: string
-  actions: Record<string, IntervalActionHandler>
+  actions: Record<string, IntervalActionDefinition>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
 }
@@ -53,7 +59,7 @@ export class IntervalError extends Error {
 }
 
 export default class Interval {
-  #actions: Record<string, IntervalActionHandler>
+  #actions: Record<string, IntervalActionDefinition>
   #apiKey: string
   #endpoint: string = 'wss://intervalkit.com/websocket'
   #logger: Logger
@@ -165,11 +171,13 @@ export default class Interval {
       handlers: {
         START_TRANSACTION: async inputs => {
           const actionSlug = inputs.actionName
-          const fn = this.#actions[actionSlug]
-          this.#log.debug(fn)
+          const actionDef = this.#actions[actionSlug]
+          const actionHandler =
+            'handler' in actionDef ? actionDef.handler : actionDef
+          this.#log.debug(actionHandler)
 
-          if (!fn) {
-            this.#log.debug('No fn called', actionSlug)
+          if (!actionHandler) {
+            this.#log.debug('No actionHandler called', actionSlug)
             return
           }
 
@@ -199,7 +207,7 @@ export default class Interval {
               this.#sendLog(inputs.transactionId, logIndex++, ...args),
           }
 
-          fn(client.io, ctx)
+          actionHandler(client.io, ctx)
             .then(res => {
               // Allow actions to return data even after being canceled
 
@@ -291,11 +299,16 @@ export default class Interval {
       throw new Error('ISocket not initialized')
     }
 
+    const actions = Object.entries(this.#actions).map(([slug, def]) => ({
+      slug,
+      ...('handler' in def ? def : {}),
+      handler: undefined,
+    }))
     const slugs = Object.keys(this.#actions)
 
     const loggedIn = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
-      callableActionNames: slugs,
+      actions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
     })

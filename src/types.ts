@@ -36,6 +36,15 @@ export type IntervalActionHandler = (
   ctx: ActionCtx
 ) => Promise<IOFunctionReturnType | void>
 
+export interface ExplicitIntervalActionDefinition {
+  handler: IntervalActionHandler
+  backgroundable?: boolean
+}
+
+export type IntervalActionDefinition =
+  | IntervalActionHandler
+  | ExplicitIntervalActionDefinition
+
 export type IOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
   Props,
