@@ -45,11 +45,17 @@ const prod = new Interval({
       ctx.log('Requesting a number')
       const num = await io.input.number('Enter a number')
       ctx.log('Received', num)
+      ctx.log('Received 1', num)
+      ctx.log('Received 2', num)
+      ctx.log('Received 3', num)
 
       return { num }
     },
-    echoParams: async (_, ctx) => {
-      console.log(ctx.params)
+    echoParams: async (io, ctx) => {
+      ctx.log(ctx.params)
+      await io.display.object('Params', {
+        data: ctx.params,
+      })
       return ctx.params
     },
   },
@@ -191,29 +197,18 @@ const interval = new Interval({
       io.display.heading(heading).then(() => {})
     },
     dates: async io => {
-      const dateType = await io.select.single('Select a type', {
-        options: [
-          { label: 'Date', value: 'date' },
-          { label: 'Time', value: 'time' },
-          { label: 'Date and time', value: 'datetime' },
-        ],
-      })
+      const [date, time, datetime] = await io.group([
+        io.experimental.date('Enter a date'),
+        io.experimental.time('Enter a time'),
+        io.experimental.datetime('Enter a datetime', {
+          defaultValue: new Date(),
+        }),
+        io.input.text('Text input'),
+      ])
 
-      let res
+      await io.display.object('Result', { data: { date, time, datetime } })
 
-      if (dateType.value === 'date') {
-        res = await io.experimental.date('Enter a date')
-      }
-
-      if (dateType.value === 'time') {
-        res = await io.experimental.time('Enter a time')
-      }
-
-      if (dateType.value === 'datetime') {
-        res = await io.experimental.datetime('Enter a date and time')
-      }
-
-      await io.display.object('Result', { data: res })
+      return datetime
     },
     validityTester: async io => {
       await io.group([
@@ -380,8 +375,11 @@ const interval = new Interval({
         completed += 1
       }
     },
-    echoParams: async (_, ctx) => {
-      console.log(ctx.params)
+    echoParams: async (io, ctx) => {
+      ctx.log(ctx.params)
+      await io.display.object('Params', {
+        data: ctx.params,
+      })
       return ctx.params
     },
     invalid_props: async io => {
