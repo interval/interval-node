@@ -1,7 +1,27 @@
 import { T_IO_PROPS, T_IO_RETURNS } from '../ioSchema'
 
-export function date() {
+export function date(
+  props: Omit<T_IO_PROPS<'INPUT_DATE'>, 'defaultValue'> & {
+    defaultValue?: T_IO_PROPS<'INPUT_DATE'>['defaultValue'] | Date
+  }
+) {
+  let defaultValue: T_IO_PROPS<'INPUT_DATE'>['defaultValue']
+
+  if (props.defaultValue && props.defaultValue instanceof Date) {
+    const d = props.defaultValue
+    defaultValue = {
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      day: d.getDate(),
+    }
+  } else {
+    defaultValue = props.defaultValue
+  }
   return {
+    props: {
+      ...props,
+      defaultValue,
+    },
     getValue(response: T_IO_RETURNS<'INPUT_DATE'>) {
       const jsDate = new Date(
         response.year,
