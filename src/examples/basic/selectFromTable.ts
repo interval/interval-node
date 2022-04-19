@@ -41,6 +41,8 @@ function formatCurrency(amount: number) {
 export const table_basic: IntervalActionHandler = async io => {
   const selections = await io.select.table('Select from this table', {
     data: [...charges, ...charges, ...charges, ...charges],
+    minSelections: 1,
+    maxSelections: 3,
   })
   await io.display.object('Selected', { data: selections })
 }

@@ -160,12 +160,16 @@ const interval = new Interval({
     confirmBeforeDelete: async (io, ctx) => {
       const email = await io.input.email('Enter an email address')
 
-      const didDelete = await io.confirm(`Delete this user?`, {
+      const shouldDelete = await io.confirm(`Delete this user?`, {
         helpText: 'All of their data will be removed.',
       })
 
+      if (!shouldDelete) {
+        ctx.log('Canceled by user')
+        return
+      }
+
       await sleep(500)
-      ctx.log('Deleted 1 subscription')
       await sleep(500)
       ctx.log(`Deleted ${Math.floor(Math.random() * 100)} post drafts`)
       await sleep(500)
@@ -173,7 +177,7 @@ const interval = new Interval({
       await sleep(1500)
       ctx.log('Deleted 13 comments')
 
-      return { didDelete, email }
+      return { email }
     },
     helloCurrentUser: async (io, ctx) => {
       console.log(ctx.params)
@@ -187,16 +191,39 @@ const interval = new Interval({
       io.display.heading(heading).then(() => {})
     },
     dates: async io => {
-      const [date, time, datetime] = await io.group([
-        io.experimental.date('Enter a date'),
-        io.experimental.time('Enter a time'),
-        io.experimental.datetime('Enter a datetime'),
-        io.input.text('Text input'),
+      const dateType = await io.select.single('Select a type', {
+        options: [
+          { label: 'Date', value: 'date' },
+          { label: 'Time', value: 'time' },
+          { label: 'Date and time', value: 'datetime' },
+        ],
+      })
+
+      let res
+
+      if (dateType.value === 'date') {
+        res = await io.experimental.date('Enter a date')
+      }
+
+      if (dateType.value === 'time') {
+        res = await io.experimental.time('Enter a time')
+      }
+
+      if (dateType.value === 'datetime') {
+        res = await io.experimental.datetime('Enter a date and time')
+      }
+
+      await io.display.object('Result', { data: res })
+    },
+    aValidityTester: async io => {
+      await io.group([
+        io.input.number('Enter a number'),
+        io.input.number('Enter a second number').optional(),
+        io.input.text('First name'),
+        io.input.text('Last name').optional(),
+        io.input.email('Email'),
+        io.input.email('Backup email').optional(),
       ])
-
-      await io.display.object('Result', { data: { date, time, datetime } })
-
-      return datetime
     },
     optionalCheckboxes: async io => {
       const options = [
