@@ -11,10 +11,7 @@ type RenderResultDef =
 
 type InternalResults = T_IO_PROPS<'SEARCH'>['results']
 
-export default function search<
-  Result,
-  ResultRenderer extends (result: Result) => RenderResultDef
->({
+export default function search<Result = any>({
   onSearch,
   initialResults = [],
   renderResult,
@@ -22,7 +19,7 @@ export default function search<
 }: {
   helpText?: string
   initialResults?: Result[]
-  renderResult: ResultRenderer
+  renderResult: (result: Result) => RenderResultDef
   onSearch: (query: string) => Promise<Result[]>
 }) {
   // We maintain the last two batches of results to avoid race conditions regarding
