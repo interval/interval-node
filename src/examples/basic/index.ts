@@ -215,7 +215,7 @@ const interval = new Interval({
 
       await io.display.object('Result', { data: res })
     },
-    aValidityTester: async io => {
+    validityTester: async io => {
       await io.group([
         io.input.number('Enter a number'),
         io.input.number('Enter a second number').optional(),
