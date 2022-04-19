@@ -1,4 +1,4 @@
-import { T_IO_PROPS, T_IO_RETURNS } from '../ioSchema'
+import { T_IO_PROPS, T_IO_RETURNS, labelValue } from '../ioSchema'
 
 export default function selectMultiple<
   Props extends T_IO_PROPS<'SELECT_MULTIPLE'>
@@ -7,7 +7,14 @@ export default function selectMultiple<
 
   const optionMap = new Map(props.options.map(o => [o.value, o]))
 
+  const stripper = labelValue.strip()
+
   return {
+    props: {
+      ...props,
+      defaultValue: props.defaultValue?.map(o => stripper.parse(o)),
+      options: props.options.map(o => stripper.parse(o)),
+    },
     getValue(response: T_IO_RETURNS<'SELECT_MULTIPLE'>): Options {
       return response.map(r => optionMap.get(r.value)) as Options
     },

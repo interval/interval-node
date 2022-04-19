@@ -188,11 +188,15 @@ export default class Interval {
             client.onResponse.bind(client)
           )
 
+          // To maintain consistent ordering for logs despite network race conditions
+          let logIndex = 0
+
           const ctx: ActionCtx = {
             user: inputs.user,
             params: deserializeDates(inputs.params),
             environment: inputs.environment,
-            log: (...args) => this.#sendLog(inputs.transactionId, ...args),
+            log: (...args) =>
+              this.#sendLog(inputs.transactionId, logIndex++, ...args),
           }
 
           fn(client.io, ctx)
@@ -343,7 +347,7 @@ export default class Interval {
     }
   }
 
-  #sendLog(transactionId: string, ...args: any[]) {
+  #sendLog(transactionId: string, index: number, ...args: any[]) {
     if (!args.length) return
 
     let data = args
@@ -361,7 +365,12 @@ export default class Interval {
         '\n^ Warning: 100k logline character limit reached.\nTo avoid this error, try separating your data into multiple ctx.log() calls.'
     }
 
-    this.#send('SEND_LOG', { transactionId, data })
+    this.#send('SEND_LOG', {
+      transactionId,
+      data,
+      index,
+      timestamp: new Date().valueOf(),
+    })
   }
 }
 
