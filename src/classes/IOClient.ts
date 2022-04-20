@@ -14,7 +14,8 @@ import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
 import { selectTable, displayTable } from '../components/table'
 import findAndSelectUser from '../components/selectUser'
-import findAndSelect, { selectSingle } from '../components/selectSingle'
+import selectSingle from '../components/selectSingle'
+import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
 import { date, datetime } from '../components/inputDate'
 import {
@@ -256,6 +257,8 @@ export class IOClient {
 
       confirm: this.makeExclusive(this.createIOMethod('CONFIRM')),
 
+      search: this.createIOMethod('SEARCH', search),
+
       input: {
         text: this.createIOMethod('INPUT_TEXT'),
         boolean: this.createIOMethod('INPUT_BOOLEAN'),
@@ -281,7 +284,6 @@ export class IOClient {
           'SELECT_USER',
           findAndSelectUser
         ),
-        findAndSelect: this.createIOMethod('SELECT_SINGLE', findAndSelect),
         date: this.createIOMethod('INPUT_DATE', date),
         time: this.createIOMethod('INPUT_TIME'),
         datetime: this.createIOMethod('INPUT_DATETIME', datetime),

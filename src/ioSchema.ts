@@ -90,9 +90,11 @@ export const deserializableSchema = z.union([
   z.null(),
   z.undefined(),
 ])
+export type Deserializable = z.infer<typeof deserializableSchema>
 export const deserializableRecord = z.record(deserializableSchema)
 export type DeserializableRecord = z.infer<typeof deserializableRecord>
 export const serializableSchema = deserializableSchema.or(z.date())
+export type Serializable = z.infer<typeof serializableSchema>
 export const serializableRecord = z.record(serializableSchema)
 export type SerializableRecord = z.infer<typeof serializableRecord>
 
@@ -301,6 +303,15 @@ export const ioSchema = {
     }),
     state: z.null(),
     returns: z.array(serializableRecord),
+  },
+  SEARCH: {
+    props: z.object({
+      results: z.array(richSelectOption),
+      placeholder: z.optional(z.string()),
+      helpText: z.optional(z.string()),
+    }),
+    state: z.object({ queryTerm: z.string() }),
+    returns: z.string(),
   },
   CONFIRM: {
     props: z.object({
