@@ -370,6 +370,17 @@ export default class Interval {
 
               this.#transactionLoadingStates.delete(transactionId)
             },
+            notify: async ({ message, title, delivery }) => {
+              await this.#send('NOTIFY', {
+                transactionId: inputs.transactionId,
+                message,
+                title,
+                deliveryInstructions: delivery,
+                actionRunnerEmail: inputs.user.email,
+                environment: inputs.environment,
+                createdAt: new Date().toISOString(),
+              })
+            },
           })
 
           this.#ioResponseHandlers.set(

@@ -107,6 +107,23 @@ export const wsServerSchema = {
     }),
     returns: z.boolean(),
   },
+  NOTIFY: {
+    inputs: z.object({
+      transactionId: z.string(),
+      message: z.string(),
+      title: z.string().optional(),
+      deliveryInstructions: z.array(
+        z.object({
+          to: z.string(),
+          method: z.enum(['EMAIL', 'SLACK']).optional(),
+        })
+      ),
+      actionRunnerEmail: z.string(),
+      environment: actionEnvironment,
+      createdAt: z.string(),
+    }),
+    returns: z.boolean(),
+  },
   MARK_TRANSACTION_COMPLETE: {
     inputs: z.object({
       transactionId: z.string(),

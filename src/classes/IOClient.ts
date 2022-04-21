@@ -20,6 +20,7 @@ import selectMultiple from '../components/selectMultiple'
 import { date, datetime } from '../components/inputDate'
 import {
   IORenderSender,
+  IONotify,
   ResponseHandlerFn,
   MaybeOptionalGroupIOPromise,
   GroupIOPromise,
@@ -33,6 +34,7 @@ import {
 interface ClientConfig {
   logger: Logger
   send: IORenderSender
+  notify: IONotify
 }
 
 /**
@@ -45,13 +47,15 @@ interface ClientConfig {
 export class IOClient {
   logger: Logger
   send: IORenderSender
+  notify: IONotify
 
   onResponseHandler: ResponseHandlerFn | undefined
   isCanceled = false
 
-  constructor({ logger, send }: ClientConfig) {
+  constructor({ logger, send, notify }: ClientConfig) {
     this.logger = logger
     this.send = send
+    this.notify = notify
   }
 
   /**

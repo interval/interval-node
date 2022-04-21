@@ -69,6 +69,19 @@ export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = (
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 
+interface NotificationDeliveryInstruction {
+  to: string
+  method?: 'SLACK' | 'EMAIL'
+}
+
+type NotifyConfig = {
+  message: string
+  title?: string
+  delivery: NotificationDeliveryInstruction[]
+}
+
+export type IONotify = (config: NotifyConfig) => Promise<void>
+
 export type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
 
 export type Executor<
