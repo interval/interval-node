@@ -452,6 +452,49 @@ const interval = new Interval({
         }),
       ])
     },
+    notifications: async (io, ctx) => {
+      let deliveries = []
+
+      while (true) {
+        const [_heading, to, method, moreDeliveries] = await io.group([
+          io.display.heading("Let's send a notification"),
+          io.input.text('to'),
+          io.select
+            .single('method', {
+              options: [
+                { label: 'SLACK', value: 'SLACK' },
+                { label: 'EMAIL', value: 'EMAIL' },
+              ],
+            })
+            .optional(),
+          io.input.boolean('Send to another destination?'),
+        ])
+        deliveries.push({
+          to,
+          method: method?.value as 'SLACK' | 'EMAIL' | undefined,
+        })
+        ctx.log('Current delivery array:', deliveries)
+
+        if (!moreDeliveries) break
+      }
+
+      const [message, title] = await io.group([
+        io.input.text('What message would you like to send?'),
+        io.input
+          .text('Optionally provide a title', {
+            helpText: 'This will otherwise default to the name of the action',
+          })
+          .optional(),
+      ])
+
+      await io.notify({
+        message,
+        title,
+        delivery: deliveries,
+      })
+
+      return { message: 'OK, notified!' }
+    },
   },
 })
 
