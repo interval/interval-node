@@ -4,6 +4,16 @@ export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+export function getImageUrl(inputUser: {
+  first_name: string
+  last_name: string
+}): string {
+  const name = `${inputUser.first_name} ${inputUser.last_name}`
+  return `https://avatars.dicebear.com/api/pixel-art/${encodeURIComponent(
+    name
+  )}.svg?scale=96&translateY=10`
+}
+
 export function mapToSelectOption(inputUser: {
   username: string
   first_name: string

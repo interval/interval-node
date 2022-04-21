@@ -199,7 +199,9 @@ const interval = new Interval({
       const [date, time, datetime] = await io.group([
         io.experimental.date('Enter a date'),
         io.experimental.time('Enter a time'),
-        io.experimental.datetime('Enter a datetime'),
+        io.experimental.datetime('Enter a datetime', {
+          defaultValue: new Date(),
+        }),
         io.input.text('Text input'),
       ])
 
@@ -409,11 +411,11 @@ const interval = new Interval({
           columns: [
             {
               label: 'Action slug',
-              render: row => row.slug,
+              renderCell: row => row.slug,
             },
             {
               label: 'Link',
-              render: row => ({
+              renderCell: row => ({
                 label: row.slug ?? '(undefined)',
                 action: row.slug,
                 params: row.params,

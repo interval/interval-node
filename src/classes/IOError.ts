@@ -1,4 +1,4 @@
-export type IOErrorKind = 'CANCELED' | 'TRANSACTION_CLOSED'
+export type IOErrorKind = 'CANCELED' | 'TRANSACTION_CLOSED' | 'BAD_RESPONSE'
 
 export default class IOError extends Error {
   kind: IOErrorKind

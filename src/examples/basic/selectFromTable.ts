@@ -59,35 +59,35 @@ export const table_custom_columns: IntervalActionHandler = async io => {
     columns: [
       {
         label: 'ID',
-        render: row => ({
+        renderCell: row => ({
           label: row.id.slice(0, 5),
           href: `https://dashboard.stripe.com/${row.id}`,
         }),
       },
       {
         label: 'Name',
-        render: row => row.name,
+        renderCell: row => row.name,
       },
       {
         label: 'Number',
-        render: row => row.amount,
+        renderCell: row => row.amount,
       },
       {
         label: 'Price',
-        render: row => ({
+        renderCell: row => ({
           label: formatCurrency(row.amount ? row.amount / 100 : 0),
           value: row.amount,
         }),
       },
       {
         label: 'Promo code',
-        render: (row: Charge) => ({
+        renderCell: (row: Charge) => ({
           label: row.promoCode,
         }),
       },
       {
         label: 'Purchased at',
-        render: (row: Charge) => ({
+        renderCell: (row: Charge) => ({
           label: row.purchasedAt.toLocaleString(),
           value: row.purchasedAt,
         }),

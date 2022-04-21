@@ -20,7 +20,7 @@ export function columnsBuilder(props: {
 
     return labels.map(label => ({
       label,
-      render: row => row[label],
+      renderCell: row => row[label],
     }))
   }
 
@@ -33,7 +33,7 @@ export function columnsBuilder(props: {
 export function columnsWithoutRender(
   columns: z.infer<typeof tableColumn>[]
 ): z.infer<typeof internalTableColumn>[] {
-  return columns.map(({ render, ...column }) => column)
+  return columns.map(({ renderCell, ...column }) => column)
 }
 
 /**
@@ -50,7 +50,7 @@ export function tableRowSerializer(
 
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i]
-    const val = col.render(row) ?? null
+    const val = col.renderCell(row) ?? null
     if (
       !!val &&
       typeof val === 'object' &&
