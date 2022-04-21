@@ -260,6 +260,7 @@ export class IOClient {
       group: this.group.bind(this),
 
       confirm: this.makeExclusive(this.createIOMethod('CONFIRM')),
+      notify: this.notify,
 
       search: this.createIOMethod('SEARCH', search),
 
