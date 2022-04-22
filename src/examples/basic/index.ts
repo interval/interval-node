@@ -343,23 +343,30 @@ const interval = new Interval({
         }),
       ])
     },
-    Progress_steps: async io => {
-      await io.experimental.progress.indeterminate('Fetching users...')
+    Progress_steps: async (io, ctx) => {
+      ctx.loading.start({ label: 'Fetching users...' })
+
+      await sleep(1000)
 
       const users = await fakeDb
         .find('')
         .then(res => res.map(mapToIntervalUser))
 
-      let completed = 1
-      for (const u of users) {
-        await io.experimental.progress.steps('Exporting users', {
-          subTitle: "We're exporting all users. This may take a while.",
-          currentStep: u.name,
-          steps: { completed, total: users.length },
-        })
+      await io.display.heading('Press continue when ready')
+
+      ctx.loading.start({
+        label: 'Exporting users',
+        description: "We're exporting all users. This may take a while.",
+        itemsInQueue: users.length,
+      })
+      for (const _ of users) {
         await sleep(1000)
-        completed += 1
+        ctx.loading.completeOne()
       }
+
+      ctx.loading.start({ label: 'Finishing up...' })
+
+      await sleep(1000)
     },
     echoParams: async (io, ctx) => {
       ctx.log(ctx.params)

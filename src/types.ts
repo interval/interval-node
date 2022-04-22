@@ -19,11 +19,13 @@ import type {
   ExclusiveIOPromise,
 } from './classes/IOPromise'
 import type IOError from './classes/IOError'
+import type TransactionLoadingState from './classes/TransactionLoadingState'
 
 export type ActionCtx = Pick<
   z.infer<HostSchema['START_TRANSACTION']['inputs']>,
   'user' | 'params' | 'environment'
 > & {
+  loading: TransactionLoadingState
   log: ActionLogFn
 }
 

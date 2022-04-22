@@ -13,6 +13,7 @@ import {
   ENQUEUE_ACTION,
   DEQUEUE_ACTION,
   ActionEnvironment,
+  LoadingState,
 } from './internalRpcSchema'
 import {
   ActionResultSchema,
@@ -24,6 +25,7 @@ import { IOClient } from './classes/IOClient'
 import * as pkg from '../package.json'
 import { deserializeDates } from './utils/deserialize'
 import type { ActionCtx, ActionLogFn, IO, IntervalActionHandler } from './types'
+import TransactionLoadingState from './classes/TransactionLoadingState'
 
 export interface InternalConfig {
   apiKey: string
@@ -85,6 +87,7 @@ export default class Interval {
 
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
   #pendingIOCalls = new Map<string, string>()
+  #transactionLoadingStates = new Map<string, LoadingState>()
   #ws: ISocket | undefined = undefined
   #serverRpc:
     | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
@@ -117,6 +120,7 @@ export default class Interval {
             })
               .then(() => {
                 this.#pendingIOCalls.delete(transactionId)
+                this.#transactionLoadingStates.delete(transactionId)
               })
               .catch(async err => {
                 if (err instanceof IOError) {
@@ -130,6 +134,56 @@ export default class Interval {
                     err.kind === 'TRANSACTION_CLOSED'
                   ) {
                     this.#logger.debug('Aborting resending pending IO call')
+                    this.#pendingIOCalls.delete(transactionId)
+                    return
+                  }
+                } else {
+                  this.#logger.debug('Failed resending pending IO call:', err)
+                }
+
+                this.#logger.debug(
+                  `Trying again in ${Math.round(
+                    this.#retryIntervalMs / 1000
+                  )}s...`
+                )
+                await sleep(this.#retryIntervalMs)
+              })
+        )
+      )
+    }
+  }
+
+  /**
+   * Resends pending transaction loading states upon reconnection.
+   */
+  async #resendTransactionLoadingStates() {
+    if (!this.#isConnected) return
+
+    while (this.#transactionLoadingStates.size > 0) {
+      await Promise.allSettled(
+        Array.from(this.#transactionLoadingStates.entries()).map(
+          ([transactionId, loadingState]) =>
+            this.#send('SEND_LOADING_CALL', {
+              transactionId,
+              ...loadingState,
+            })
+              .then(() => {
+                this.#transactionLoadingStates.delete(transactionId)
+              })
+              .catch(async err => {
+                if (err instanceof IOError) {
+                  this.#logger.error(
+                    'Failed resending transaction loading state: ',
+                    err.kind
+                  )
+
+                  if (
+                    err.kind === 'CANCELED' ||
+                    err.kind === 'TRANSACTION_CLOSED'
+                  ) {
+                    this.#logger.debug(
+                      'Aborting resending transaction loading state'
+                    )
                     this.#pendingIOCalls.delete(transactionId)
                     return
                   }
@@ -183,6 +237,7 @@ export default class Interval {
             this.#log.prod('⚡ Reconnection successful')
             this.#isConnected = true
             this.#resendPendingIOCalls()
+            this.#resendTransactionLoadingStates()
           })
           .catch(() => {
             /* */
@@ -243,6 +298,8 @@ export default class Interval {
                 transactionId,
                 ioCall,
               })
+
+              this.#transactionLoadingStates.delete(transactionId)
             },
           })
 
@@ -259,6 +316,16 @@ export default class Interval {
             params: deserializeDates(inputs.params),
             environment: inputs.environment,
             log: (...args) => this.#sendLog(transactionId, logIndex++, ...args),
+            loading: new TransactionLoadingState({
+              logger: this.#logger,
+              send: async loadingState => {
+                this.#transactionLoadingStates.set(transactionId, loadingState)
+                await this.#send('SEND_LOADING_CALL', {
+                  transactionId,
+                  ...loadingState,
+                })
+              },
+            }),
           }
 
           fn(client.io, ctx)
@@ -315,6 +382,7 @@ export default class Interval {
             })
             .finally(() => {
               this.#pendingIOCalls.delete(transactionId)
+              this.#transactionLoadingStates.delete(transactionId)
               this.#ioResponseHandlers.delete(transactionId)
             })
 
