@@ -118,7 +118,32 @@ export default class Interval {
               .then(() => {
                 this.#pendingIOCalls.delete(transactionId)
               })
-              .catch(() => sleep(this.#retryIntervalMs))
+              .catch(async err => {
+                if (err instanceof IOError) {
+                  this.#logger.error(
+                    'Failed resending pending IO call: ',
+                    err.kind
+                  )
+
+                  if (
+                    err.kind === 'CANCELED' ||
+                    err.kind === 'TRANSACTION_CLOSED'
+                  ) {
+                    this.#logger.debug('Aborting resending pending IO call')
+                    this.#pendingIOCalls.delete(transactionId)
+                    return
+                  }
+                } else {
+                  this.#logger.debug('Failed resending pending IO call:', err)
+                }
+
+                this.#logger.debug(
+                  `Trying again in ${Math.round(
+                    this.#retryIntervalMs / 1000
+                  )}s...`
+                )
+                await sleep(this.#retryIntervalMs)
+              })
         )
       )
     }
