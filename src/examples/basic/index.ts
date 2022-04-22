@@ -1,4 +1,5 @@
 import Interval, { IOError } from '../../index'
+import { NotificationDeliveryInstruction } from '../../types'
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import { table_basic, table_custom_columns } from './selectFromTable'
@@ -453,7 +454,7 @@ const interval = new Interval({
       ])
     },
     notifications: async (io, ctx) => {
-      let deliveries = []
+      let deliveries: NotificationDeliveryInstruction[] = []
 
       while (true) {
         const [_heading, to, method, moreDeliveries] = await io.group([
