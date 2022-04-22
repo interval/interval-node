@@ -30,7 +30,7 @@ export interface InternalConfig {
   actions: Record<string, IntervalActionHandler>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
-  retryInterval?: number
+  retryIntervalMs?: number
 }
 
 interface SetupConfig {
@@ -58,7 +58,7 @@ export default class Interval {
   #apiKey: string
   #endpoint: string = 'wss://intervalkit.com/websocket'
   #logger: Logger
-  #retryInterval: number = 3000
+  #retryIntervalMs: number = 3000
   actions: Actions
 
   environment: ActionEnvironment | undefined
@@ -72,8 +72,8 @@ export default class Interval {
       this.#endpoint = config.endpoint
     }
 
-    if (config.retryInterval && config.retryInterval > 0) {
-      this.#retryInterval = config.retryInterval
+    if (config.retryIntervalMs && config.retryIntervalMs > 0) {
+      this.#retryIntervalMs = config.retryIntervalMs
     }
 
     this.actions = new Actions(this.#apiKey, this.#endpoint)
@@ -118,7 +118,7 @@ export default class Interval {
               .then(() => {
                 this.#pendingIOCalls.delete(transactionId)
               })
-              .catch(() => sleep(this.#retryInterval))
+              .catch(() => sleep(this.#retryIntervalMs))
         )
       )
     }
@@ -165,10 +165,10 @@ export default class Interval {
 
         this.#log.prod(
           `Unable to connect. Retrying in ${Math.round(
-            this.#retryInterval / 1000
+            this.#retryIntervalMs / 1000
           )}s...`
         )
-        await sleep(this.#retryInterval)
+        await sleep(this.#retryIntervalMs)
       }
     })
 
@@ -377,11 +377,11 @@ export default class Interval {
         if (err instanceof TimeoutError) {
           this.#log.debug(
             `RPC call timed out, retrying in ${Math.round(
-              this.#retryInterval / 1000
+              this.#retryIntervalMs / 1000
             )}s...`
           )
           this.#log.debug(err)
-          sleep(this.#retryInterval)
+          sleep(this.#retryIntervalMs)
         } else {
           throw err
         }
