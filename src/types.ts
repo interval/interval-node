@@ -74,7 +74,7 @@ interface NotificationDeliveryInstruction {
   method?: 'SLACK' | 'EMAIL'
 }
 
-type NotifyConfig = {
+export type NotifyConfig = {
   message: string
   title?: string
   delivery: NotificationDeliveryInstruction[]

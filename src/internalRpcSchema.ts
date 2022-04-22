@@ -118,8 +118,6 @@ export const wsServerSchema = {
           method: z.enum(['EMAIL', 'SLACK']).optional(),
         })
       ),
-      actionRunnerEmail: z.string(),
-      environment: actionEnvironment,
       createdAt: z.string(),
     }),
     returns: z.boolean(),

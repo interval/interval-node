@@ -376,8 +376,6 @@ export default class Interval {
                 message,
                 title,
                 deliveryInstructions: delivery,
-                actionRunnerEmail: inputs.user.email,
-                environment: inputs.environment,
                 createdAt: new Date().toISOString(),
               })
             },
