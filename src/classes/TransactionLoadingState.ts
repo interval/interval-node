@@ -36,20 +36,19 @@ export default class TransactionLoadingState {
     return { ...this.#state }
   }
 
-  start(options: StartOrUpdateLoadingOptions) {
+  async start(options: StartOrUpdateLoadingOptions) {
     this.#state = { ...options }
     if (this.#state.itemsInQueue) {
       this.#state.itemsCompleted = 0
     }
 
-    this.#send(this.#state)
+    return this.#send(this.#state)
   }
 
-  update(options: StartOrUpdateLoadingOptions) {
+  async update(options: StartOrUpdateLoadingOptions) {
     if (!this.#state) {
       this.#logger.warn('Please call `loading.start` before `loading.update`')
-      this.start(options)
-      return
+      return this.start(options)
     }
 
     Object.assign(this.#state, options)
@@ -58,10 +57,10 @@ export default class TransactionLoadingState {
       this.#state.itemsCompleted = 0
     }
 
-    this.#send(this.#state)
+    return this.#send(this.#state)
   }
 
-  completeOne() {
+  async completeOne() {
     if (!this.#state || !this.#state.itemsInQueue) {
       this.#logger.warn(
         'Please call `loading.start` with `itemsInQueue` before `loading.completeOne`, failing to do so does nothing.'
@@ -74,6 +73,6 @@ export default class TransactionLoadingState {
     }
 
     this.#state.itemsCompleted++
-    this.#send(this.#state)
+    return this.#send(this.#state)
   }
 }

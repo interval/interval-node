@@ -344,7 +344,7 @@ const interval = new Interval({
       ])
     },
     Progress_steps: async (io, ctx) => {
-      ctx.loading.start({ label: 'Fetching users...' })
+      await ctx.loading.start({ label: 'Fetching users...' })
 
       await sleep(1000)
 
@@ -354,17 +354,17 @@ const interval = new Interval({
 
       await io.display.heading('Press continue when ready')
 
-      ctx.loading.start({
+      await ctx.loading.start({
         label: 'Exporting users',
         description: "We're exporting all users. This may take a while.",
         itemsInQueue: users.length,
       })
       for (const _ of users) {
         await sleep(1000)
-        ctx.loading.completeOne()
+        await ctx.loading.completeOne()
       }
 
-      ctx.loading.start({ label: 'Finishing up...' })
+      await ctx.loading.start({ label: 'Finishing up...' })
 
       await sleep(1000)
     },
