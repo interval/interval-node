@@ -36,6 +36,7 @@ export interface InternalConfig {
   actions: Record<string, IntervalActionDefinition>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
+  retryIntervalMs?: number
 }
 
 interface SetupConfig {
@@ -63,6 +64,7 @@ export default class Interval {
   #apiKey: string
   #endpoint: string = 'wss://intervalkit.com/websocket'
   #logger: Logger
+  #retryIntervalMs: number = 3000
   actions: Actions
 
   environment: ActionEnvironment | undefined
@@ -76,6 +78,10 @@ export default class Interval {
       this.#endpoint = config.endpoint
     }
 
+    if (config.retryIntervalMs && config.retryIntervalMs > 0) {
+      this.#retryIntervalMs = config.retryIntervalMs
+    }
+
     this.actions = new Actions(this.#apiKey, this.#endpoint)
   }
 
@@ -84,6 +90,7 @@ export default class Interval {
   }
 
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
+  #pendingIOCalls = new Map<string, string>()
   #ws: ISocket | undefined = undefined
   #serverRpc:
     | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
@@ -98,6 +105,54 @@ export default class Interval {
     await this.#createSocketConnection()
     this.#createRPCClient()
     await this.#initializeHost()
+  }
+
+  /**
+   * Resends pending IO calls upon reconnection.
+   */
+  async #resendPendingIOCalls() {
+    if (!this.#isConnected) return
+
+    while (this.#pendingIOCalls.size > 0) {
+      await Promise.allSettled(
+        Array.from(this.#pendingIOCalls.entries()).map(
+          ([transactionId, ioCall]) =>
+            this.#send('SEND_IO_CALL', {
+              transactionId,
+              ioCall,
+            })
+              .then(() => {
+                this.#pendingIOCalls.delete(transactionId)
+              })
+              .catch(async err => {
+                if (err instanceof IOError) {
+                  this.#logger.error(
+                    'Failed resending pending IO call: ',
+                    err.kind
+                  )
+
+                  if (
+                    err.kind === 'CANCELED' ||
+                    err.kind === 'TRANSACTION_CLOSED'
+                  ) {
+                    this.#logger.debug('Aborting resending pending IO call')
+                    this.#pendingIOCalls.delete(transactionId)
+                    return
+                  }
+                } else {
+                  this.#logger.debug('Failed resending pending IO call:', err)
+                }
+
+                this.#logger.debug(
+                  `Trying again in ${Math.round(
+                    this.#retryIntervalMs / 1000
+                  )}s...`
+                )
+                await sleep(this.#retryIntervalMs)
+              })
+        )
+      )
+    }
   }
 
   /**
@@ -133,13 +188,18 @@ export default class Interval {
           .then(() => {
             this.#log.prod('⚡ Reconnection successful')
             this.#isConnected = true
+            this.#resendPendingIOCalls()
           })
           .catch(() => {
             /* */
           })
 
-        this.#log.prod(`Unable to connect. Retrying in 3s...`)
-        await sleep(3000)
+        this.#log.prod(
+          `Unable to connect. Retrying in ${Math.round(
+            this.#retryIntervalMs / 1000
+          )}s...`
+        )
+        await sleep(this.#retryIntervalMs)
       }
     })
 
@@ -170,7 +230,7 @@ export default class Interval {
       canRespondTo: hostSchema,
       handlers: {
         START_TRANSACTION: async inputs => {
-          const actionSlug = inputs.actionName
+          const { actionName: actionSlug, transactionId } = inputs
           const actionDef = this.#actions[actionSlug]
           const actionHandler =
             'handler' in actionDef ? actionDef.handler : actionDef
@@ -184,15 +244,18 @@ export default class Interval {
           const client = new IOClient({
             logger: this.#logger,
             send: async ioRenderInstruction => {
+              const ioCall = JSON.stringify(ioRenderInstruction)
+              this.#pendingIOCalls.set(transactionId, ioCall)
+
               await this.#send('SEND_IO_CALL', {
-                transactionId: inputs.transactionId,
-                ioCall: JSON.stringify(ioRenderInstruction),
+                transactionId,
+                ioCall,
               })
             },
           })
 
           this.#ioResponseHandlers.set(
-            inputs.transactionId,
+            transactionId,
             client.onResponse.bind(client)
           )
 
@@ -203,8 +266,7 @@ export default class Interval {
             user: inputs.user,
             params: deserializeDates(inputs.params),
             environment: inputs.environment,
-            log: (...args) =>
-              this.#sendLog(inputs.transactionId, logIndex++, ...args),
+            log: (...args) => this.#sendLog(transactionId, logIndex++, ...args),
           }
 
           actionHandler(client.io, ctx)
@@ -237,7 +299,7 @@ export default class Interval {
             })
             .then((res: ActionResultSchema) => {
               this.#send('MARK_TRANSACTION_COMPLETE', {
-                transactionId: inputs.transactionId,
+                transactionId,
                 result: JSON.stringify(res),
               })
             })
@@ -260,7 +322,8 @@ export default class Interval {
               }
             })
             .finally(() => {
-              this.#ioResponseHandlers.delete(inputs.transactionId)
+              this.#pendingIOCalls.delete(transactionId)
+              this.#ioResponseHandlers.delete(transactionId)
             })
 
           return
@@ -350,9 +413,13 @@ export default class Interval {
         return await this.#serverRpc.send(methodName, inputs)
       } catch (err) {
         if (err instanceof TimeoutError) {
-          this.#log.debug('RPC call timed out, retrying in 3s...')
+          this.#log.debug(
+            `RPC call timed out, retrying in ${Math.round(
+              this.#retryIntervalMs / 1000
+            )}s...`
+          )
           this.#log.debug(err)
-          sleep(3000)
+          sleep(this.#retryIntervalMs)
         } else {
           throw err
         }
