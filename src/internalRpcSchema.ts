@@ -127,6 +127,10 @@ export const wsServerSchema = {
       .object({
         environment: actionEnvironment,
         invalidSlugs: z.array(z.string()),
+        organization: z.object({
+          name: z.string(),
+          slug: z.string(),
+        }),
         dashboardUrl: z.string(),
       })
       .nullable(),

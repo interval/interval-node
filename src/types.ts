@@ -27,6 +27,13 @@ export type ActionCtx = Pick<
 > & {
   loading: TransactionLoadingState
   log: ActionLogFn
+  organization: {
+    name: string
+    slug: string
+  }
+  action: {
+    slug: string
+  }
 }
 
 export type ActionLogFn = (...args: any[]) => void
