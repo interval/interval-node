@@ -25,6 +25,13 @@ export type ActionCtx = Pick<
   'user' | 'params' | 'environment'
 > & {
   log: ActionLogFn
+  organization: {
+    name: string
+    slug: string
+  }
+  action: {
+    slug: string
+  }
 }
 
 export type ActionLogFn = (...args: any[]) => void
