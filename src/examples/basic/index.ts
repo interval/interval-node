@@ -166,12 +166,16 @@ const interval = new Interval({
     confirmBeforeDelete: async (io, ctx) => {
       const email = await io.input.email('Enter an email address')
 
-      const didDelete = await io.confirm(`Delete this user?`, {
+      const shouldDelete = await io.confirm(`Delete this user?`, {
         helpText: 'All of their data will be removed.',
       })
 
+      if (!shouldDelete) {
+        ctx.log('Canceled by user')
+        return
+      }
+
       await sleep(500)
-      ctx.log('Deleted 1 subscription')
       await sleep(500)
       ctx.log(`Deleted ${Math.floor(Math.random() * 100)} post drafts`)
       await sleep(500)
@@ -179,7 +183,7 @@ const interval = new Interval({
       await sleep(1500)
       ctx.log('Deleted 13 comments')
 
-      return { didDelete, email }
+      return { email }
     },
     helloCurrentUser: async (io, ctx) => {
       console.log(ctx.params)
@@ -205,6 +209,16 @@ const interval = new Interval({
       await io.display.object('Result', { data: { date, time, datetime } })
 
       return datetime
+    },
+    validityTester: async io => {
+      await io.group([
+        io.input.number('Enter a number'),
+        io.input.number('Enter a second number').optional(),
+        io.input.text('First name'),
+        io.input.text('Last name').optional(),
+        io.input.email('Email'),
+        io.input.email('Backup email').optional(),
+      ])
     },
     optionalCheckboxes: async io => {
       const options = [
