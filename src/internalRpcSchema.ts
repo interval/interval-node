@@ -225,6 +225,19 @@ export const clientSchema = {
     }),
     returns: z.boolean(),
   },
+  NOTIFY: {
+    inputs: z.object({
+      deliveries: z.array(
+        z.object({
+          to: z.string(),
+          method: z.enum(['EMAIL', 'SLACK']).optional(),
+        })
+      ),
+      message: z.string(),
+      title: z.string().optional(),
+    }),
+    returns: z.boolean(),
+  },
 }
 
 export type ClientSchema = typeof clientSchema
