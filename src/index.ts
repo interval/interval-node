@@ -33,6 +33,8 @@ export interface InternalConfig {
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
+  pingIntervalMs?: number
+  closeUnresponsiveConnectionTimeoutMs?: number
 }
 
 interface SetupConfig {
@@ -61,6 +63,10 @@ export default class Interval {
   #endpoint: string = 'wss://intervalkit.com/websocket'
   #logger: Logger
   #retryIntervalMs: number = 3000
+  #pingIntervalMs: number = 30_000
+  #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
+  #pingIntervalHandle: NodeJS.Timeout | undefined
+
   actions: Actions
 
   organization:
@@ -82,6 +88,18 @@ export default class Interval {
 
     if (config.retryIntervalMs && config.retryIntervalMs > 0) {
       this.#retryIntervalMs = config.retryIntervalMs
+    }
+
+    if (config.pingIntervalMs && config.pingIntervalMs > 0) {
+      this.#pingIntervalMs = config.pingIntervalMs
+    }
+
+    if (
+      config.closeUnresponsiveConnectionTimeoutMs &&
+      config.closeUnresponsiveConnectionTimeoutMs > 0
+    ) {
+      this.#closeUnresponsiveConnectionTimeoutMs =
+        config.closeUnresponsiveConnectionTimeoutMs
     }
 
     this.actions = new Actions(this.#apiKey, this.#endpoint)
@@ -226,6 +244,10 @@ export default class Interval {
     )
 
     ws.onClose.attach(async ([code, reason]) => {
+      if (this.#pingIntervalHandle) {
+        clearInterval(this.#pingIntervalHandle)
+        this.#pingIntervalHandle = undefined
+      }
       // don't initialize retry process again if already started
       if (!this.#isConnected) return
 
@@ -262,6 +284,42 @@ export default class Interval {
 
     this.#ws = ws
     this.#isConnected = true
+
+    let lastSuccessfulPing = new Date()
+    this.#pingIntervalHandle = setInterval(async () => {
+      if (!this.#isConnected) {
+        if (this.#pingIntervalHandle) {
+          clearInterval(this.#pingIntervalHandle)
+          this.#pingIntervalHandle = undefined
+        }
+
+        return
+      }
+
+      try {
+        await ws.ping()
+        lastSuccessfulPing = new Date()
+      } catch (err) {
+        this.#logger.warn('Pong not received in time')
+        if (!(err instanceof TimeoutError)) {
+          this.#logger.error(err)
+        }
+
+        if (
+          lastSuccessfulPing.getTime() <
+          new Date().getTime() - this.#closeUnresponsiveConnectionTimeoutMs
+        ) {
+          this.#logger.error(
+            'No pong received in last three minutes, closing connection to Interval and retrying...'
+          )
+          if (this.#pingIntervalHandle) {
+            clearInterval(this.#pingIntervalHandle)
+            this.#pingIntervalHandle = undefined
+          }
+          ws.close()
+        }
+      }
+    }, this.#pingIntervalMs)
 
     if (!this.#serverRpc) return
 
