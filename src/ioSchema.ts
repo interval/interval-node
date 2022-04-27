@@ -461,6 +461,20 @@ export const ioSchema = {
     state: z.null(),
     returns: z.null(),
   },
+  NOTIFY: {
+    props: z.object({
+      message: z.string(),
+      title: z.string().optional(),
+      delivery: z.array(
+        z.object({
+          to: z.string(),
+          method: z.enum(['EMAIL', 'SLACK']).optional(),
+        })
+      ),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
 }
 
 export type T_IO_Schema = typeof ioSchema
