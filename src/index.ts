@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { v4 } from 'uuid'
 import { WebSocket } from 'ws'
 import fetch from 'node-fetch'
+import { AsyncLocalStorage } from 'async_hooks'
 import ISocket, { TimeoutError } from './classes/ISocket'
 import { DuplexRPCClient } from './classes/DuplexRPCClient'
 import IOError from './classes/IOError'
@@ -24,8 +25,22 @@ import {
 import { IOClient } from './classes/IOClient'
 import * as pkg from '../package.json'
 import { deserializeDates } from './utils/deserialize'
-import type { ActionCtx, ActionLogFn, IO, IntervalActionHandler } from './types'
+import type {
+  ActionCtx,
+  ActionLogFn,
+  IO,
+  IntervalActionHandler,
+  IntervalActionStore,
+} from './types'
 import TransactionLoadingState from './classes/TransactionLoadingState'
+
+export type {
+  ActionCtx,
+  ActionLogFn,
+  IO,
+  IntervalActionHandler,
+  IntervalActionStore,
+}
 
 export interface InternalConfig {
   apiKey: string
@@ -41,8 +56,6 @@ interface SetupConfig {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-export type { ActionCtx, ActionLogFn, IO, IntervalActionHandler }
-
 export interface QueuedAction {
   id: string
   assignee?: string
@@ -53,6 +66,19 @@ export class IntervalError extends Error {
   constructor(message: string) {
     super(message)
   }
+}
+
+const actionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
+
+export function getActionStore(): IntervalActionStore {
+  const store = actionLocalStorage.getStore()
+  if (!store) {
+    throw new IntervalError(
+      'Function getActionStore can only be used inside an IntervalActionHandler'
+    )
+  }
+
+  return store
 }
 
 export default class Interval {
@@ -343,63 +369,67 @@ export default class Interval {
             }),
           }
 
-          fn(client.io, ctx)
-            .then(res => {
-              // Allow actions to return data even after being canceled
+          const { io } = client
 
-              const result: ActionResultSchema = {
-                schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
-                status: 'SUCCESS',
-                data: res || null,
-              }
+          actionLocalStorage.run({ io, ctx }, () => {
+            fn(client.io, ctx)
+              .then(res => {
+                // Allow actions to return data even after being canceled
 
-              return result
-            })
-            .catch(err => {
-              // Action did not catch the cancellation error
-              if (err instanceof IOError && err.kind === 'CANCELED') throw err
-
-              this.#logger.error(err)
-
-              const result: ActionResultSchema = {
-                schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
-                status: 'FAILURE',
-                data: err.message
-                  ? { error: err.name, message: err.message }
-                  : null,
-              }
-
-              return result
-            })
-            .then((res: ActionResultSchema) => {
-              this.#send('MARK_TRANSACTION_COMPLETE', {
-                transactionId,
-                result: JSON.stringify(res),
-              })
-            })
-            .catch(err => {
-              if (err instanceof IOError) {
-                switch (err.kind) {
-                  case 'CANCELED':
-                    this.#log.prod(
-                      'Transaction canceled for action',
-                      actionSlug
-                    )
-                    break
-                  case 'TRANSACTION_CLOSED':
-                    this.#log.prod(
-                      'Attempted to make IO call after transaction already closed in action',
-                      actionSlug
-                    )
-                    break
+                const result: ActionResultSchema = {
+                  schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
+                  status: 'SUCCESS',
+                  data: res || null,
                 }
-              }
-            })
-            .finally(() => {
-              this.#pendingIOCalls.delete(transactionId)
-              this.#transactionLoadingStates.delete(transactionId)
-              this.#ioResponseHandlers.delete(transactionId)
-            })
+
+                return result
+              })
+              .catch(err => {
+                // Action did not catch the cancellation error
+                if (err instanceof IOError && err.kind === 'CANCELED') throw err
+
+                this.#logger.error(err)
+
+                const result: ActionResultSchema = {
+                  schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
+                  status: 'FAILURE',
+                  data: err.message
+                    ? { error: err.name, message: err.message }
+                    : null,
+                }
+
+                return result
+              })
+              .then((res: ActionResultSchema) => {
+                this.#send('MARK_TRANSACTION_COMPLETE', {
+                  transactionId,
+                  result: JSON.stringify(res),
+                })
+              })
+              .catch(err => {
+                if (err instanceof IOError) {
+                  switch (err.kind) {
+                    case 'CANCELED':
+                      this.#log.prod(
+                        'Transaction canceled for action',
+                        actionSlug
+                      )
+                      break
+                    case 'TRANSACTION_CLOSED':
+                      this.#log.prod(
+                        'Attempted to make IO call after transaction already closed in action',
+                        actionSlug
+                      )
+                      break
+                  }
+                }
+              })
+              .finally(() => {
+                this.#pendingIOCalls.delete(transactionId)
+                this.#transactionLoadingStates.delete(transactionId)
+                this.#ioResponseHandlers.delete(transactionId)
+              })
+          })
 
           return
         },
