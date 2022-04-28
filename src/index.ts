@@ -276,19 +276,19 @@ export default class Interval {
       { id }
     )
 
-
     ws.onError.attach(() => {
       console.log('err')
     })
 
     ws.onClose.attach(async ([code, reason]) => {
-      // don't initialize retry process again if already started
-      if (!this.#isConnected) return
-
       this.#log.prod(
         `❗ Lost connection to Interval (code ${code}). Reason:`,
         reason
       )
+
+      // don't initialize retry process again if already started
+      if (!this.#isConnected) return
+
       this.#log.prod('🔌 Reconnecting...')
 
       this.#isConnected = false
