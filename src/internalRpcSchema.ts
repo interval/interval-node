@@ -49,6 +49,13 @@ export const ENQUEUE_ACTION = {
   ]),
 }
 
+export const CREATE_ANONYMOUS_ACCOUNT = {
+  inputs: z.object({}),
+  returns: z.object({
+    apiKey: z.string(),
+  }),
+}
+
 export const DEQUEUE_ACTION = {
   inputs: z.object({
     id: z.string(),

@@ -14,6 +14,7 @@ import {
   DEQUEUE_ACTION,
   ActionEnvironment,
   LoadingState,
+  CREATE_ANONYMOUS_ACCOUNT,
 } from './internalRpcSchema'
 import {
   ActionResultSchema,
@@ -26,9 +27,10 @@ import * as pkg from '../package.json'
 import { deserializeDates } from './utils/deserialize'
 import type { ActionCtx, ActionLogFn, IO, IntervalActionHandler } from './types'
 import TransactionLoadingState from './classes/TransactionLoadingState'
+import localConfig from './localConfig'
 
 export interface InternalConfig {
-  apiKey: string
+  apiKey?: string
   actions: Record<string, IntervalActionHandler>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
@@ -55,10 +57,20 @@ export class IntervalError extends Error {
   }
 }
 
+function getHttpEndpoint(wsEndpoint: string) {
+  const url = new URL(wsEndpoint)
+  url.protocol = url.protocol.replace('ws', 'http')
+  url.pathname = ''
+  const str = url.toString()
+
+  return str.endsWith('/') ? str.slice(0, -1) : str
+}
+
 export default class Interval {
   #actions: Record<string, IntervalActionHandler>
-  #apiKey: string
+  #apiKey?: string
   #endpoint: string = 'wss://intervalkit.com/websocket'
+  #httpEndpoint: string
   #logger: Logger
   #retryIntervalMs: number = 3000
   actions: Actions
@@ -80,11 +92,13 @@ export default class Interval {
       this.#endpoint = config.endpoint
     }
 
+    this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
+
     if (config.retryIntervalMs && config.retryIntervalMs > 0) {
       this.#retryIntervalMs = config.retryIntervalMs
     }
 
-    this.actions = new Actions(this.#apiKey, this.#endpoint)
+    this.actions = new Actions(this.#httpEndpoint, this.#apiKey)
   }
 
   get #log() {
@@ -209,21 +223,63 @@ export default class Interval {
     }
   }
 
+  async #findOrCreateAnonymousAccount() {
+    let config = localConfig.get()
+
+    let apiKey = config?.apiKey
+
+    if (!apiKey) {
+      const response = await fetch(
+        this.#httpEndpoint + '/api/auth/anonymous/create',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+        .then(r => r.json())
+        .then(r => CREATE_ANONYMOUS_ACCOUNT.returns.parseAsync(r))
+        .catch(() => {
+          throw new IntervalError('Received invalid API response.')
+        })
+
+      await localConfig.write({
+        apiKey: response.apiKey,
+      })
+
+      apiKey = response.apiKey
+    }
+
+    return apiKey
+  }
+
   /**
    * Establishes the underlying ISocket connection to Interval.
    */
   async #createSocketConnection(connectConfig?: SetupConfig) {
     const id = connectConfig?.instanceId ?? v4()
 
+    if (!this.#apiKey) {
+      this.#apiKey = await this.#findOrCreateAnonymousAccount()
+    }
+
+    const headers: Record<string, string> = { 'x-instance-id': id }
+    if (this.#apiKey) {
+      headers['x-api-key'] = this.#apiKey
+    }
+
     const ws = new ISocket(
       new WebSocket(this.#endpoint, {
-        headers: {
-          'x-api-key': this.#apiKey,
-          'x-instance-id': id,
-        },
+        headers,
       }),
       { id }
     )
+
+
+    ws.onError.attach(() => {
+      console.log('err')
+    })
 
     ws.onClose.attach(async ([code, reason]) => {
       // don't initialize retry process again if already started
@@ -439,6 +495,10 @@ export default class Interval {
 
     const slugs = Object.keys(this.#actions)
 
+    if (!this.#apiKey) {
+      this.#apiKey = await this.#findOrCreateAnonymousAccount()
+    }
+
     const loggedIn = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
       callableActionNames: slugs,
@@ -529,15 +589,12 @@ export default class Interval {
  * This is effectively a namespace inside of Interval with a little bit of its own state.
  */
 class Actions {
-  #apiKey: string
+  #apiKey?: string
   #endpoint: string
 
-  constructor(apiKey: string, endpoint: string) {
+  constructor(endpoint: string, apiKey?: string) {
     this.#apiKey = apiKey
-    const url = new URL(endpoint)
-    url.protocol = url.protocol.replace('ws', 'http')
-    url.pathname = '/api/actions'
-    this.#endpoint = url.toString()
+    this.#endpoint = endpoint + '/api/actions'
   }
 
   #getAddress(path: string): string {
