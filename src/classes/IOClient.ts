@@ -287,10 +287,6 @@ export class IOClient {
         date: this.createIOMethod('INPUT_DATE', date),
         time: this.createIOMethod('INPUT_TIME'),
         datetime: this.createIOMethod('INPUT_DATETIME', datetime),
-        progress: {
-          steps: this.createIOMethod('DISPLAY_PROGRESS_STEPS'),
-          indeterminate: this.createIOMethod('DISPLAY_PROGRESS_INDETERMINATE'),
-        },
       },
     }
   }

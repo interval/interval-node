@@ -169,12 +169,16 @@ const interval = new Interval({
     confirmBeforeDelete: async (io, ctx) => {
       const email = await io.input.email('Enter an email address')
 
-      const didDelete = await io.confirm(`Delete this user?`, {
+      const shouldDelete = await io.confirm(`Delete this user?`, {
         helpText: 'All of their data will be removed.',
       })
 
+      if (!shouldDelete) {
+        ctx.log('Canceled by user')
+        return
+      }
+
       await sleep(500)
-      ctx.log('Deleted 1 subscription')
       await sleep(500)
       ctx.log(`Deleted ${Math.floor(Math.random() * 100)} post drafts`)
       await sleep(500)
@@ -182,7 +186,7 @@ const interval = new Interval({
       await sleep(1500)
       ctx.log('Deleted 13 comments')
 
-      return { didDelete, email }
+      return { email }
     },
     helloCurrentUser: async (io, ctx) => {
       console.log(ctx.params)
@@ -208,6 +212,16 @@ const interval = new Interval({
       await io.display.object('Result', { data: { date, time, datetime } })
 
       return datetime
+    },
+    validityTester: async io => {
+      await io.group([
+        io.input.number('Enter a number'),
+        io.input.number('Enter a second number').optional(),
+        io.input.text('First name'),
+        io.input.text('Last name').optional(),
+        io.input.email('Email'),
+        io.input.email('Backup email').optional(),
+      ])
     },
     optionalCheckboxes: async io => {
       const options = [
@@ -346,23 +360,30 @@ const interval = new Interval({
         }),
       ])
     },
-    Progress_steps: async io => {
-      await io.experimental.progress.indeterminate('Fetching users...')
+    Progress_steps: async (io, ctx) => {
+      await ctx.loading.start({ label: 'Fetching users...' })
+
+      await sleep(1000)
 
       const users = await fakeDb
         .find('')
         .then(res => res.map(mapToIntervalUser))
 
-      let completed = 1
-      for (const u of users) {
-        await io.experimental.progress.steps('Exporting users', {
-          subTitle: "We're exporting all users. This may take a while.",
-          currentStep: u.name,
-          steps: { completed, total: users.length },
-        })
+      await io.display.heading('Press continue when ready')
+
+      await ctx.loading.start({
+        label: 'Exporting users',
+        description: "We're exporting all users. This may take a while.",
+        itemsInQueue: users.length,
+      })
+      for (const _ of users) {
         await sleep(1000)
-        completed += 1
+        await ctx.loading.completeOne()
       }
+
+      await ctx.loading.start({ label: 'Finishing up...' })
+
+      await sleep(1000)
     },
     echoParams: async (io, ctx) => {
       ctx.log(ctx.params)

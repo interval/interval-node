@@ -16,6 +16,21 @@ export const actionEnvironment = z.enum(['live', 'development'])
 
 export type ActionEnvironment = z.infer<typeof actionEnvironment>
 
+export const LOADING_OPTIONS = z.object({
+  label: z.string().optional(),
+  description: z.string().optional(),
+  itemsInQueue: z.number().int().optional(),
+})
+const LOADING_STATE = z.intersection(
+  LOADING_OPTIONS,
+  z.object({
+    itemsCompleted: z.number().int().optional(),
+  })
+)
+
+export type LoadingOptions = z.input<typeof LOADING_OPTIONS>
+export type LoadingState = z.input<typeof LOADING_STATE>
+
 export const ENQUEUE_ACTION = {
   inputs: z.object({
     slug: z.string(),
@@ -72,6 +87,15 @@ export const wsServerSchema = {
       transactionId: z.string(),
       ioCall: z.string(),
     }),
+    returns: z.boolean(),
+  },
+  SEND_LOADING_CALL: {
+    inputs: z.intersection(
+      z.object({
+        transactionId: z.string(),
+      }),
+      LOADING_STATE
+    ),
     returns: z.boolean(),
   },
   SEND_LOG: {
@@ -186,6 +210,10 @@ export const clientSchema = {
     inputs: z.object({
       toRender: z.string(),
     }),
+    returns: z.boolean(),
+  },
+  LOADING_STATE: {
+    inputs: LOADING_STATE,
     returns: z.boolean(),
   },
   LOG: {

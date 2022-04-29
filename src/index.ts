@@ -13,6 +13,7 @@ import {
   ENQUEUE_ACTION,
   DEQUEUE_ACTION,
   ActionEnvironment,
+  LoadingState,
 } from './internalRpcSchema'
 import {
   ActionResultSchema,
@@ -30,6 +31,7 @@ import type {
   IntervalActionHandler,
   IntervalActionDefinition,
 } from './types'
+import TransactionLoadingState from './classes/TransactionLoadingState'
 
 export interface InternalConfig {
   apiKey: string
@@ -37,6 +39,8 @@ export interface InternalConfig {
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
+  pingIntervalMs?: number
+  closeUnresponsiveConnectionTimeoutMs?: number
 }
 
 interface SetupConfig {
@@ -65,6 +69,10 @@ export default class Interval {
   #endpoint: string = 'wss://intervalkit.com/websocket'
   #logger: Logger
   #retryIntervalMs: number = 3000
+  #pingIntervalMs: number = 30_000
+  #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
+  #pingIntervalHandle: NodeJS.Timeout | undefined
+
   actions: Actions
 
   organization:
@@ -88,6 +96,18 @@ export default class Interval {
       this.#retryIntervalMs = config.retryIntervalMs
     }
 
+    if (config.pingIntervalMs && config.pingIntervalMs > 0) {
+      this.#pingIntervalMs = config.pingIntervalMs
+    }
+
+    if (
+      config.closeUnresponsiveConnectionTimeoutMs &&
+      config.closeUnresponsiveConnectionTimeoutMs > 0
+    ) {
+      this.#closeUnresponsiveConnectionTimeoutMs =
+        config.closeUnresponsiveConnectionTimeoutMs
+    }
+
     this.actions = new Actions(this.#apiKey, this.#endpoint)
   }
 
@@ -97,6 +117,7 @@ export default class Interval {
 
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
   #pendingIOCalls = new Map<string, string>()
+  #transactionLoadingStates = new Map<string, LoadingState>()
   #ws: ISocket | undefined = undefined
   #serverRpc:
     | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
@@ -129,6 +150,7 @@ export default class Interval {
             })
               .then(() => {
                 this.#pendingIOCalls.delete(transactionId)
+                this.#transactionLoadingStates.delete(transactionId)
               })
               .catch(async err => {
                 if (err instanceof IOError) {
@@ -142,6 +164,56 @@ export default class Interval {
                     err.kind === 'TRANSACTION_CLOSED'
                   ) {
                     this.#logger.debug('Aborting resending pending IO call')
+                    this.#pendingIOCalls.delete(transactionId)
+                    return
+                  }
+                } else {
+                  this.#logger.debug('Failed resending pending IO call:', err)
+                }
+
+                this.#logger.debug(
+                  `Trying again in ${Math.round(
+                    this.#retryIntervalMs / 1000
+                  )}s...`
+                )
+                await sleep(this.#retryIntervalMs)
+              })
+        )
+      )
+    }
+  }
+
+  /**
+   * Resends pending transaction loading states upon reconnection.
+   */
+  async #resendTransactionLoadingStates() {
+    if (!this.#isConnected) return
+
+    while (this.#transactionLoadingStates.size > 0) {
+      await Promise.allSettled(
+        Array.from(this.#transactionLoadingStates.entries()).map(
+          ([transactionId, loadingState]) =>
+            this.#send('SEND_LOADING_CALL', {
+              transactionId,
+              ...loadingState,
+            })
+              .then(() => {
+                this.#transactionLoadingStates.delete(transactionId)
+              })
+              .catch(async err => {
+                if (err instanceof IOError) {
+                  this.#logger.error(
+                    'Failed resending transaction loading state: ',
+                    err.kind
+                  )
+
+                  if (
+                    err.kind === 'CANCELED' ||
+                    err.kind === 'TRANSACTION_CLOSED'
+                  ) {
+                    this.#logger.debug(
+                      'Aborting resending transaction loading state'
+                    )
                     this.#pendingIOCalls.delete(transactionId)
                     return
                   }
@@ -178,6 +250,10 @@ export default class Interval {
     )
 
     ws.onClose.attach(async ([code, reason]) => {
+      if (this.#pingIntervalHandle) {
+        clearInterval(this.#pingIntervalHandle)
+        this.#pingIntervalHandle = undefined
+      }
       // don't initialize retry process again if already started
       if (!this.#isConnected) return
 
@@ -195,6 +271,7 @@ export default class Interval {
             this.#log.prod('⚡ Reconnection successful')
             this.#isConnected = true
             this.#resendPendingIOCalls()
+            this.#resendTransactionLoadingStates()
           })
           .catch(() => {
             /* */
@@ -213,6 +290,42 @@ export default class Interval {
 
     this.#ws = ws
     this.#isConnected = true
+
+    let lastSuccessfulPing = new Date()
+    this.#pingIntervalHandle = setInterval(async () => {
+      if (!this.#isConnected) {
+        if (this.#pingIntervalHandle) {
+          clearInterval(this.#pingIntervalHandle)
+          this.#pingIntervalHandle = undefined
+        }
+
+        return
+      }
+
+      try {
+        await ws.ping()
+        lastSuccessfulPing = new Date()
+      } catch (err) {
+        this.#logger.warn('Pong not received in time')
+        if (!(err instanceof TimeoutError)) {
+          this.#logger.error(err)
+        }
+
+        if (
+          lastSuccessfulPing.getTime() <
+          new Date().getTime() - this.#closeUnresponsiveConnectionTimeoutMs
+        ) {
+          this.#logger.error(
+            'No pong received in last three minutes, closing connection to Interval and retrying...'
+          )
+          if (this.#pingIntervalHandle) {
+            clearInterval(this.#pingIntervalHandle)
+            this.#pingIntervalHandle = undefined
+          }
+          ws.close()
+        }
+      }
+    }, this.#pingIntervalMs)
 
     if (!this.#serverRpc) return
 
@@ -262,6 +375,8 @@ export default class Interval {
                 transactionId,
                 ioCall,
               })
+
+              this.#transactionLoadingStates.delete(transactionId)
             },
           })
 
@@ -281,8 +396,17 @@ export default class Interval {
             action: {
               slug: actionSlug,
             },
-            log: (...args) =>
-              this.#sendLog(inputs.transactionId, logIndex++, ...args),
+            log: (...args) => this.#sendLog(transactionId, logIndex++, ...args),
+            loading: new TransactionLoadingState({
+              logger: this.#logger,
+              send: async loadingState => {
+                this.#transactionLoadingStates.set(transactionId, loadingState)
+                await this.#send('SEND_LOADING_CALL', {
+                  transactionId,
+                  ...loadingState,
+                })
+              },
+            }),
           }
 
           actionHandler(client.io, ctx)
@@ -339,6 +463,7 @@ export default class Interval {
             })
             .finally(() => {
               this.#pendingIOCalls.delete(transactionId)
+              this.#transactionLoadingStates.delete(transactionId)
               this.#ioResponseHandlers.delete(transactionId)
             })
 
