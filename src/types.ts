@@ -27,6 +27,7 @@ export type ActionCtx = Pick<
 > & {
   loading: TransactionLoadingState
   log: ActionLogFn
+  notify: NotifyFn
   organization: {
     name: string
     slug: string
@@ -80,7 +81,7 @@ export type NotifyConfig = {
   delivery: NotificationDeliveryInstruction[]
 }
 
-export type IONotify = (config: NotifyConfig) => Promise<void>
+export type NotifyFn = (config: NotifyConfig) => Promise<void>
 
 export type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
 

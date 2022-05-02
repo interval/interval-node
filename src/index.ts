@@ -370,15 +370,6 @@ export default class Interval {
 
               this.#transactionLoadingStates.delete(transactionId)
             },
-            notify: async ({ message, title, delivery }) => {
-              await this.#send('NOTIFY', {
-                transactionId: inputs.transactionId,
-                message,
-                title,
-                deliveryInstructions: delivery,
-                createdAt: new Date().toISOString(),
-              })
-            },
           })
 
           this.#ioResponseHandlers.set(
@@ -398,6 +389,15 @@ export default class Interval {
               slug: actionSlug,
             },
             log: (...args) => this.#sendLog(transactionId, logIndex++, ...args),
+            notify: async ({ message, title, delivery }) => {
+              await this.#send('NOTIFY', {
+                transactionId: inputs.transactionId,
+                message,
+                title,
+                deliveryInstructions: delivery,
+                createdAt: new Date().toISOString(),
+              })
+            },
             loading: new TransactionLoadingState({
               logger: this.#logger,
               send: async loadingState => {

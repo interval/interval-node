@@ -488,7 +488,7 @@ const interval = new Interval({
           .optional(),
       ])
 
-      await io.notify({
+      await ctx.notify({
         message,
         title,
         delivery: deliveries,
