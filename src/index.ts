@@ -81,6 +81,28 @@ export function getActionStore(): IntervalActionStore {
   return store
 }
 
+// prettier-ignore
+export const io: IO = {
+  get group() { return getActionStore().io.group },
+  get confirm() { return getActionStore().io.confirm },
+  get search() { return getActionStore().io.search },
+  get input() { return getActionStore().io.input },
+  get select() { return getActionStore().io.select },
+  get display() { return getActionStore().io.display },
+  get experimental() { return getActionStore().io.experimental }
+}
+
+// prettier-ignore
+export const ctx: ActionCtx = {
+  get user() { return getActionStore().ctx.user },
+  get params() { return getActionStore().ctx.params },
+  get environment() { return getActionStore().ctx.environment },
+  get loading() { return getActionStore().ctx.loading },
+  get log() { return getActionStore().ctx.log },
+  get organization() { return getActionStore().ctx.organization },
+  get action() { return getActionStore().ctx.action },
+}
+
 export default class Interval {
   #actions: Record<string, IntervalActionHandler>
   #apiKey: string

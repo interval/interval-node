@@ -1,4 +1,4 @@
-import Interval, { IOError, getActionStore } from '../../index'
+import Interval, { IOError, io, ctx } from '../../index'
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import { table_basic, table_custom_columns } from './selectFromTable'
@@ -453,8 +453,6 @@ const interval = new Interval({
       ])
     },
     globalIO: async () => {
-      const { io, ctx } = getActionStore()
-
       await io.display.markdown(`Hello from \`${ctx.action.slug}!\``)
     },
   },
