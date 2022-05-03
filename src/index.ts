@@ -74,7 +74,7 @@ export function getActionStore(): IntervalActionStore {
   const store = actionLocalStorage.getStore()
   if (!store) {
     throw new IntervalError(
-      'Function getActionStore can only be used inside an IntervalActionHandler'
+      'Global io and ctx objects can only be used inside an IntervalActionHandler'
     )
   }
 
