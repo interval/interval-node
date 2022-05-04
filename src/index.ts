@@ -694,7 +694,7 @@ export default class Interval {
       data =
         data.slice(0, 10_000) +
         '...' +
-        '\n^ Warning: 100k logline character limit reached.\nTo avoid this error, try separating your data into multiple ctx.log() calls.'
+        '\n^ Warning: 10k logline character limit reached.\nTo avoid this error, try separating your data into multiple ctx.log() calls.'
     }
 
     this.#send('SEND_LOG', {
