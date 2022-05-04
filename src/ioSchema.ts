@@ -491,7 +491,11 @@ type JSONPrimitive = string | number | boolean | null
 
 export type RawActionReturnData = Record<string, JSONPrimitive>
 
-export type IOFunctionReturnType = SerializableRecord | undefined
+export type IOFunctionReturnType =
+  | SerializableRecord
+  | Serializable[]
+  | Serializable
+  | undefined
 
 export type ParsedActionReturnDataValue =
   | JSONPrimitive
@@ -500,7 +504,10 @@ export type ParsedActionReturnDataValue =
       value: string
     }
 
-export type ParsedActionReturnData = Record<string, ParsedActionReturnDataValue>
+export type ParsedActionReturnData =
+  | Record<string, ParsedActionReturnDataValue>
+  | ParsedActionReturnDataValue[]
+  | ParsedActionReturnDataValue
 
 export type ActionResultSchema = {
   schemaVersion: 0 | 1

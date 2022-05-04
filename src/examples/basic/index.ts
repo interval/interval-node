@@ -125,6 +125,16 @@ const interval = new Interval({
       }
     },
     'unauthorized-error': unauthorized,
+    bare_string_return: async () => {
+      return 'Hello, Interval!'
+    },
+    bare_list_return: async io => {
+      return await io.group([
+        io.input.text('Text'),
+        io.input.number('Number'),
+        io.input.boolean('Boolean'),
+      ])
+    },
     enter_a_number: async io => {
       const num = await io.input.number('Enter a number')
 
