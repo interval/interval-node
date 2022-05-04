@@ -415,6 +415,23 @@ const interval = new Interval({
 
       throw errors[Number(selected.value)]
     },
+    money: async io => {
+      const [usd, eur, jpy] = await io.group([
+        io.input.number('United States Dollar', {
+          min: 10,
+          currency: 'USD',
+        }),
+        io.input.number('Euro', {
+          currency: 'EUR',
+        }),
+        io.input.number('Japanese yen', {
+          currency: 'JPY',
+          decimals: 3,
+        }),
+      ])
+
+      return { usd, eur, jpy }
+    },
     actionLinks: async io => {
       await io.group([
         io.display.table('In a table!', {
