@@ -690,9 +690,9 @@ export default class Interval {
       })
       .join(' ')
 
-    if (data.length > 100_000) {
+    if (data.length > 10_000) {
       data =
-        data.slice(0, 100_000) +
+        data.slice(0, 10_000) +
         '...' +
         '\n^ Warning: 100k logline character limit reached.\nTo avoid this error, try separating your data into multiple ctx.log() calls.'
     }
