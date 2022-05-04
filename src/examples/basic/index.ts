@@ -3,6 +3,7 @@ import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import { table_basic, table_custom_columns } from './selectFromTable'
 import unauthorized from './unauthorized'
+import './ghostHost'
 
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
