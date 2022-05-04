@@ -68,6 +68,7 @@ function getHttpEndpoint(wsEndpoint: string) {
 
 export default class Interval {
   #actions: Record<string, IntervalActionHandler>
+  #ghostOrgId?: string
   #apiKey?: string
   #endpoint: string = 'wss://intervalkit.com/websocket'
   #httpEndpoint: string
@@ -224,11 +225,11 @@ export default class Interval {
   }
 
   async #findOrCreateAnonymousAccount() {
-    let config = localConfig.get()
+    let config = await localConfig.get()
 
-    let apiKey = config?.apiKey
+    let ghostOrgId = config?.ghostOrgId
 
-    if (!apiKey) {
+    if (!ghostOrgId) {
       const response = await fetch(
         this.#httpEndpoint + '/api/auth/anonymous/create',
         {
@@ -245,13 +246,13 @@ export default class Interval {
         })
 
       await localConfig.write({
-        apiKey: response.apiKey,
+        ghostOrgId: response.ghostOrgId,
       })
 
-      apiKey = response.apiKey
+      ghostOrgId = response.ghostOrgId
     }
 
-    return apiKey
+    return ghostOrgId
   }
 
   /**
@@ -260,13 +261,12 @@ export default class Interval {
   async #createSocketConnection(connectConfig?: SetupConfig) {
     const id = connectConfig?.instanceId ?? v4()
 
-    if (!this.#apiKey) {
-      this.#apiKey = await this.#findOrCreateAnonymousAccount()
-    }
-
     const headers: Record<string, string> = { 'x-instance-id': id }
     if (this.#apiKey) {
       headers['x-api-key'] = this.#apiKey
+    } else if (!this.#apiKey) {
+      this.#ghostOrgId = await this.#findOrCreateAnonymousAccount()
+      headers['x-ghost-org-id'] = this.#ghostOrgId
     }
 
     const ws = new ISocket(
@@ -282,7 +282,7 @@ export default class Interval {
 
     ws.onClose.attach(async ([code, reason]) => {
       this.#log.prod(
-        `❗ Lost connection to Interval (code ${code}). Reason:`,
+        `❗ Could not connect to Interval (code ${code}). Reason:`,
         reason
       )
 

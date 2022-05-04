@@ -4,22 +4,20 @@ import z from 'zod'
 import util from 'util'
 
 const writeFile = util.promisify(fs.writeFile)
+const removeFile = util.promisify(fs.rm)
+const readFile = util.promisify(fs.readFile)
 
 const intervalConfigPath = path.join(__dirname, '.interval.config.json')
-console.log({ intervalConfigPath })
-
-function getIntervalConfigFile() {}
-
-console.log(getIntervalConfigFile())
 
 const SCHEMA = z.object({
-  apiKey: z.string(),
+  ghostOrgId: z.string(),
 })
 
 export default {
-  get() {
+  async get() {
     try {
-      const configFile = SCHEMA.parse(require(intervalConfigPath))
+      const contents = await readFile(intervalConfigPath, 'utf-8')
+      const configFile = SCHEMA.parse(JSON.parse(contents))
       return configFile
     } catch (e) {
       return null
@@ -27,5 +25,10 @@ export default {
   },
   write(config: z.infer<typeof SCHEMA>) {
     return writeFile(intervalConfigPath, JSON.stringify(config), 'utf-8')
+  },
+  async clear() {
+    try {
+      await removeFile(intervalConfigPath)
+    } catch (e) {}
   },
 }

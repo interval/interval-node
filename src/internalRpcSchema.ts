@@ -52,7 +52,7 @@ export const ENQUEUE_ACTION = {
 export const CREATE_ANONYMOUS_ACCOUNT = {
   inputs: z.object({}),
   returns: z.object({
-    apiKey: z.string(),
+    ghostOrgId: z.string(),
   }),
 }
 
