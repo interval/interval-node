@@ -182,6 +182,18 @@ export const internalTableColumn = z.object({
   label: z.string(),
 })
 
+export const CURRENCIES = [
+  'USD',
+  'CAD',
+  'EUR',
+  'GBP',
+  'AUD',
+  'CNY',
+  'JPY',
+] as const
+export const currencyCode = z.enum(CURRENCIES)
+export type CurrencyCode = z.infer<typeof currencyCode>
+
 /**
  * Any methods with an `immediate` property defined (at all, not just truthy)
  * will resolve immediately when awaited.
@@ -220,6 +232,7 @@ export const ioSchema = {
       placeholder: z.optional(z.string()),
       defaultValue: z.optional(z.number()),
       decimals: z.optional(z.number().positive().int()),
+      currency: z.optional(currencyCode),
     }),
     state: z.null(),
     returns: z.number(),
@@ -455,6 +468,20 @@ export const ioSchema = {
           label: z.string(),
           isComplete: z.boolean(),
           resultDescription: z.union([z.null(), z.string()]),
+        })
+      ),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
+  NOTIFY: {
+    props: z.object({
+      message: z.string(),
+      title: z.string().optional(),
+      delivery: z.array(
+        z.object({
+          to: z.string(),
+          method: z.enum(['EMAIL', 'SLACK']).optional(),
         })
       ),
     }),

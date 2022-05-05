@@ -27,6 +27,7 @@ export type ActionCtx = Pick<
 > & {
   loading: TransactionLoadingState
   log: ActionLogFn
+  notify: NotifyFn
   organization: {
     name: string
     slug: string
@@ -49,6 +50,15 @@ export interface IntervalActionStore {
   io: IO
   ctx: ActionCtx
 }
+
+export interface ExplicitIntervalActionDefinition {
+  handler: IntervalActionHandler
+  backgroundable?: boolean
+}
+
+export type IntervalActionDefinition =
+  | IntervalActionHandler
+  | ExplicitIntervalActionDefinition
 
 export type IOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
@@ -73,6 +83,19 @@ export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = (
 ) => Promise<[ComponentReturnValue<MethodName>]>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
+
+export interface NotificationDeliveryInstruction {
+  to: string
+  method?: 'SLACK' | 'EMAIL'
+}
+
+export type NotifyConfig = {
+  message: string
+  title?: string
+  delivery: NotificationDeliveryInstruction[]
+}
+
+export type NotifyFn = (config: NotifyConfig) => Promise<void>
 
 export type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
 

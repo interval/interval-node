@@ -49,6 +49,13 @@ export const ENQUEUE_ACTION = {
   ]),
 }
 
+export const CREATE_GHOST_MODE_ACCOUNT = {
+  inputs: z.object({}),
+  returns: z.object({
+    ghostOrgId: z.string(),
+  }),
+}
+
 export const DEQUEUE_ACTION = {
   inputs: z.object({
     id: z.string(),
@@ -107,6 +114,21 @@ export const wsServerSchema = {
     }),
     returns: z.boolean(),
   },
+  NOTIFY: {
+    inputs: z.object({
+      transactionId: z.string(),
+      message: z.string(),
+      title: z.string().optional(),
+      deliveryInstructions: z.array(
+        z.object({
+          to: z.string(),
+          method: z.enum(['EMAIL', 'SLACK']).optional(),
+        })
+      ),
+      createdAt: z.string(),
+    }),
+    returns: z.boolean(),
+  },
   MARK_TRANSACTION_COMPLETE: {
     inputs: z.object({
       transactionId: z.string(),
@@ -115,14 +137,28 @@ export const wsServerSchema = {
     returns: z.boolean(),
   },
   INITIALIZE_HOST: {
-    inputs: z.object({
-      apiKey: z.string(),
-      // Actually slugs, for backward compatibility
-      // TODO: Change to slug in breaking release
-      callableActionNames: z.array(z.string()),
-      sdkName: z.string().optional(),
-      sdkVersion: z.string().optional(),
-    }),
+    inputs: z.intersection(
+      z.object({
+        apiKey: z.string().optional(),
+        sdkName: z.string().optional(),
+        sdkVersion: z.string().optional(),
+      }),
+      z.union([
+        z.object({
+          // Actually slugs, for backward compatibility
+          // TODO: Change to slug in breaking release
+          callableActionNames: z.array(z.string()),
+        }),
+        z.object({
+          actions: z.array(
+            z.object({
+              slug: z.string(),
+              backgroundable: z.boolean().optional(),
+            })
+          ),
+        }),
+      ])
+    ),
     returns: z
       .object({
         environment: actionEnvironment,
@@ -207,6 +243,19 @@ export const clientSchema = {
       data: z.string().nullable(),
       index: z.number(),
       timestamp: z.number(),
+    }),
+    returns: z.boolean(),
+  },
+  NOTIFY: {
+    inputs: z.object({
+      deliveries: z.array(
+        z.object({
+          to: z.string(),
+          method: z.enum(['EMAIL', 'SLACK']).optional(),
+        })
+      ),
+      message: z.string(),
+      title: z.string().optional(),
     }),
     returns: z.boolean(),
   },

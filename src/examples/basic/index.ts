@@ -1,17 +1,22 @@
 import Interval, { IOError, io, ctx } from '../../index'
+import { NotificationDeliveryInstruction } from '../../types'
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import { table_basic, table_custom_columns } from './selectFromTable'
 import unauthorized from './unauthorized'
+import './ghostHost'
 
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3000/websocket',
   actions: {
-    ImportUsers: async io => {
-      console.log("I'm a live mode action")
-      const name = await io.input.text('Enter the name for a user')
-      return { name }
+    ImportUsers: {
+      backgroundable: true,
+      handler: async io => {
+        console.log("I'm a live mode action")
+        const name = await io.input.text('Enter the name for a user')
+        return { name }
+      },
     },
     enter_two_numbers: async io => {
       const num1 = await io.input.number('Enter a number')
@@ -415,6 +420,23 @@ const interval = new Interval({
 
       throw errors[Number(selected.value)]
     },
+    money: async io => {
+      const [usd, eur, jpy] = await io.group([
+        io.input.number('United States Dollar', {
+          min: 10,
+          currency: 'USD',
+        }),
+        io.input.number('Euro', {
+          currency: 'EUR',
+        }),
+        io.input.number('Japanese yen', {
+          currency: 'JPY',
+          decimals: 3,
+        }),
+      ])
+
+      return { usd, eur, jpy }
+    },
     actionLinks: async io => {
       await io.group([
         io.display.table('In a table!', {
@@ -454,6 +476,49 @@ const interval = new Interval({
     },
     globalIO: async () => {
       await io.display.markdown(`Hello from \`${ctx.action.slug}!\``)
+    },
+    notifications: async (io, ctx) => {
+      let deliveries: NotificationDeliveryInstruction[] = []
+
+      while (true) {
+        const [_heading, to, method, moreDeliveries] = await io.group([
+          io.display.heading("Let's send a notification"),
+          io.input.text('to'),
+          io.select
+            .single('method', {
+              options: [
+                { label: 'SLACK', value: 'SLACK' },
+                { label: 'EMAIL', value: 'EMAIL' },
+              ],
+            })
+            .optional(),
+          io.input.boolean('Send to another destination?'),
+        ])
+        deliveries.push({
+          to,
+          method: method?.value as 'SLACK' | 'EMAIL' | undefined,
+        })
+        ctx.log('Current delivery array:', deliveries)
+
+        if (!moreDeliveries) break
+      }
+
+      const [message, title] = await io.group([
+        io.input.text('What message would you like to send?'),
+        io.input
+          .text('Optionally provide a title', {
+            helpText: 'This will otherwise default to the name of the action',
+          })
+          .optional(),
+      ])
+
+      await ctx.notify({
+        message,
+        title,
+        delivery: deliveries,
+      })
+
+      return { message: 'OK, notified!' }
     },
   },
 })
