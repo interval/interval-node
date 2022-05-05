@@ -3,6 +3,7 @@ import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import { table_basic, table_custom_columns } from './selectFromTable'
 import unauthorized from './unauthorized'
+import './ghostHost'
 
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
@@ -417,6 +418,23 @@ const interval = new Interval({
       })
 
       throw errors[Number(selected.value)]
+    },
+    money: async io => {
+      const [usd, eur, jpy] = await io.group([
+        io.input.number('United States Dollar', {
+          min: 10,
+          currency: 'USD',
+        }),
+        io.input.number('Euro', {
+          currency: 'EUR',
+        }),
+        io.input.number('Japanese yen', {
+          currency: 'JPY',
+          decimals: 3,
+        }),
+      ])
+
+      return { usd, eur, jpy }
     },
     actionLinks: async io => {
       await io.group([

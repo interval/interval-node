@@ -49,6 +49,13 @@ export const ENQUEUE_ACTION = {
   ]),
 }
 
+export const CREATE_GHOST_MODE_ACCOUNT = {
+  inputs: z.object({}),
+  returns: z.object({
+    ghostOrgId: z.string(),
+  }),
+}
+
 export const DEQUEUE_ACTION = {
   inputs: z.object({
     id: z.string(),
@@ -117,7 +124,7 @@ export const wsServerSchema = {
   INITIALIZE_HOST: {
     inputs: z.intersection(
       z.object({
-        apiKey: z.string(),
+        apiKey: z.string().optional(),
         sdkName: z.string().optional(),
         sdkVersion: z.string().optional(),
       }),

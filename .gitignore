@@ -5,3 +5,4 @@ dist
 pm2.config.js
 .env
 env.ts
+*/.interval.config.json
