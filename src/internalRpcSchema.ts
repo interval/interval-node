@@ -49,6 +49,13 @@ export const ENQUEUE_ACTION = {
   ]),
 }
 
+export const CREATE_GHOST_MODE_ACCOUNT = {
+  inputs: z.object({}),
+  returns: z.object({
+    ghostOrgId: z.string(),
+  }),
+}
+
 export const DEQUEUE_ACTION = {
   inputs: z.object({
     id: z.string(),
@@ -130,14 +137,28 @@ export const wsServerSchema = {
     returns: z.boolean(),
   },
   INITIALIZE_HOST: {
-    inputs: z.object({
-      apiKey: z.string(),
-      // Actually slugs, for backward compatibility
-      // TODO: Change to slug in breaking release
-      callableActionNames: z.array(z.string()),
-      sdkName: z.string().optional(),
-      sdkVersion: z.string().optional(),
-    }),
+    inputs: z.intersection(
+      z.object({
+        apiKey: z.string().optional(),
+        sdkName: z.string().optional(),
+        sdkVersion: z.string().optional(),
+      }),
+      z.union([
+        z.object({
+          // Actually slugs, for backward compatibility
+          // TODO: Change to slug in breaking release
+          callableActionNames: z.array(z.string()),
+        }),
+        z.object({
+          actions: z.array(
+            z.object({
+              slug: z.string(),
+              backgroundable: z.boolean().optional(),
+            })
+          ),
+        }),
+      ])
+    ),
     returns: z
       .object({
         environment: actionEnvironment,

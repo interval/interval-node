@@ -4,15 +4,19 @@ import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import { table_basic, table_custom_columns } from './selectFromTable'
 import unauthorized from './unauthorized'
+import './ghostHost'
 
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3000/websocket',
   actions: {
-    ImportUsers: async io => {
-      console.log("I'm a live mode action")
-      const name = await io.input.text('Enter the name for a user')
-      return { name }
+    ImportUsers: {
+      backgroundable: true,
+      handler: async io => {
+        console.log("I'm a live mode action")
+        const name = await io.input.text('Enter the name for a user')
+        return { name }
+      },
     },
     enter_two_numbers: async io => {
       const num1 = await io.input.number('Enter a number')

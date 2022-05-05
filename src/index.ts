@@ -14,6 +14,7 @@ import {
   DEQUEUE_ACTION,
   ActionEnvironment,
   LoadingState,
+  CREATE_GHOST_MODE_ACCOUNT,
 } from './internalRpcSchema'
 import {
   ActionResultSchema,
@@ -24,12 +25,19 @@ import {
 import { IOClient } from './classes/IOClient'
 import * as pkg from '../package.json'
 import { deserializeDates } from './utils/deserialize'
-import type { ActionCtx, ActionLogFn, IO, IntervalActionHandler } from './types'
+import type {
+  ActionCtx,
+  ActionLogFn,
+  IO,
+  IntervalActionHandler,
+  IntervalActionDefinition,
+} from './types'
 import TransactionLoadingState from './classes/TransactionLoadingState'
+import localConfig from './localConfig'
 
 export interface InternalConfig {
-  apiKey: string
-  actions: Record<string, IntervalActionHandler>
+  apiKey?: string
+  actions: Record<string, IntervalActionDefinition>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
@@ -57,10 +65,21 @@ export class IntervalError extends Error {
   }
 }
 
+function getHttpEndpoint(wsEndpoint: string) {
+  const url = new URL(wsEndpoint)
+  url.protocol = url.protocol.replace('ws', 'http')
+  url.pathname = ''
+  const str = url.toString()
+
+  return str.endsWith('/') ? str.slice(0, -1) : str
+}
+
 export default class Interval {
-  #actions: Record<string, IntervalActionHandler>
-  #apiKey: string
+  #ghostOrgId: string | undefined
+  #apiKey: string | undefined
+  #actions: Record<string, IntervalActionDefinition>
   #endpoint: string = 'wss://intervalkit.com/websocket'
+  #httpEndpoint: string
   #logger: Logger
   #retryIntervalMs: number = 3000
   #pingIntervalMs: number = 30_000
@@ -86,6 +105,8 @@ export default class Interval {
       this.#endpoint = config.endpoint
     }
 
+    this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
+
     if (config.retryIntervalMs && config.retryIntervalMs > 0) {
       this.#retryIntervalMs = config.retryIntervalMs
     }
@@ -102,7 +123,7 @@ export default class Interval {
         config.closeUnresponsiveConnectionTimeoutMs
     }
 
-    this.actions = new Actions(this.#apiKey, this.#endpoint)
+    this.actions = new Actions(this.#httpEndpoint, this.#logger, this.#apiKey)
   }
 
   get #log() {
@@ -227,23 +248,65 @@ export default class Interval {
     }
   }
 
+  async #findOrCreateGhostModeAccount() {
+    let config = await localConfig.get()
+
+    let ghostOrgId = config?.ghostOrgId
+
+    if (!ghostOrgId) {
+      const response = await fetch(
+        this.#httpEndpoint + '/api/auth/ghost/create',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+        .then(r => r.json())
+        .then(r => CREATE_GHOST_MODE_ACCOUNT.returns.parseAsync(r))
+        .catch(err => {
+          this.#log.debug(err)
+          throw new IntervalError('Received invalid API response.')
+        })
+
+      await localConfig.write({
+        ghostOrgId: response.ghostOrgId,
+      })
+
+      ghostOrgId = response.ghostOrgId
+    }
+
+    return ghostOrgId
+  }
+
   /**
    * Establishes the underlying ISocket connection to Interval.
    */
   async #createSocketConnection(connectConfig?: SetupConfig) {
     const id = connectConfig?.instanceId ?? v4()
 
+    const headers: Record<string, string> = { 'x-instance-id': id }
+    if (this.#apiKey) {
+      headers['x-api-key'] = this.#apiKey
+    } else if (!this.#apiKey) {
+      this.#ghostOrgId = await this.#findOrCreateGhostModeAccount()
+      headers['x-ghost-org-id'] = this.#ghostOrgId
+    }
+
     const ws = new ISocket(
       new WebSocket(this.#endpoint, {
-        headers: {
-          'x-api-key': this.#apiKey,
-          'x-instance-id': id,
-        },
+        headers,
       }),
       { id }
     )
 
     ws.onClose.attach(async ([code, reason]) => {
+      this.#log.prod(
+        `❗ Could not connect to Interval (code ${code}). Reason:`,
+        reason
+      )
+
       if (this.#pingIntervalHandle) {
         clearInterval(this.#pingIntervalHandle)
         this.#pingIntervalHandle = undefined
@@ -251,10 +314,6 @@ export default class Interval {
       // don't initialize retry process again if already started
       if (!this.#isConnected) return
 
-      this.#log.prod(
-        `❗ Lost connection to Interval (code ${code}). Reason:`,
-        reason
-      )
       this.#log.prod('🔌 Reconnecting...')
 
       this.#isConnected = false
@@ -343,17 +402,19 @@ export default class Interval {
       canRespondTo: hostSchema,
       handlers: {
         START_TRANSACTION: async inputs => {
-          const { actionName: actionSlug, transactionId } = inputs
           if (!this.organization) {
             this.#log.error('No organization defined')
             return
           }
 
-          const fn = this.#actions[actionSlug]
-          this.#log.debug(fn)
+          const { actionName: actionSlug, transactionId } = inputs
+          const actionDef = this.#actions[actionSlug]
+          const actionHandler =
+            'handler' in actionDef ? actionDef.handler : actionDef
+          this.#log.debug(actionHandler)
 
-          if (!fn) {
-            this.#log.debug('No fn called', actionSlug)
+          if (!actionHandler) {
+            this.#log.debug('No actionHandler called', actionSlug)
             return
           }
 
@@ -410,7 +471,7 @@ export default class Interval {
             }),
           }
 
-          fn(client.io, ctx)
+          actionHandler(client.io, ctx)
             .then(res => {
               // Allow actions to return data even after being canceled
 
@@ -504,11 +565,16 @@ export default class Interval {
       throw new Error('ISocket not initialized')
     }
 
+    const actions = Object.entries(this.#actions).map(([slug, def]) => ({
+      slug,
+      ...('handler' in def ? def : {}),
+      handler: undefined,
+    }))
     const slugs = Object.keys(this.#actions)
 
     const loggedIn = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
-      callableActionNames: slugs,
+      actions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
     })
@@ -596,15 +662,14 @@ export default class Interval {
  * This is effectively a namespace inside of Interval with a little bit of its own state.
  */
 class Actions {
-  #apiKey: string
+  #logger: Logger
+  #apiKey?: string
   #endpoint: string
 
-  constructor(apiKey: string, endpoint: string) {
+  constructor(endpoint: string, logger: Logger, apiKey?: string) {
     this.#apiKey = apiKey
-    const url = new URL(endpoint)
-    url.protocol = url.protocol.replace('ws', 'http')
-    url.pathname = '/api/actions'
-    this.#endpoint = url.toString()
+    this.#logger = logger
+    this.#endpoint = endpoint + '/api/actions'
   }
 
   #getAddress(path: string): string {
@@ -626,6 +691,7 @@ class Actions {
         slug,
       })
     } catch (err) {
+      this.#logger.debug(err)
       throw new IntervalError('Invalid input.')
     }
 
@@ -639,7 +705,8 @@ class Actions {
     })
       .then(r => r.json())
       .then(r => ENQUEUE_ACTION.returns.parseAsync(r))
-      .catch(() => {
+      .catch(err => {
+        this.#logger.debug(err)
         throw new IntervalError('Received invalid API response.')
       })
 
@@ -662,6 +729,7 @@ class Actions {
         id,
       })
     } catch (err) {
+      this.#logger.debug(err)
       throw new IntervalError('Invalid input.')
     }
 
@@ -675,7 +743,8 @@ class Actions {
     })
       .then(r => r.json())
       .then(r => DEQUEUE_ACTION.returns.parseAsync(r))
-      .catch(() => {
+      .catch(err => {
+        this.#logger.debug(err)
         throw new IntervalError('Received invalid API response.')
       })
 
