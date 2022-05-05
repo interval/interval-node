@@ -117,7 +117,7 @@ export default class Interval {
         config.closeUnresponsiveConnectionTimeoutMs
     }
 
-    this.actions = new Actions(this.#endpoint, this.#apiKey)
+    this.actions = new Actions(this.#httpEndpoint, this.#logger, this.#apiKey)
   }
 
   get #log() {
@@ -259,7 +259,8 @@ export default class Interval {
       )
         .then(r => r.json())
         .then(r => CREATE_GHOST_MODE_ACCOUNT.returns.parseAsync(r))
-        .catch(() => {
+        .catch(err => {
+          this.#log.debug(err)
           throw new IntervalError('Received invalid API response.')
         })
 
@@ -639,11 +640,13 @@ export default class Interval {
  * This is effectively a namespace inside of Interval with a little bit of its own state.
  */
 class Actions {
+  #logger: Logger
   #apiKey?: string
   #endpoint: string
 
-  constructor(endpoint: string, apiKey?: string) {
+  constructor(endpoint: string, logger: Logger, apiKey?: string) {
     this.#apiKey = apiKey
+    this.#logger = logger
     this.#endpoint = endpoint + '/api/actions'
   }
 
@@ -666,6 +669,7 @@ class Actions {
         slug,
       })
     } catch (err) {
+      this.#logger.debug(err)
       throw new IntervalError('Invalid input.')
     }
 
@@ -679,7 +683,8 @@ class Actions {
     })
       .then(r => r.json())
       .then(r => ENQUEUE_ACTION.returns.parseAsync(r))
-      .catch(() => {
+      .catch(err => {
+        this.#logger.debug(err)
         throw new IntervalError('Received invalid API response.')
       })
 
@@ -702,6 +707,7 @@ class Actions {
         id,
       })
     } catch (err) {
+      this.#logger.debug(err)
       throw new IntervalError('Invalid input.')
     }
 
@@ -715,7 +721,8 @@ class Actions {
     })
       .then(r => r.json())
       .then(r => DEQUEUE_ACTION.returns.parseAsync(r))
-      .catch(() => {
+      .catch(err => {
+        this.#logger.debug(err)
         throw new IntervalError('Received invalid API response.')
       })
 
