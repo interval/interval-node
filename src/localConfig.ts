@@ -7,6 +7,10 @@ const writeFile = util.promisify(fs.writeFile)
 const removeFile = util.promisify(fs.rm)
 const readFile = util.promisify(fs.readFile)
 
+/*
+  Assuming the SDK is installed at: <PROJECT_DIRECTORY>/node_modules
+  The config file will be at: <PROJECT_DIRECTORY>/node_modules/@interval/sdk/dist/.interval.config.json
+*/
 const intervalConfigPath = path.join(__dirname, '.interval.config.json')
 
 const SCHEMA = z.object({
