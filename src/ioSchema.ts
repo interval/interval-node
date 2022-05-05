@@ -506,7 +506,6 @@ export type ParsedActionReturnDataValue =
 
 export type ParsedActionReturnData =
   | Record<string, ParsedActionReturnDataValue>
-  | ParsedActionReturnDataValue[]
   | ParsedActionReturnDataValue
 
 export type ActionResultSchema = {
