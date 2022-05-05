@@ -14,7 +14,7 @@ import {
   DEQUEUE_ACTION,
   ActionEnvironment,
   LoadingState,
-  CREATE_ANONYMOUS_ACCOUNT,
+  CREATE_GHOST_MODE_ACCOUNT,
 } from './internalRpcSchema'
 import {
   ActionResultSchema,
@@ -224,14 +224,14 @@ export default class Interval {
     }
   }
 
-  async #findOrCreateAnonymousAccount() {
+  async #findOrCreateGhostModeAccount() {
     let config = await localConfig.get()
 
     let ghostOrgId = config?.ghostOrgId
 
     if (!ghostOrgId) {
       const response = await fetch(
-        this.#httpEndpoint + '/api/auth/anonymous/create',
+        this.#httpEndpoint + '/api/auth/ghost/create',
         {
           method: 'POST',
           headers: {
@@ -240,7 +240,7 @@ export default class Interval {
         }
       )
         .then(r => r.json())
-        .then(r => CREATE_ANONYMOUS_ACCOUNT.returns.parseAsync(r))
+        .then(r => CREATE_GHOST_MODE_ACCOUNT.returns.parseAsync(r))
         .catch(() => {
           throw new IntervalError('Received invalid API response.')
         })
@@ -265,7 +265,7 @@ export default class Interval {
     if (this.#apiKey) {
       headers['x-api-key'] = this.#apiKey
     } else if (!this.#apiKey) {
-      this.#ghostOrgId = await this.#findOrCreateAnonymousAccount()
+      this.#ghostOrgId = await this.#findOrCreateGhostModeAccount()
       headers['x-ghost-org-id'] = this.#ghostOrgId
     }
 
