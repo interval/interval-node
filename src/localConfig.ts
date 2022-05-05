@@ -27,7 +27,7 @@ export default {
       return null
     }
   },
-  write(config: z.infer<typeof SCHEMA>) {
+  async write(config: z.infer<typeof SCHEMA>) {
     return writeFile(intervalConfigPath, JSON.stringify(config), 'utf-8')
   },
   async clear() {
