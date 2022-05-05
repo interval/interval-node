@@ -495,10 +495,6 @@ export default class Interval {
 
     const slugs = Object.keys(this.#actions)
 
-    if (!this.#apiKey) {
-      this.#apiKey = await this.#findOrCreateAnonymousAccount()
-    }
-
     const loggedIn = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
       callableActionNames: slugs,

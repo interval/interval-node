@@ -49,7 +49,7 @@ export const ENQUEUE_ACTION = {
   ]),
 }
 
-export const CREATE_ANONYMOUS_ACCOUNT = {
+export const CREATE_GHOST_MODE_ACCOUNT = {
   inputs: z.object({}),
   returns: z.object({
     ghostOrgId: z.string(),
@@ -123,7 +123,7 @@ export const wsServerSchema = {
   },
   INITIALIZE_HOST: {
     inputs: z.object({
-      apiKey: z.string(),
+      apiKey: z.string().optional(),
       // Actually slugs, for backward compatibility
       // TODO: Change to slug in breaking release
       callableActionNames: z.array(z.string()),
