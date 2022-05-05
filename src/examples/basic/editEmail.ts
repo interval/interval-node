@@ -29,8 +29,7 @@ const editEmailForUser: IntervalActionHandler = async io => {
     io.input.text('Enter their new name'),
     io.input.email('Enter their new email', { placeholder: 'you@example.com' }),
     io.input.number('Enter an amount', {
-      prepend: '$',
-      decimals: 2,
+      currency: 'USD',
     }),
     io.input.boolean('Are you sure?'),
     io.select.single('Select an opt', {
