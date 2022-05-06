@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z, ZodError } from 'zod'
 import type { DuplexMessage } from '../internalRpcSchema'
 import { DUPLEX_MESSAGE_SCHEMA } from '../internalRpcSchema'
 import ISocket from './ISocket'
@@ -142,14 +142,50 @@ export class DuplexRPCClient<
 
   private onmessage(data: unknown) {
     const txt = data as string
-    const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
+    try {
+      const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
 
-    if (inputParsed.kind === 'RESPONSE') {
-      return this.handleReceivedResponse(inputParsed)
-    }
+      if (inputParsed.kind === 'CALL') {
+        try {
+          return this.handleReceivedCall(inputParsed)
+        } catch (err) {
+          if (err instanceof ZodError) {
+            console.error(
+              '[DuplexRPCClient] Received invalid call:',
+              inputParsed
+            )
+          } else {
+            console.error(
+              '[DuplexRPCClient] Failed handling call: ',
+              inputParsed
+            )
+          }
+          console.error(err)
+        }
+      }
 
-    if (inputParsed.kind === 'CALL') {
-      return this.handleReceivedCall(inputParsed)
+      if (inputParsed.kind === 'RESPONSE') {
+        try {
+          return this.handleReceivedResponse(inputParsed)
+        } catch (err) {
+          if (err instanceof ZodError) {
+            console.error(
+              '[DuplexRPCClient] Received invalid response:',
+              inputParsed
+            )
+          } else {
+            console.error(
+              '[DuplexRPCClient] Failed handling response: ',
+              inputParsed
+            )
+          }
+
+          console.error(err)
+        }
+      }
+    } catch (err) {
+      console.error('[DuplexRPCClient] Received invalid message:', data)
+      console.error(err)
     }
   }
 
