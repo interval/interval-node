@@ -530,6 +530,14 @@ const interval = new Interval({
 
       return { message: 'OK, notified!' }
     },
+    malformed: async io => {
+      // @ts-expect-error: Ensuring we can handle invalid calls
+      await io.input.text(new Error(), {
+        this: BigInt(12),
+        // @ts-expect-error: Ensuring we can handle invalid calls
+        something: this.something,
+      })
+    },
   },
 })
 
