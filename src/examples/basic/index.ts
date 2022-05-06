@@ -538,6 +538,13 @@ const interval = new Interval({
         something: this.something,
       })
     },
+    badMessage: async () => {
+      // @ts-expect-error: Intentionally using protected method
+      await interval.__dangerousInternalSend('NONEXISTANT', {
+        gibberish: '1234',
+        error: new Error(),
+      })
+    },
   },
 })
 

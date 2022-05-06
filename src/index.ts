@@ -688,6 +688,16 @@ export default class Interval {
     }
   }
 
+  /**
+   * This is used for testing and intentionally non-private.
+   * Do not use unless you're absolutely sure what you're doing.
+   */
+  protected async __dangerousInternalSend(methodName: any, inputs: any) {
+    if (!this.#serverRpc) throw new Error('serverRpc not initialized')
+
+    return await this.#serverRpc.send(methodName, inputs)
+  }
+
   #sendLog(transactionId: string, index: number, ...args: any[]) {
     if (!args.length) return
 
