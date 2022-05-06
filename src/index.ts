@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z, ZodError } from 'zod'
 import { v4 } from 'uuid'
 import { WebSocket } from 'ws'
 import fetch from 'node-fetch'
@@ -582,17 +582,26 @@ export default class Interval {
         IO_RESPONSE: async inputs => {
           this.#log.debug('got io response', inputs)
 
-          const ioResp = IO_RESPONSE.parse(JSON.parse(inputs.value))
-          const replyHandler = this.#ioResponseHandlers.get(
-            ioResp.transactionId
-          )
+          try {
+            const ioResp = IO_RESPONSE.parse(JSON.parse(inputs.value))
+            const replyHandler = this.#ioResponseHandlers.get(
+              ioResp.transactionId
+            )
 
-          if (!replyHandler) {
-            this.#log.debug('Missing reply handler for', inputs.transactionId)
-            return
+            if (!replyHandler) {
+              this.#log.debug('Missing reply handler for', inputs.transactionId)
+              return
+            }
+
+            replyHandler(ioResp)
+          } catch (err) {
+            if (err instanceof ZodError) {
+              this.#log.error('Received invalid IO response:', inputs)
+              this.#log.debug(err)
+            } else {
+              this.#log.error('Failed handling IO response:', err)
+            }
           }
-
-          replyHandler(ioResp)
         },
       },
     })
