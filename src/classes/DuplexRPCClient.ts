@@ -140,14 +140,14 @@ export class DuplexRPCClient<
     return
   }
 
-  private onmessage(data: unknown) {
+  private async onmessage(data: unknown) {
     const txt = data as string
     try {
       const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
 
       if (inputParsed.kind === 'CALL') {
         try {
-          return this.handleReceivedCall(inputParsed)
+          await this.handleReceivedCall(inputParsed)
         } catch (err) {
           if (err instanceof ZodError) {
             console.error(
@@ -166,7 +166,7 @@ export class DuplexRPCClient<
 
       if (inputParsed.kind === 'RESPONSE') {
         try {
-          return this.handleReceivedResponse(inputParsed)
+          this.handleReceivedResponse(inputParsed)
         } catch (err) {
           if (err instanceof ZodError) {
             console.error(
@@ -205,9 +205,13 @@ export class DuplexRPCClient<
 
     return new Promise<ReturnType>((resolve, reject) => {
       this.pendingCalls.set(id, (rawResponseText: string) => {
-        const parsed =
-          this.canCall[methodName]['returns'].parse(rawResponseText)
-        return resolve(parsed)
+        try {
+          const parsed =
+            this.canCall[methodName]['returns'].parse(rawResponseText)
+          return resolve(parsed)
+        } catch (err) {
+          reject(err)
+        }
       })
 
       this.communicator.send(msg).catch(err => {
