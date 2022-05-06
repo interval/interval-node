@@ -6,3 +6,4 @@ envoy.config.ts
 dist/demos/
 dist/examples/
 dist/env.*
+.env
