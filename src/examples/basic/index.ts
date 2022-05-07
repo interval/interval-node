@@ -530,6 +530,21 @@ const interval = new Interval({
 
       return { message: 'OK, notified!' }
     },
+    malformed: async io => {
+      // @ts-expect-error: Ensuring we can handle invalid calls
+      await io.input.text(new Error(), {
+        this: BigInt(12),
+        // @ts-expect-error: Ensuring we can handle invalid calls
+        something: this.something,
+      })
+    },
+    badMessage: async () => {
+      // @ts-expect-error: Intentionally using protected method
+      await interval.__dangerousInternalSend('NONEXISTANT', {
+        gibberish: '1234',
+        error: new Error(),
+      })
+    },
   },
 })
 

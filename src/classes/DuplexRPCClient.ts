@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z, ZodError } from 'zod'
 import type { DuplexMessage } from '../internalRpcSchema'
 import { DUPLEX_MESSAGE_SCHEMA } from '../internalRpcSchema'
 import ISocket from './ISocket'
@@ -140,16 +140,52 @@ export class DuplexRPCClient<
     return
   }
 
-  private onmessage(data: unknown) {
+  private async onmessage(data: unknown) {
     const txt = data as string
-    const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
+    try {
+      const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
 
-    if (inputParsed.kind === 'RESPONSE') {
-      return this.handleReceivedResponse(inputParsed)
-    }
+      if (inputParsed.kind === 'CALL') {
+        try {
+          await this.handleReceivedCall(inputParsed)
+        } catch (err) {
+          if (err instanceof ZodError) {
+            console.error(
+              '[DuplexRPCClient] Received invalid call:',
+              inputParsed
+            )
+          } else {
+            console.error(
+              '[DuplexRPCClient] Failed handling call: ',
+              inputParsed
+            )
+          }
+          console.error(err)
+        }
+      }
 
-    if (inputParsed.kind === 'CALL') {
-      return this.handleReceivedCall(inputParsed)
+      if (inputParsed.kind === 'RESPONSE') {
+        try {
+          this.handleReceivedResponse(inputParsed)
+        } catch (err) {
+          if (err instanceof ZodError) {
+            console.error(
+              '[DuplexRPCClient] Received invalid response:',
+              inputParsed
+            )
+          } else {
+            console.error(
+              '[DuplexRPCClient] Failed handling response: ',
+              inputParsed
+            )
+          }
+
+          console.error(err)
+        }
+      }
+    } catch (err) {
+      console.error('[DuplexRPCClient] Received invalid message:', data)
+      console.error(err)
     }
   }
 
@@ -169,9 +205,13 @@ export class DuplexRPCClient<
 
     return new Promise<ReturnType>((resolve, reject) => {
       this.pendingCalls.set(id, (rawResponseText: string) => {
-        const parsed =
-          this.canCall[methodName]['returns'].parse(rawResponseText)
-        return resolve(parsed)
+        try {
+          const parsed =
+            this.canCall[methodName]['returns'].parse(rawResponseText)
+          return resolve(parsed)
+        } catch (err) {
+          reject(err)
+        }
       })
 
       this.communicator.send(msg).catch(err => {
