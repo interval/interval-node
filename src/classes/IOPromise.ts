@@ -119,6 +119,8 @@ export class OptionalIOPromise<
   ): Output | undefined {
     if (result === undefined) return undefined
 
+    if (this.valueGetter) return this.valueGetter(result)
+
     return result as unknown as Output
   }
 }
