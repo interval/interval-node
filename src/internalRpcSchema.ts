@@ -75,6 +75,29 @@ export const DEQUEUE_ACTION = {
   ]),
 }
 
+export const NOTIFY = {
+  inputs: z.object({
+    message: z.string(),
+    title: z.string().optional(),
+    deliveryInstructions: z.array(
+      z.object({
+        to: z.string(),
+        method: z.enum(['EMAIL', 'SLACK']).optional(),
+      })
+    ),
+    createdAt: z.string(),
+  }),
+  returns: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('success'),
+    }),
+    z.object({
+      type: z.literal('error'),
+      message: z.string(),
+    }),
+  ]),
+}
+
 export const wsServerSchema = {
   CONNECT_TO_TRANSACTION_AS_CLIENT: {
     inputs: z.object({

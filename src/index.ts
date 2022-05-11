@@ -13,6 +13,7 @@ import {
   TRANSACTION_RESULT_SCHEMA_VERSION,
   ENQUEUE_ACTION,
   DEQUEUE_ACTION,
+  NOTIFY,
   ActionEnvironment,
   LoadingState,
   CREATE_GHOST_MODE_ACCOUNT,
@@ -33,6 +34,7 @@ import type {
   IntervalActionHandler,
   IntervalActionDefinition,
   IntervalActionStore,
+  NotifyConfig,
 } from './types'
 import TransactionLoadingState from './classes/TransactionLoadingState'
 import localConfig from './localConfig'
@@ -191,6 +193,43 @@ export default class Interval {
     await this.#createSocketConnection()
     this.#createRPCClient()
     await this.#initializeHost()
+  }
+
+  async notify(config: NotifyConfig): Promise<void> {
+    let body: z.infer<typeof NOTIFY['inputs']>
+    try {
+      body = NOTIFY.inputs.parse({
+        ...config,
+        deliveryInstructions: config.delivery,
+        createdAt: new Date().toISOString(),
+      })
+    } catch (err) {
+      this.#logger.debug(err)
+      throw new IntervalError('Invalid input.')
+    }
+
+    const response = await fetch(`${this.#endpoint}/api/notify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.#apiKey}`,
+      },
+      body: JSON.stringify(body),
+    })
+      .then(r => r.json())
+      .then(r => NOTIFY.returns.parseAsync(r))
+      .catch(err => {
+        this.#logger.debug(err)
+        throw new IntervalError('Received invalid API response.')
+      })
+
+    if (response.type === 'error') {
+      throw new IntervalError(
+        `There was a problem sending the notification: ${response.message}`
+      )
+    }
+
+    return
   }
 
   /**
