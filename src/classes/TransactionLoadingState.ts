@@ -1,10 +1,11 @@
-import { LoadingOptions, LoadingState } from '../internalRpcSchema'
+import {
+  LoadingOptions,
+  LoadingState as RPCLoadingState,
+} from '../internalRpcSchema'
 import Logger from './Logger'
 
-export interface StartOrUpdateLoadingOptions extends LoadingOptions {
-  label?: string
-  description?: string
-  itemsInQueue?: number
+export type LoadingState = Omit<RPCLoadingState, 'label'> & {
+  title?: string
 }
 
 export interface TransactionLoadingStateConfig {
@@ -22,10 +23,19 @@ export default class TransactionLoadingState {
     this.#logger = config.logger
   }
 
-  async #send(loadingState: LoadingState) {
+  get #transformedState(): RPCLoadingState {
+    return {
+      label: this.#state?.title,
+      description: this.#state?.description,
+      itemsInQueue: this.#state?.itemsInQueue,
+      itemsCompleted: this.#state?.itemsCompleted,
+    }
+  }
+
+  async #sendState() {
     try {
-      console.debug('Loading state:', loadingState)
-      await this.#sender(loadingState)
+      console.debug('Loading state:', this.#state)
+      await this.#sender(this.#transformedState)
     } catch (err) {
       this.#logger.error('Failed sending loading state to Interval')
       this.#logger.debug(err)
@@ -36,19 +46,31 @@ export default class TransactionLoadingState {
     return { ...this.#state }
   }
 
-  async start(options: StartOrUpdateLoadingOptions) {
+  async start(options?: string | LoadingOptions) {
+    if (typeof options === 'string') {
+      options = { title: options }
+    } else if (options === undefined) {
+      options = {}
+    }
+
     this.#state = { ...options }
     if (this.#state.itemsInQueue) {
       this.#state.itemsCompleted = 0
     }
 
-    return this.#send(this.#state)
+    return this.#sendState()
   }
 
-  async update(options: StartOrUpdateLoadingOptions) {
+  async update(options?: string | LoadingOptions) {
     if (!this.#state) {
       this.#logger.warn('Please call `loading.start` before `loading.update`')
       return this.start(options)
+    }
+
+    if (typeof options === 'string') {
+      options = { title: options }
+    } else if (options === undefined) {
+      options = {}
     }
 
     Object.assign(this.#state, options)
@@ -57,7 +79,7 @@ export default class TransactionLoadingState {
       this.#state.itemsCompleted = 0
     }
 
-    return this.#send(this.#state)
+    return this.#sendState()
   }
 
   async completeOne() {
@@ -73,6 +95,6 @@ export default class TransactionLoadingState {
     }
 
     this.#state.itemsCompleted++
-    return this.#send(this.#state)
+    return this.#sendState()
   }
 }

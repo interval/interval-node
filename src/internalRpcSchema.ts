@@ -17,16 +17,17 @@ export const actionEnvironment = z.enum(['live', 'development'])
 export type ActionEnvironment = z.infer<typeof actionEnvironment>
 
 export const LOADING_OPTIONS = z.object({
-  label: z.string().optional(),
+  title: z.string().optional(),
   description: z.string().optional(),
   itemsInQueue: z.number().int().optional(),
 })
-const LOADING_STATE = z.intersection(
-  LOADING_OPTIONS,
-  z.object({
-    itemsCompleted: z.number().int().optional(),
-  })
-)
+
+const LOADING_STATE = z.object({
+  label: z.string().optional(),
+  description: z.string().optional(),
+  itemsInQueue: z.number().int().optional(),
+  itemsCompleted: z.number().int().optional(),
+})
 
 export type LoadingOptions = z.input<typeof LOADING_OPTIONS>
 export type LoadingState = z.input<typeof LOADING_STATE>
