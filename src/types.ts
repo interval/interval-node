@@ -93,6 +93,7 @@ export type NotifyConfig = {
   message: string
   title?: string
   delivery: NotificationDeliveryInstruction[]
+  idempotencyKey?: string
 }
 
 export type NotifyFn = (config: NotifyConfig) => Promise<void>

@@ -533,13 +533,14 @@ export default class Interval {
               slug: actionSlug,
             },
             log: (...args) => this.#sendLog(transactionId, logIndex++, ...args),
-            notify: async ({ message, title, delivery }) => {
+            notify: async ({ message, title, delivery, idempotencyKey }) => {
               await this.#send('NOTIFY', {
                 transactionId: inputs.transactionId,
                 message,
                 title,
                 deliveryInstructions: delivery,
                 createdAt: new Date().toISOString(),
+                idempotencyKey,
               })
             },
             loading: new TransactionLoadingState({

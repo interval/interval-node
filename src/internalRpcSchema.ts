@@ -86,6 +86,7 @@ export const NOTIFY = {
       })
     ),
     createdAt: z.string(),
+    idempotencyKey: z.string().optional(),
   }),
   returns: z.discriminatedUnion('type', [
     z.object({
@@ -144,6 +145,7 @@ export const wsServerSchema = {
       transactionId: z.string(),
       message: z.string(),
       title: z.string().optional(),
+      idempotencyKey: z.string().optional(),
       deliveryInstructions: z.array(
         z.object({
           to: z.string(),
@@ -281,6 +283,7 @@ export const clientSchema = {
       ),
       message: z.string(),
       title: z.string().optional(),
+      idempotencyKey: z.string().optional(),
     }),
     returns: z.boolean(),
   },
