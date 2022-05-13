@@ -34,7 +34,6 @@ export default class TransactionLoadingState {
 
   async #sendState() {
     try {
-      console.debug('Loading state:', this.#state)
       await this.#sender(this.#transformedState)
     } catch (err) {
       this.#logger.error('Failed sending loading state to Interval')
