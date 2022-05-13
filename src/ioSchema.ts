@@ -145,7 +145,14 @@ export const tableColumn = z.object({
       z.union([
         z.intersection(
           z.object({
-            label: z.string().nullish(),
+            label: z.union([
+              z.string(),
+              z.number(),
+              z.boolean(),
+              z.date(),
+              z.null(),
+              z.undefined(),
+            ]),
             value: z
               .union([
                 z.string(),

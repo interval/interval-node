@@ -13,7 +13,7 @@ export type CellValue = string | number | boolean | null | Date | undefined
 
 export type ColumnResult =
   | ({
-      label: string | null | undefined
+      label: string | number | boolean | null | Date | undefined
       value?: CellValue
     } & (
       | {}
