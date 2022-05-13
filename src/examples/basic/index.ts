@@ -275,6 +275,7 @@ const interval = new Interval({
     update_email_for_user: editEmailForUser,
     enter_email_body: async io => {
       const body = await io.input.richText('Enter email body', {
+        defaultValue: '<h2>Welcome to Interval!</h2><p>Enjoy your stay.</p>',
         helpText: 'This will be sent to the user.',
       })
 
