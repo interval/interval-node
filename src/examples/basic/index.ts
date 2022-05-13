@@ -296,17 +296,16 @@ const interval = new Interval({
             age: 'number?',
             'Is cool': 'boolean',
           },
+          defaultValue: [
+            {
+              firstName: 'Jacob',
+              lastName: 'Mischka',
+              age: 28,
+              'Is cool': true,
+            },
+          ],
         }
       )
-
-      // await io.experimental.progressThroughList(
-      //   'Importing users...',
-      //   records.map(r => `${r.firstName} ${r.lastName}`),
-      //   async name => {
-      //     await sleep(1000)
-      //     return `Added ${name}!`
-      //   }
-      // )
 
       console.log(records)
     },

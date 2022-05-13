@@ -312,10 +312,11 @@ export const ioSchema = {
   INPUT_SPREADSHEET: {
     props: z.object({
       helpText: z.string().optional(),
+      defaultValue: z.optional(z.array(deserializableRecord)),
       columns: z.record(typeValue),
     }),
     state: z.null(),
-    returns: z.array(serializableRecord),
+    returns: z.array(deserializableRecord),
   },
   SEARCH: {
     props: z.object({
