@@ -249,6 +249,7 @@ export const ioSchema = {
     props: z.object({
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
+      defaultValue: z.optional(z.string()),
     }),
     state: z.null(),
     returns: z.string(),
