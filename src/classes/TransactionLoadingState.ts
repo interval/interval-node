@@ -1,12 +1,5 @@
-import {
-  LoadingOptions,
-  LoadingState as RPCLoadingState,
-} from '../internalRpcSchema'
+import { LoadingOptions, LoadingState } from '../internalRpcSchema'
 import Logger from './Logger'
-
-export type LoadingState = Omit<RPCLoadingState, 'label'> & {
-  title?: string
-}
 
 export interface TransactionLoadingStateConfig {
   logger: Logger
@@ -23,18 +16,9 @@ export default class TransactionLoadingState {
     this.#logger = config.logger
   }
 
-  get #transformedState(): RPCLoadingState {
-    return {
-      label: this.#state?.title,
-      description: this.#state?.description,
-      itemsInQueue: this.#state?.itemsInQueue,
-      itemsCompleted: this.#state?.itemsCompleted,
-    }
-  }
-
   async #sendState() {
     try {
-      await this.#sender(this.#transformedState)
+      await this.#sender(this.#state ?? {})
     } catch (err) {
       this.#logger.error('Failed sending loading state to Interval')
       this.#logger.debug(err)

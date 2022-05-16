@@ -23,7 +23,7 @@ export const LOADING_OPTIONS = z.object({
 })
 
 const LOADING_STATE = z.object({
-  label: z.string().optional(),
+  title: z.string().optional(),
   description: z.string().optional(),
   itemsInQueue: z.number().int().optional(),
   itemsCompleted: z.number().int().optional(),
@@ -99,10 +99,11 @@ export const wsServerSchema = {
   },
   SEND_LOADING_CALL: {
     inputs: z.intersection(
+      LOADING_STATE,
       z.object({
         transactionId: z.string(),
-      }),
-      LOADING_STATE
+        label: z.string().optional(),
+      })
     ),
     returns: z.boolean(),
   },
