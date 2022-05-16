@@ -1,12 +1,6 @@
 import { LoadingOptions, LoadingState } from '../internalRpcSchema'
 import Logger from './Logger'
 
-export interface StartOrUpdateLoadingOptions extends LoadingOptions {
-  label?: string
-  description?: string
-  itemsInQueue?: number
-}
-
 export interface TransactionLoadingStateConfig {
   logger: Logger
   send: (loadingState: LoadingState) => Promise<void>
@@ -22,10 +16,9 @@ export default class TransactionLoadingState {
     this.#logger = config.logger
   }
 
-  async #send(loadingState: LoadingState) {
+  async #sendState() {
     try {
-      console.debug('Loading state:', loadingState)
-      await this.#sender(loadingState)
+      await this.#sender(this.#state ?? {})
     } catch (err) {
       this.#logger.error('Failed sending loading state to Interval')
       this.#logger.debug(err)
@@ -36,19 +29,31 @@ export default class TransactionLoadingState {
     return { ...this.#state }
   }
 
-  async start(options: StartOrUpdateLoadingOptions) {
+  async start(options?: string | LoadingOptions) {
+    if (typeof options === 'string') {
+      options = { title: options }
+    } else if (options === undefined) {
+      options = {}
+    }
+
     this.#state = { ...options }
     if (this.#state.itemsInQueue) {
       this.#state.itemsCompleted = 0
     }
 
-    return this.#send(this.#state)
+    return this.#sendState()
   }
 
-  async update(options: StartOrUpdateLoadingOptions) {
+  async update(options?: string | LoadingOptions) {
     if (!this.#state) {
       this.#logger.warn('Please call `loading.start` before `loading.update`')
       return this.start(options)
+    }
+
+    if (typeof options === 'string') {
+      options = { title: options }
+    } else if (options === undefined) {
+      options = {}
     }
 
     Object.assign(this.#state, options)
@@ -57,7 +62,7 @@ export default class TransactionLoadingState {
       this.#state.itemsCompleted = 0
     }
 
-    return this.#send(this.#state)
+    return this.#sendState()
   }
 
   async completeOne() {
@@ -73,6 +78,6 @@ export default class TransactionLoadingState {
     }
 
     this.#state.itemsCompleted++
-    return this.#send(this.#state)
+    return this.#sendState()
   }
 }
