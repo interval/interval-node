@@ -201,6 +201,20 @@ export const CURRENCIES = [
 export const currencyCode = z.enum(CURRENCIES)
 export type CurrencyCode = z.infer<typeof currencyCode>
 
+export const dateObject = z.object({
+  year: z.number(),
+  month: z.number(),
+  day: z.number(),
+})
+export type DateObject = z.infer<typeof dateObject>
+export const timeObject = z.object({
+  hour: z.number(),
+  minute: z.number(),
+})
+export type TimeObject = z.infer<typeof timeObject>
+export const dateTimeObject = dateObject.merge(timeObject)
+export type DateTimeObject = z.infer<typeof dateTimeObject>
+
 /**
  * Any methods with an `immediate` property defined (at all, not just truthy)
  * will resolve immediately when awaited.
@@ -264,58 +278,32 @@ export const ioSchema = {
   INPUT_DATE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(
-        z.object({
-          year: z.number(),
-          month: z.number(),
-          day: z.number(),
-        })
-      ),
+      defaultValue: z.optional(dateObject),
+      min: z.optional(dateObject),
+      max: z.optional(dateObject),
     }),
     state: z.null(),
-    returns: z.object({
-      year: z.number(),
-      month: z.number(),
-      day: z.number(),
-    }),
+    returns: dateObject,
   },
   INPUT_TIME: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(
-        z.object({
-          hour: z.number(),
-          minute: z.number(),
-        })
-      ),
+      defaultValue: z.optional(timeObject),
+      min: z.optional(timeObject),
+      max: z.optional(timeObject),
     }),
     state: z.null(),
-    returns: z.object({
-      hour: z.number(),
-      minute: z.number(),
-    }),
+    returns: timeObject,
   },
   INPUT_DATETIME: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(
-        z.object({
-          year: z.number(),
-          month: z.number(),
-          day: z.number(),
-          hour: z.number(),
-          minute: z.number(),
-        })
-      ),
+      defaultValue: z.optional(dateTimeObject),
+      min: z.optional(dateTimeObject),
+      max: z.optional(dateTimeObject),
     }),
     state: z.null(),
-    returns: z.object({
-      year: z.number(),
-      month: z.number(),
-      day: z.number(),
-      hour: z.number(),
-      minute: z.number(),
-    }),
+    returns: dateTimeObject,
   },
   INPUT_SPREADSHEET: {
     props: z.object({
