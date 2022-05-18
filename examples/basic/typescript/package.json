@@ -2,7 +2,7 @@
   "name": "interval-typescript-starter",
   "version": "0.1.0",
   "scripts": {
-    "dev": "nodemon --watch src --exec 'ts-node src/index.ts'",
+    "dev": "nodemon --watch src -e ts src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
