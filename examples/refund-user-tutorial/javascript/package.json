@@ -1,0 +1,15 @@
+{
+  "name": "interval-refund-user-tutorial-starter",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "nodemon --watch . index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@interval/sdk": "^0.17.0",
+    "dotenv": "^16.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
