@@ -254,23 +254,22 @@ const interval = new Interval({
         },
       ]
 
-      let r = await io.select.multiple('Select zero or more', {
+      const defaultValue = await io.select.multiple('Select zero or more', {
         options,
       })
 
-      console.log(r)
+      ctx.log(defaultValue)
 
-      r = await io.select.multiple(
-        'Modify the selection, selecting between 1 and 2',
-        {
+      const selected = await io.select
+        .multiple('Modify the selection, selecting between 1 and 2', {
           options,
-          defaultValue: r,
+          defaultValue,
           minSelections: 1,
           maxSelections: 2,
-        }
-      )
+        })
+        .optional()
 
-      console.log(r)
+      ctx.log(selected)
     },
     update_email_for_user: editEmailForUser,
     enter_email_body: async io => {
