@@ -1,6 +1,7 @@
 {
   "name": "interval-starter",
   "version": "0.1.0",
+  "license": "MIT",
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js"
