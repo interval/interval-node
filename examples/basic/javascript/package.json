@@ -1,0 +1,14 @@
+{
+  "name": "interval-starter",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@interval/sdk": "^0.17.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
