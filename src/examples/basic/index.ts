@@ -213,10 +213,31 @@ const interval = new Interval({
     },
     dates: async io => {
       const [date, time, datetime] = await io.group([
-        io.experimental.date('Enter a date'),
-        io.experimental.time('Enter a time'),
+        io.experimental.date('Enter a date', {
+          min: {
+            year: 2020,
+            month: 1,
+            day: 1,
+          },
+          max: {
+            year: 3000,
+            month: 12,
+            day: 30,
+          },
+        }),
+        io.experimental.time('Enter a time', {
+          min: {
+            hour: 8,
+            minute: 30,
+          },
+          max: {
+            hour: 20,
+            minute: 0,
+          },
+        }),
         io.experimental.datetime('Enter a datetime', {
           defaultValue: new Date(),
+          min: new Date(),
         }),
         io.input.text('Text input'),
       ])

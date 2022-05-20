@@ -1,26 +1,51 @@
-import { T_IO_PROPS, T_IO_RETURNS } from '../ioSchema'
+import {
+  T_IO_PROPS,
+  T_IO_RETURNS,
+  DateObject,
+  DateTimeObject,
+} from '../ioSchema'
+
+function dateToDateObject(d: Date): DateObject {
+  return {
+    year: d.getFullYear(),
+    month: d.getMonth() + 1,
+    day: d.getDate(),
+  }
+}
+
+function dateToDateTimeObject(d: Date): DateTimeObject {
+  return {
+    ...dateToDateObject(d),
+    hour: d.getHours(),
+    minute: d.getMinutes(),
+  }
+}
+
+function normalizeDateObject(
+  d: DateObject | Date | undefined
+): DateObject | undefined {
+  return d && d instanceof Date ? dateToDateObject(d) : d
+}
+
+function normalizeDateTimeObject(
+  d: DateTimeObject | Date | undefined
+): DateTimeObject | undefined {
+  return d && d instanceof Date ? dateToDateTimeObject(d) : d
+}
 
 export function date(
-  props: Omit<T_IO_PROPS<'INPUT_DATE'>, 'defaultValue'> & {
-    defaultValue?: T_IO_PROPS<'INPUT_DATE'>['defaultValue'] | Date
+  props: Omit<T_IO_PROPS<'INPUT_DATE'>, 'defaultValue' | 'min' | 'max'> & {
+    defaultValue?: DateObject | Date
+    min?: DateObject | Date
+    max?: DateObject | Date
   }
 ) {
-  let defaultValue: T_IO_PROPS<'INPUT_DATE'>['defaultValue']
-
-  if (props.defaultValue && props.defaultValue instanceof Date) {
-    const d = props.defaultValue
-    defaultValue = {
-      year: d.getFullYear(),
-      month: d.getMonth() + 1,
-      day: d.getDate(),
-    }
-  } else {
-    defaultValue = props.defaultValue
-  }
   return {
     props: {
       ...props,
-      defaultValue,
+      defaultValue: normalizeDateObject(props.defaultValue),
+      min: normalizeDateObject(props.min),
+      max: normalizeDateObject(props.max),
     },
     getValue(response: T_IO_RETURNS<'INPUT_DATE'>) {
       const jsDate = new Date(
@@ -42,28 +67,18 @@ export function date(
 }
 
 export function datetime(
-  props: Omit<T_IO_PROPS<'INPUT_DATETIME'>, 'defaultValue'> & {
-    defaultValue?: T_IO_PROPS<'INPUT_DATETIME'>['defaultValue'] | Date
+  props: Omit<T_IO_PROPS<'INPUT_DATETIME'>, 'defaultValue' | 'min' | 'max'> & {
+    defaultValue?: DateTimeObject | Date
+    min?: DateTimeObject | Date
+    max?: DateTimeObject | Date
   }
 ) {
-  let defaultValue: T_IO_PROPS<'INPUT_DATETIME'>['defaultValue']
-
-  if (props.defaultValue && props.defaultValue instanceof Date) {
-    const d = props.defaultValue
-    defaultValue = {
-      year: d.getFullYear(),
-      month: d.getMonth() + 1,
-      day: d.getDate(),
-      hour: d.getHours(),
-      minute: d.getMinutes(),
-    }
-  } else {
-    defaultValue = props.defaultValue
-  }
   return {
     props: {
       ...props,
-      defaultValue,
+      defaultValue: normalizeDateTimeObject(props.defaultValue),
+      min: normalizeDateTimeObject(props.min),
+      max: normalizeDateTimeObject(props.max),
     },
     getValue(response: T_IO_RETURNS<'INPUT_DATETIME'>) {
       const jsDate = new Date(
