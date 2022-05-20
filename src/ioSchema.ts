@@ -231,6 +231,8 @@ export const ioSchema = {
       defaultValue: z.optional(z.string()),
       multiline: z.optional(z.boolean()),
       lines: z.optional(z.number()),
+      minLength: z.optional(z.number().int().positive()),
+      maxLength: z.optional(z.number().int().positive()),
     }),
     state: z.null(),
     returns: z.string(),

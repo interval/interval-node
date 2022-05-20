@@ -250,8 +250,14 @@ const interval = new Interval({
       await io.group([
         io.input.number('Enter a number'),
         io.input.number('Enter a second number').optional(),
-        io.input.text('First name'),
-        io.input.text('Last name').optional(),
+        io.input.text('First name', {
+          maxLength: 20,
+        }),
+        io.input
+          .text('Last name', {
+            minLength: 5,
+          })
+          .optional(),
         io.input.email('Email'),
         io.input.email('Backup email').optional(),
       ])
