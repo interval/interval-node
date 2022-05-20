@@ -49,55 +49,57 @@ export const table_basic: IntervalActionHandler = async io => {
 
 export const table_custom_columns: IntervalActionHandler = async io => {
   type Charge = typeof charges[0]
-  const selections = await io.select.table('Select from this table', {
-    data: [
-      ...charges,
-      ...charges,
-      ...charges,
-      ...charges,
-      ...charges,
-      ...charges,
-    ],
-    columns: [
-      {
-        label: 'ID',
-        renderCell: row => ({
-          label: row.id.slice(0, 5),
-          href: `https://dashboard.stripe.com/${row.id}`,
-        }),
-      },
-      {
-        label: 'Name',
-        renderCell: row => row.name,
-      },
-      {
-        label: 'Number',
-        renderCell: row => row.amount,
-      },
-      {
-        label: 'Price',
-        renderCell: row => ({
-          label: formatCurrency(row.amount ? row.amount / 100 : 0),
-          value: row.amount,
-        }),
-      },
-      {
-        label: 'Promo code',
-        renderCell: (row: Charge) => ({
-          label: row.promoCode,
-        }),
-      },
-      {
-        label: 'Purchased at',
-        renderCell: (row: Charge) => ({
-          label: row.purchasedAt.toLocaleString(),
-          value: row.purchasedAt,
-        }),
-      },
-    ],
-    minSelections: 1,
-    maxSelections: 2,
-  })
+  const selections = await io.select
+    .table('Select from this table', {
+      data: [
+        ...charges,
+        ...charges,
+        ...charges,
+        ...charges,
+        ...charges,
+        ...charges,
+      ],
+      columns: [
+        {
+          label: 'ID',
+          renderCell: row => ({
+            label: row.id.slice(0, 5),
+            href: `https://dashboard.stripe.com/${row.id}`,
+          }),
+        },
+        {
+          label: 'Name',
+          renderCell: row => row.name,
+        },
+        {
+          label: 'Number',
+          renderCell: row => row.amount,
+        },
+        {
+          label: 'Price',
+          renderCell: row => ({
+            label: formatCurrency(row.amount ? row.amount / 100 : 0),
+            value: row.amount,
+          }),
+        },
+        {
+          label: 'Promo code',
+          renderCell: (row: Charge) => ({
+            label: row.promoCode,
+          }),
+        },
+        {
+          label: 'Purchased at',
+          renderCell: (row: Charge) => ({
+            label: row.purchasedAt.toLocaleString(),
+            value: row.purchasedAt,
+          }),
+        },
+      ],
+      minSelections: 1,
+      maxSelections: 2,
+    })
+    .optional()
 
   await io.display.object('Selected', { data: selections })
 }
