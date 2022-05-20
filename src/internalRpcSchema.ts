@@ -77,6 +77,7 @@ export const DEQUEUE_ACTION = {
 
 export const NOTIFY = {
   inputs: z.object({
+    transactionId: z.string().optional(),
     message: z.string(),
     title: z.string().optional(),
     deliveryInstructions: z.array(

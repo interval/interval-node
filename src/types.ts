@@ -93,6 +93,7 @@ export type NotifyConfig = {
   message: string
   title?: string
   delivery: NotificationDeliveryInstruction[]
+  transactionId?: string
   idempotencyKey?: string
 }
 
