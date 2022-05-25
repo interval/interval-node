@@ -33,6 +33,7 @@ import type {
   IntervalActionHandler,
   IntervalActionDefinition,
   IntervalActionStore,
+  NotifyConfig,
 } from './types'
 import TransactionLoadingState from './classes/TransactionLoadingState'
 import localConfig from './localConfig'
@@ -494,7 +495,7 @@ export default class Interval {
               slug: actionSlug,
             },
             log: (...args) => this.#sendLog(transactionId, logIndex++, ...args),
-            notify: async ({ message, title, delivery }) => {
+            notify: async ({ message, title, delivery }: NotifyConfig) => {
               await this.#send('NOTIFY', {
                 transactionId: inputs.transactionId,
                 message,

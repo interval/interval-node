@@ -121,12 +121,14 @@ export const wsServerSchema = {
       transactionId: z.string(),
       message: z.string(),
       title: z.string().optional(),
-      deliveryInstructions: z.array(
-        z.object({
-          to: z.string(),
-          method: z.enum(['EMAIL', 'SLACK']).optional(),
-        })
-      ),
+      deliveryInstructions: z
+        .array(
+          z.object({
+            to: z.string(),
+            method: z.enum(['EMAIL', 'SLACK']).optional(),
+          })
+        )
+        .optional(),
       createdAt: z.string(),
     }),
     returns: z.boolean(),

@@ -92,7 +92,7 @@ export interface NotificationDeliveryInstruction {
 export type NotifyConfig = {
   message: string
   title?: string
-  delivery: NotificationDeliveryInstruction[]
+  delivery?: NotificationDeliveryInstruction[]
 }
 
 export type NotifyFn = (config: NotifyConfig) => Promise<void>
