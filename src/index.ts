@@ -208,7 +208,7 @@ export default class Interval {
       throw new IntervalError('Invalid input.')
     }
 
-    const response = await fetch(`${this.#endpoint}/api/notify`, {
+    const response = await fetch(`${this.#httpEndpoint}/api/notify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
