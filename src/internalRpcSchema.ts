@@ -75,6 +75,31 @@ export const DEQUEUE_ACTION = {
   ]),
 }
 
+export const NOTIFY = {
+  inputs: z.object({
+    transactionId: z.string().optional(),
+    message: z.string(),
+    title: z.string().optional(),
+    deliveryInstructions: z.array(
+      z.object({
+        to: z.string(),
+        method: z.enum(['EMAIL', 'SLACK']).optional(),
+      })
+    ),
+    createdAt: z.string(),
+    idempotencyKey: z.string().optional(),
+  }),
+  returns: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('success'),
+    }),
+    z.object({
+      type: z.literal('error'),
+      message: z.string(),
+    }),
+  ]),
+}
+
 export const wsServerSchema = {
   CONNECT_TO_TRANSACTION_AS_CLIENT: {
     inputs: z.object({
@@ -121,6 +146,7 @@ export const wsServerSchema = {
       transactionId: z.string(),
       message: z.string(),
       title: z.string().optional(),
+      idempotencyKey: z.string().optional(),
       deliveryInstructions: z
         .array(
           z.object({
@@ -260,6 +286,7 @@ export const clientSchema = {
       ),
       message: z.string(),
       title: z.string().optional(),
+      idempotencyKey: z.string().optional(),
     }),
     returns: z.boolean(),
   },
