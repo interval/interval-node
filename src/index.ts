@@ -208,6 +208,12 @@ export default class Interval {
       throw new IntervalError('Invalid input.')
     }
 
+    if (!config.transactionId && this.environment === 'development') {
+      this.#log.prod(
+        'Calls to notify() outside of a transaction currently have no effect when Interval is instantiated with a development API key. Please use a live key to send notifications.'
+      )
+    }
+
     const response = await fetch(`${this.#httpEndpoint}/api/notify`, {
       method: 'POST',
       headers: {
