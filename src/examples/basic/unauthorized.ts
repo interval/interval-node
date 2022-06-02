@@ -12,7 +12,7 @@ const unauthorized: IntervalActionHandler = async io => {
   return {
     name,
     email,
-    'Download data': 'https://intervalkit.com/export.zip',
+    'Download data': 'https://interval.com/export.zip',
   }
 }
 
