@@ -64,7 +64,7 @@ export class IOClient {
    * or throws an IOError of kind `CANCELED` if canceled.
    */
   async renderComponents<
-    Components extends Readonly<[AnyIOComponent, ...AnyIOComponent[]]>
+    Components extends [AnyIOComponent, ...AnyIOComponent[]]
   >(components: Components) {
     if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
@@ -72,7 +72,7 @@ export class IOClient {
     }
 
     type ReturnValues = {
-      -readonly [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+      [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
         ? z.infer<Components[Idx]['schema']['returns']> | undefined
         : Components[Idx]
     }
@@ -163,10 +163,29 @@ export class IOClient {
    * method.
    */
   async group<
-    IOPromises extends Readonly<
-      [MaybeOptionalGroupIOPromise, ...MaybeOptionalGroupIOPromise[]]
-    >,
-    Components extends Readonly<[AnyIOComponent, ...AnyIOComponent[]]>
+    IOPromises extends [
+      MaybeOptionalGroupIOPromise,
+      ...MaybeOptionalGroupIOPromise[]
+    ],
+    Components extends [AnyIOComponent, ...AnyIOComponent[]]
+  >(
+    ioPromises: IOPromises
+  ): Promise<{
+    [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
+      ? ReturnType<IOPromises[Idx]['getValue']>
+      : IOPromises[Idx] extends OptionalGroupIOPromise
+      ? ReturnType<IOPromises[Idx]['getValue']>
+      : IOPromises[Idx]
+  }>
+  async group(
+    ioPromises: MaybeOptionalGroupIOPromise[]
+  ): Promise<ReturnType<MaybeOptionalGroupIOPromise['getValue']>>
+  async group<
+    IOPromises extends [
+      MaybeOptionalGroupIOPromise,
+      ...MaybeOptionalGroupIOPromise[]
+    ],
+    Components extends [AnyIOComponent, ...AnyIOComponent[]]
   >(ioPromises: IOPromises) {
     const components = ioPromises.map(pi => {
       // In case user is using JavaScript or ignores the type error
@@ -180,7 +199,7 @@ export class IOClient {
     }) as unknown as Components
 
     type ReturnValues = {
-      -readonly [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
+      [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
         ? ReturnType<IOPromises[Idx]['getValue']>
         : IOPromises[Idx] extends OptionalGroupIOPromise
         ? ReturnType<IOPromises[Idx]['getValue']>
