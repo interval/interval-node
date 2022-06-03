@@ -49,7 +49,7 @@ export type {
 
 export interface InternalConfig {
   apiKey?: string
-  actions: Record<string, IntervalActionDefinition>
+  actions?: Record<string, IntervalActionDefinition>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
@@ -144,7 +144,7 @@ export default class Interval {
 
   constructor(config: InternalConfig) {
     this.#apiKey = config.apiKey
-    this.#actions = config.actions
+    this.#actions = config.actions ?? {}
     this.#logger = new Logger(config.logLevel)
 
     if (config.endpoint) {
@@ -190,6 +190,13 @@ export default class Interval {
   }
 
   async listen() {
+    if (Object.keys(this.#actions).length === 0) {
+      this.#log.prod(
+        'Calling listen() with no defined actions is a no-op, skipping'
+      )
+      return
+    }
+
     await this.#createSocketConnection()
     this.#createRPCClient()
     await this.#initializeHost()
@@ -671,6 +678,11 @@ export default class Interval {
       handler: undefined,
     }))
     const slugs = Object.keys(this.#actions)
+
+    if (slugs.length === 0) {
+      this.#log.prod('No actions defined, skipping host initialization')
+      return
+    }
 
     const loggedIn = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
