@@ -176,6 +176,22 @@ const interval = new Interval({
         b: '2',
       })
 
+      const itemsInQueue = 100
+      await ctx.loading.start({
+        itemsInQueue,
+      })
+
+      for (let i = 0; i < itemsInQueue; i++) {
+        await sleep(100)
+        ctx.log(i)
+        await ctx.loading.completeOne()
+        await ctx.notify({
+          title: `Item ${i}`,
+          message: `Hello, ${name}!`,
+          delivery: [{ to: email }],
+        })
+      }
+
       return { name, email }
     },
     confirmBeforeDelete: async (io, ctx) => {
