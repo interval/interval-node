@@ -1,6 +1,6 @@
 {
   "name": "@interval/sdk",
-  "version": "0.17.1-dev",
+  "version": "0.18.0-dev",
   "license": "MIT",
   "engines": {
     "node": ">=14"
