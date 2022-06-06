@@ -29,6 +29,12 @@ const LOADING_STATE = z.object({
   itemsCompleted: z.number().int().optional(),
 })
 
+const SDK_ALERT = z.object({
+  minSdkVersion: z.string(),
+  severity: z.enum(['INFO', 'WARNING', 'ERROR']),
+  message: z.string().nullish(),
+})
+
 export type LoadingOptions = z.input<typeof LOADING_OPTIONS>
 export type LoadingState = z.input<typeof LOADING_STATE>
 
@@ -162,15 +168,24 @@ export const wsServerSchema = {
       ])
     ),
     returns: z
-      .object({
-        environment: actionEnvironment,
-        invalidSlugs: z.array(z.string()),
-        organization: z.object({
-          name: z.string(),
-          slug: z.string(),
+      .discriminatedUnion('type', [
+        z.object({
+          type: z.literal('success'),
+          environment: actionEnvironment,
+          invalidSlugs: z.array(z.string()),
+          organization: z.object({
+            name: z.string(),
+            slug: z.string(),
+          }),
+          dashboardUrl: z.string(),
+          sdkAlert: SDK_ALERT.nullish(),
         }),
-        dashboardUrl: z.string(),
-      })
+        z.object({
+          type: z.literal('error'),
+          message: z.string(),
+          sdkAlert: SDK_ALERT.nullish(),
+        }),
+      ])
       .nullable(),
   },
   ENQUEUE_ACTION: {
