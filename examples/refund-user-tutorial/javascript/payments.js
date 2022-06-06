@@ -3,7 +3,6 @@
   You can replace this import with: import Stripe from "stripe";
 */
 const Stripe = require('@interval/fake-stripe');
-require('dotenv').config();
 
 const stripe = new Stripe(process.env.STRIPE_KEY, {
   apiVersion: '2020-08-27',
