@@ -122,7 +122,7 @@ export default class Interval {
   #ghostOrgId: string | undefined
   #apiKey: string | undefined
   #actions: Record<string, IntervalActionDefinition>
-  #endpoint: string = 'wss://intervalkit.com/websocket'
+  #endpoint: string = 'wss://interval.com/websocket'
   #httpEndpoint: string
   #logger: Logger
   #retryIntervalMs: number = 3000
@@ -341,6 +341,7 @@ export default class Interval {
     const ws = new ISocket(
       new WebSocket(this.#endpoint, {
         headers,
+        followRedirects: true,
       }),
       { id }
     )
