@@ -645,20 +645,25 @@ export default class Interval {
     }
 
     if (response.sdkAlert) {
+      console.log('')
+
+      const WARN_EMOJI = '\u26A0\uFE0F'
+      const ERROR_EMOJI = '‼️'
+
       const { severity, message } = response.sdkAlert
 
       switch (severity) {
         case 'INFO':
-          this.#log.prod('🆕 A new Interval SDK version is available.')
+          this.#log.prod('🆕\tA new Interval SDK version is available.')
           break
         case 'WARNING':
           this.#log.prod(
-            '⚠ This version of the Interval SDK has been deprecated. Please update as soon as possible, it will not work in a future update.'
+            `${WARN_EMOJI}\tThis version of the Interval SDK has been deprecated. Please update as soon as possible, it will not work in a future update.`
           )
           break
         case 'ERROR':
           this.#log.prod(
-            '‼️ This version of the Interval SDK is no longer supported. Your app will not work until you update.'
+            `${ERROR_EMOJI}\tThis version of the Interval SDK is no longer supported. Your app will not work until you update.`
           )
           break
       }
@@ -667,11 +672,13 @@ export default class Interval {
         this.#log.prod(message)
       }
 
-      this.#log.prod("- See what's new at:", CHANGELOG_URL)
+      this.#log.prod("\t- See what's new at:", CHANGELOG_URL)
       this.#log.prod(
-        '- Update now by running:',
+        '\t- Update now by running:',
         getInstallCommand(`${pkg.name}@latest`, detectPackageManager())
       )
+
+      console.log('')
     }
 
     if (response.type === 'error') {
