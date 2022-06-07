@@ -262,7 +262,9 @@ export const clientSchema = {
     returns: z.void().nullable(),
   },
   TRANSACTION_COMPLETED: {
-    inputs: z.undefined(),
+    inputs: z.object({
+      resultStatus: z.enum(['SUCCESS', 'FAILURE', 'CANCELED']),
+    }),
     returns: z.void().nullable(),
   },
   HOST_CLOSED_UNEXPECTEDLY: {
