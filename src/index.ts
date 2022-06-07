@@ -38,6 +38,9 @@ import type {
 } from './types'
 import TransactionLoadingState from './classes/TransactionLoadingState'
 import localConfig from './localConfig'
+import { detectPackageManager, getInstallCommand } from './utils/packageManager'
+
+const CHANGELOG_URL = 'https://interval.com/changelog'
 
 export type {
   ActionCtx,
@@ -124,7 +127,7 @@ export default class Interval {
   #ghostOrgId: string | undefined
   #apiKey: string | undefined
   #actions: Record<string, IntervalActionDefinition>
-  #endpoint: string = 'wss://intervalkit.com/websocket'
+  #endpoint: string = 'wss://interval.com/websocket'
   #httpEndpoint: string
   #logger: Logger
   #retryIntervalMs: number = 3000
@@ -393,15 +396,17 @@ export default class Interval {
     const ws = new ISocket(
       new WebSocket(this.#endpoint, {
         headers,
+        followRedirects: true,
       }),
       { id }
     )
 
     ws.onClose.attach(async ([code, reason]) => {
-      this.#log.prod(
-        `❗ Could not connect to Interval (code ${code}). Reason:`,
-        reason
-      )
+      this.#log.error(`❗ Could not connect to Interval (code ${code})`)
+
+      if (reason) {
+        this.#log.error('Reason:', reason)
+      }
 
       if (this.#pingIntervalHandle) {
         clearInterval(this.#pingIntervalHandle)
@@ -664,11 +669,11 @@ export default class Interval {
    */
   async #initializeHost() {
     if (!this.#serverRpc) {
-      throw new Error('serverRpc not initialized')
+      throw new IntervalError('serverRpc not initialized')
     }
 
     if (!this.#ws) {
-      throw new Error('ISocket not initialized')
+      throw new IntervalError('ISocket not initialized')
     }
 
     const actions = Object.entries(this.#actions).map(([slug, def]) => ({
@@ -683,45 +688,88 @@ export default class Interval {
       return
     }
 
-    const loggedIn = await this.#send('INITIALIZE_HOST', {
+    const response = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
       actions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
     })
 
-    if (!loggedIn) throw new Error('The provided API key is not valid')
-
-    if (loggedIn.invalidSlugs.length > 0) {
-      this.#log.warn('[Interval]', '⚠ Invalid slugs detected:\n')
-
-      for (const slug of loggedIn.invalidSlugs) {
-        this.#log.warn(`  - ${slug}`)
-      }
-
-      this.#log.warn(
-        '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
-      )
-
-      if (loggedIn.invalidSlugs.length === slugs.length) {
-        throw new Error('No valid slugs provided')
-      }
+    if (!response) {
+      throw new IntervalError('Unknown error')
     }
 
-    this.organization = loggedIn.organization
-    this.environment = loggedIn.environment
+    if (response.sdkAlert) {
+      console.log('')
 
-    this.#log.prod(
-      `🔗 Connected! Access your actions at: ${loggedIn.dashboardUrl}`
-    )
-    this.#log.debug('Host ID:', this.#ws.id)
+      const WARN_EMOJI = '\u26A0\uFE0F'
+      const ERROR_EMOJI = '‼️'
+
+      const { severity, message } = response.sdkAlert
+
+      switch (severity) {
+        case 'INFO':
+          this.#log.prod('🆕\tA new Interval SDK version is available.')
+          break
+        case 'WARNING':
+          this.#log.prod(
+            `${WARN_EMOJI}\tThis version of the Interval SDK has been deprecated. Please update as soon as possible, it will not work in a future update.`
+          )
+          break
+        case 'ERROR':
+          this.#log.prod(
+            `${ERROR_EMOJI}\tThis version of the Interval SDK is no longer supported. Your app will not work until you update.`
+          )
+          break
+      }
+
+      if (message) {
+        this.#log.prod(message)
+      }
+
+      this.#log.prod("\t- See what's new at:", CHANGELOG_URL)
+      this.#log.prod(
+        '\t- Update now by running:',
+        getInstallCommand(`${pkg.name}@latest`, detectPackageManager())
+      )
+
+      console.log('')
+    }
+
+    if (response.type === 'error') {
+      throw new IntervalError(response.message)
+    } else {
+      if (response.invalidSlugs.length > 0) {
+        this.#log.warn('[Interval]', '⚠ Invalid slugs detected:\n')
+
+        for (const slug of response.invalidSlugs) {
+          this.#log.warn(`  - ${slug}`)
+        }
+
+        this.#log.warn(
+          '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
+        )
+
+        if (response.invalidSlugs.length === slugs.length) {
+          throw new IntervalError('No valid slugs provided')
+        }
+      }
+
+      this.organization = response.organization
+      this.environment = response.environment
+
+      this.#log.prod(
+        `🔗 Connected! Access your actions at: ${response.dashboardUrl}`
+      )
+      this.#log.debug('Host ID:', this.#ws.id)
+    }
   }
 
   async #send<MethodName extends keyof typeof wsServerSchema>(
     methodName: MethodName,
     inputs: z.input<typeof wsServerSchema[MethodName]['inputs']>
   ) {
-    if (!this.#serverRpc) throw new Error('serverRpc not initialized')
+    if (!this.#serverRpc) throw new IntervalError('serverRpc not initialized')
 
     while (true) {
       try {
@@ -747,7 +795,7 @@ export default class Interval {
    * Do not use unless you're absolutely sure what you're doing.
    */
   protected async __dangerousInternalSend(methodName: any, inputs: any) {
-    if (!this.#serverRpc) throw new Error('serverRpc not initialized')
+    if (!this.#serverRpc) throw new IntervalError('serverRpc not initialized')
 
     return await this.#serverRpc.send(methodName, inputs)
   }
