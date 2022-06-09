@@ -263,8 +263,13 @@ export default class Interval {
             transactionId,
             ioCall,
           })
-            .then(() => {
+            .then(response => {
               toResend.delete(transactionId)
+
+              if (!response) {
+                // Unsuccessful response, don't try again
+                this.#pendingIOCalls.delete(transactionId)
+              }
             })
             .catch(async err => {
               if (err instanceof IOError) {
@@ -304,45 +309,51 @@ export default class Interval {
   async #resendTransactionLoadingStates() {
     if (!this.#isConnected) return
 
-    while (this.#transactionLoadingStates.size > 0) {
+    const toResend = new Map(this.#transactionLoadingStates)
+
+    while (toResend.size > 0) {
       await Promise.allSettled(
-        Array.from(this.#transactionLoadingStates.entries()).map(
-          ([transactionId, loadingState]) =>
-            this.#send('SEND_LOADING_CALL', {
-              transactionId,
-              ...loadingState,
-            })
-              .then(() => {
+        Array.from(toResend.entries()).map(([transactionId, loadingState]) =>
+          this.#send('SEND_LOADING_CALL', {
+            transactionId,
+            ...loadingState,
+          })
+            .then(response => {
+              toResend.delete(transactionId)
+
+              if (!response) {
+                // Unsuccessful response, don't try again
                 this.#transactionLoadingStates.delete(transactionId)
-              })
-              .catch(async err => {
-                if (err instanceof IOError) {
-                  this.#logger.error(
-                    'Failed resending transaction loading state: ',
-                    err.kind
-                  )
-
-                  if (
-                    err.kind === 'CANCELED' ||
-                    err.kind === 'TRANSACTION_CLOSED'
-                  ) {
-                    this.#logger.debug(
-                      'Aborting resending transaction loading state'
-                    )
-                    this.#pendingIOCalls.delete(transactionId)
-                    return
-                  }
-                } else {
-                  this.#logger.debug('Failed resending pending IO call:', err)
-                }
-
-                this.#logger.debug(
-                  `Trying again in ${Math.round(
-                    this.#retryIntervalMs / 1000
-                  )}s...`
+              }
+            })
+            .catch(async err => {
+              if (err instanceof IOError) {
+                this.#logger.error(
+                  'Failed resending transaction loading state: ',
+                  err.kind
                 )
-                await sleep(this.#retryIntervalMs)
-              })
+
+                if (
+                  err.kind === 'CANCELED' ||
+                  err.kind === 'TRANSACTION_CLOSED'
+                ) {
+                  this.#logger.debug(
+                    'Aborting resending transaction loading state'
+                  )
+                  this.#transactionLoadingStates.delete(transactionId)
+                  return
+                }
+              } else {
+                this.#logger.debug('Failed resending pending IO call:', err)
+              }
+
+              this.#logger.debug(
+                `Trying again in ${Math.round(
+                  this.#retryIntervalMs / 1000
+                )}s...`
+              )
+              await sleep(this.#retryIntervalMs)
+            })
         )
       )
     }
