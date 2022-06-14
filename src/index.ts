@@ -97,6 +97,7 @@ export const io: IO = {
   get confirm() { return getActionStore().io.confirm },
   get search() { return getActionStore().io.search },
   get input() { return getActionStore().io.input },
+  get upload() { return getActionStore().io.upload },
   get select() { return getActionStore().io.select },
   get display() { return getActionStore().io.display },
   get experimental() { return getActionStore().io.experimental },

@@ -316,6 +316,20 @@ export const ioSchema = {
     state: z.null(),
     returns: z.array(deserializableRecord),
   },
+  UPLOAD_FILE: {
+    props: z.object({
+      helpText: z.string().optional(),
+      allowedMimeTypes: z.array(z.string()).optional(),
+    }),
+    state: z.null(),
+    returns: z.object({
+      name: z.string(),
+      type: z.string(),
+      lastModified: z.number(),
+      size: z.number(),
+      url: z.string(),
+    }),
+  },
   SEARCH: {
     props: z.object({
       results: z.array(richSelectOption),

@@ -170,13 +170,15 @@ export class IOClient {
     Components extends [AnyIOComponent, ...AnyIOComponent[]]
   >(
     ioPromises: IOPromises
-  ): Promise<{
-    [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
-      ? ReturnType<IOPromises[Idx]['getValue']>
-      : IOPromises[Idx] extends OptionalGroupIOPromise
-      ? ReturnType<IOPromises[Idx]['getValue']>
-      : IOPromises[Idx]
-  }>
+  ): Promise<
+    {
+      [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
+        ? ReturnType<IOPromises[Idx]['getValue']>
+        : IOPromises[Idx] extends OptionalGroupIOPromise
+        ? ReturnType<IOPromises[Idx]['getValue']>
+        : IOPromises[Idx]
+    }
+  >
   async group(
     ioPromises: MaybeOptionalGroupIOPromise[]
   ): Promise<ReturnType<MaybeOptionalGroupIOPromise['getValue']>>
@@ -296,6 +298,9 @@ export class IOClient {
         link: this.createIOMethod('DISPLAY_LINK'),
         object: this.createIOMethod('DISPLAY_OBJECT'),
         table: this.createIOMethod('DISPLAY_TABLE', displayTable),
+      },
+      upload: {
+        toURL: this.createIOMethod('UPLOAD_FILE'),
       },
       experimental: {
         spreadsheet: this.createIOMethod('INPUT_SPREADSHEET', spreadsheet),

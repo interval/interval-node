@@ -572,6 +572,16 @@ const interval = new Interval({
 
       return { message: 'OK, notified!' }
     },
+    upload: async io => {
+      const file = await io.upload.toURL('Upload an image!', {
+        helpText: 'Can be any image.',
+        allowedMimeTypes: ['image/*'],
+      })
+
+      console.log(file)
+
+      return file
+    },
     malformed: async io => {
       // @ts-expect-error: Ensuring we can handle invalid calls
       await io.input.text(new Error(), {
