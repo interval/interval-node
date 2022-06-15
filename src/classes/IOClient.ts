@@ -300,9 +300,6 @@ export class IOClient {
         object: this.createIOMethod('DISPLAY_OBJECT'),
         table: this.createIOMethod('DISPLAY_TABLE', displayTable),
       },
-      upload: {
-        toURL: this.createIOMethod('UPLOAD_FILE', toUrl),
-      },
       experimental: {
         spreadsheet: this.createIOMethod('INPUT_SPREADSHEET', spreadsheet),
         findAndSelectUser: this.createIOMethod(
@@ -312,6 +309,9 @@ export class IOClient {
         date: this.createIOMethod('INPUT_DATE', date),
         time: this.createIOMethod('INPUT_TIME'),
         datetime: this.createIOMethod('INPUT_DATETIME', datetime),
+        upload: {
+          toURL: this.createIOMethod('UPLOAD_FILE', toUrl),
+        },
       },
     }
   }
