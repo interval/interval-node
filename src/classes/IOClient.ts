@@ -18,6 +18,7 @@ import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
 import { date, datetime } from '../components/inputDate'
+import { toUrl } from '../components/upload'
 import {
   IORenderSender,
   ResponseHandlerFn,
@@ -300,7 +301,7 @@ export class IOClient {
         table: this.createIOMethod('DISPLAY_TABLE', displayTable),
       },
       upload: {
-        toURL: this.createIOMethod('UPLOAD_FILE'),
+        toURL: this.createIOMethod('UPLOAD_FILE', toUrl),
       },
       experimental: {
         spreadsheet: this.createIOMethod('INPUT_SPREADSHEET', spreadsheet),
