@@ -330,27 +330,72 @@ const interval = new Interval({
       `)
     },
     ImportUsers: async io => {
-      const records = await io.experimental.spreadsheet(
-        'Select users to import',
-        {
-          columns: {
-            firstName: 'string',
-            lastName: 'string',
-            age: 'number?',
-            'Is cool': 'boolean',
+      await io.display.table('Users', {
+        data: [
+          {
+            email: 'carsta.rocha@example.com',
+            phone_number: '(60) 1416-4953',
+            birthdate: '1993-08-04',
+            first_name: 'carsta',
+            last_name: 'rocha',
+            photo: 'photos/21351234.jpg',
+            website_url: 'https://example.com',
           },
-          defaultValue: [
-            {
-              firstName: 'Jacob',
-              lastName: 'Mischka',
-              age: 28,
-              'Is cool': true,
+          {
+            email: 'irene.morales@example.org',
+            phone_number: '625-790-958',
+            birthdate: '1982-04-28',
+            first_name: 'irene',
+            last_name: 'morales',
+            picture: 'photos/8321527.jpg',
+            website_url: 'https://example.org',
+          },
+        ],
+        columns: [
+          {
+            label: 'Name',
+            renderCell: row => `${row.first_name} ${row.last_name}`,
+          },
+          {
+            label: 'Birth date',
+            renderCell: row => {
+              const [y, m, d] = row.birthdate.split('-').map(s => Number(s))
+              const birthDate = new Date(y, m - 1, d)
+              return {
+                label: birthDate.toLocaleDateString(),
+                value: birthDate,
+              }
             },
-          ],
-        }
+          },
+          {
+            label: 'Website',
+            renderCell: row => ({
+              label: row.website_url,
+              href: row.website_url,
+            }),
+          },
+          {
+            label: 'Edit action',
+            renderCell: row => ({
+              label: 'Edit user',
+              action: 'edit_user',
+              params: {
+                email: row.email,
+              },
+            }),
+          },
+        ],
+        orientation: 'horizontal',
+      })
+    },
+    edit_user: async (io, ctx) => {
+      const { email } = ctx.params
+      await io.display.markdown(
+        `Perform work for the user with the email \`${email}\``
       )
-
-      console.log(records)
+      return { email }
+      // const user = lookupUserByEmail(email)
+      // Edit user
     },
     'Display-Does-Not-Return-Automatically': async io => {
       await io.group([
