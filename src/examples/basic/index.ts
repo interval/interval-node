@@ -576,6 +576,7 @@ const interval = new Interval({
       const file = await io.experimental.upload.toURL('Upload an image!', {
         helpText: 'Can be any image.',
         allowedMimeTypes: ['image/*'],
+        allowedExtensions: ['.gif', '.jpg', '.jpeg'],
       })
 
       console.log(file)

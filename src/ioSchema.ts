@@ -320,6 +320,7 @@ export const ioSchema = {
     props: z.object({
       helpText: z.string().optional(),
       allowedMimeTypes: z.array(z.string()).optional(),
+      allowedExtensions: z.array(z.string()).optional(),
     }),
     state: z.null(),
     returns: z.object({
