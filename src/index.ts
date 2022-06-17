@@ -17,6 +17,8 @@ import {
   ActionEnvironment,
   LoadingState,
   CREATE_GHOST_MODE_ACCOUNT,
+  DECLARE_HOST,
+  SdkAlert,
 } from './internalRpcSchema'
 import {
   ActionResultSchema,
@@ -42,6 +44,7 @@ import { detectPackageManager, getInstallCommand } from './utils/packageManager'
 
 const CHANGELOG_URL = 'https://interval.com/changelog'
 
+export * from './utils/http'
 export type {
   ActionCtx,
   ActionLogFn,
@@ -182,6 +185,10 @@ export default class Interval {
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
   #pendingIOCalls = new Map<string, string>()
   #transactionLoadingStates = new Map<string, LoadingState>()
+  #transactionCompleteCallbacks = new Map<
+    string,
+    [(output?: any) => void, (err?: any) => void]
+  >()
   #ws: ISocket | undefined = undefined
   #serverRpc:
     | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
@@ -203,6 +210,91 @@ export default class Interval {
     await this.#createSocketConnection()
     this.#createRPCClient()
     await this.#initializeHost()
+  }
+
+  async respondToRequest(requestId: string) {
+    if (!requestId) {
+      throw new Error('Missing request ID')
+    }
+
+    if (Object.keys(this.#actions).length === 0) {
+      this.#log.prod(
+        'Calling responsdToRequest() with no defined actions is a no-op, skipping'
+      )
+      return
+    }
+
+    await this.#createSocketConnection()
+    this.#createRPCClient(requestId)
+    await this.#initializeHost(requestId)
+
+    const result = await new Promise((resolve, reject) => {
+      this.#transactionCompleteCallbacks.set(requestId, [resolve, reject])
+    })
+
+    return result
+  }
+
+  async declareHost(httpHostId: string) {
+    const actions = Object.entries(this.#actions).map(([slug, def]) => ({
+      slug,
+      ...('handler' in def ? def : {}),
+      handler: undefined,
+    }))
+    const slugs = Object.keys(this.#actions)
+
+    if (slugs.length === 0) {
+      this.#log.prod('No actions defined, skipping host declaration')
+      return
+    }
+
+    const body: z.infer<typeof DECLARE_HOST['inputs']> = {
+      httpHostId,
+      actions,
+      sdkName: pkg.name,
+      sdkVersion: pkg.version,
+    }
+
+    const response = await fetch(`${this.#httpEndpoint}/api/hosts/declare`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.#apiKey}`,
+      },
+      body: JSON.stringify(body),
+    })
+      .then(r => r.json())
+      .then(r => DECLARE_HOST.returns.parseAsync(r))
+      .catch(err => {
+        this.#logger.debug(err)
+        throw new IntervalError('Received invalid API response.')
+      })
+
+    if (response.type === 'error') {
+      throw new IntervalError(
+        `There was a problem declaring the host: ${response.message}`
+      )
+    }
+
+    if (response.sdkAlert) {
+      this.#handleSdkAlert(response.sdkAlert)
+    }
+
+    if (response.invalidSlugs.length > 0) {
+      this.#log.warn('[Interval]', '⚠ Invalid slugs detected:\n')
+
+      for (const slug of response.invalidSlugs) {
+        this.#log.warn(`  - ${slug}`)
+      }
+
+      this.#log.warn(
+        '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
+      )
+
+      if (response.invalidSlugs.length === slugs.length) {
+        throw new IntervalError('No valid slugs provided')
+      }
+    }
   }
 
   async notify(config: NotifyConfig): Promise<void> {
@@ -244,8 +336,6 @@ export default class Interval {
         `There was a problem sending the notification: ${response.message}`
       )
     }
-
-    return
   }
 
   /**
@@ -504,7 +594,7 @@ export default class Interval {
    * Creates the DuplexRPCClient responsible for sending
    * messages to Interval.
    */
-  #createRPCClient() {
+  #createRPCClient(requestId?: string) {
     if (!this.#ws) {
       throw new Error('ISocket not initialized')
     }
@@ -612,11 +702,25 @@ export default class Interval {
 
                 return result
               })
-              .then((res: ActionResultSchema) => {
-                this.#send('MARK_TRANSACTION_COMPLETE', {
+              .then(async (res: ActionResultSchema) => {
+                await this.#send('MARK_TRANSACTION_COMPLETE', {
                   transactionId,
                   result: JSON.stringify(res),
                 })
+
+                if (requestId) {
+                  const callbacks =
+                    this.#transactionCompleteCallbacks.get(requestId)
+                  if (callbacks) {
+                    const [resolve] = callbacks
+                    resolve()
+                  } else {
+                    this.#log.debug(
+                      'No transaction complete callbacks found for requestId',
+                      requestId
+                    )
+                  }
+                }
               })
               .catch(err => {
                 if (err instanceof IOError) {
@@ -633,6 +737,20 @@ export default class Interval {
                         actionSlug
                       )
                       break
+                  }
+                }
+
+                if (requestId) {
+                  const callbacks =
+                    this.#transactionCompleteCallbacks.get(requestId)
+                  if (callbacks) {
+                    const [_, reject] = callbacks
+                    reject(err)
+                  } else {
+                    this.#log.debug(
+                      'No transaction complete callbacks found for requestId',
+                      requestId
+                    )
                   }
                 }
               })
@@ -679,13 +797,13 @@ export default class Interval {
    * Sends the `INITIALIZE_HOST` RPC call to Interval,
    * declaring the actions that this host is responsible for handling.
    */
-  async #initializeHost() {
-    if (!this.#serverRpc) {
-      throw new IntervalError('serverRpc not initialized')
-    }
-
+  async #initializeHost(requestId?: string) {
     if (!this.#ws) {
       throw new IntervalError('ISocket not initialized')
+    }
+
+    if (!this.#serverRpc) {
+      throw new IntervalError('serverRpc not initialized')
     }
 
     const actions = Object.entries(this.#actions).map(([slug, def]) => ({
@@ -705,6 +823,7 @@ export default class Interval {
       actions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
+      requestId,
     })
 
     if (!response) {
@@ -712,40 +831,7 @@ export default class Interval {
     }
 
     if (response.sdkAlert) {
-      console.log('')
-
-      const WARN_EMOJI = '\u26A0\uFE0F'
-      const ERROR_EMOJI = '‼️'
-
-      const { severity, message } = response.sdkAlert
-
-      switch (severity) {
-        case 'INFO':
-          this.#log.prod('🆕\tA new Interval SDK version is available.')
-          break
-        case 'WARNING':
-          this.#log.prod(
-            `${WARN_EMOJI}\tThis version of the Interval SDK has been deprecated. Please update as soon as possible, it will not work in a future update.`
-          )
-          break
-        case 'ERROR':
-          this.#log.prod(
-            `${ERROR_EMOJI}\tThis version of the Interval SDK is no longer supported. Your app will not work until you update.`
-          )
-          break
-      }
-
-      if (message) {
-        this.#log.prod(message)
-      }
-
-      this.#log.prod("\t- See what's new at:", CHANGELOG_URL)
-      this.#log.prod(
-        '\t- Update now by running:',
-        getInstallCommand(`${pkg.name}@latest`, detectPackageManager())
-      )
-
-      console.log('')
+      this.#handleSdkAlert(response.sdkAlert)
     }
 
     if (response.type === 'error') {
@@ -836,6 +922,43 @@ export default class Interval {
       index,
       timestamp: new Date().valueOf(),
     })
+  }
+
+  #handleSdkAlert(sdkAlert: SdkAlert) {
+    console.log('')
+
+    const WARN_EMOJI = '\u26A0\uFE0F'
+    const ERROR_EMOJI = '‼️'
+
+    const { severity, message } = sdkAlert
+
+    switch (severity) {
+      case 'INFO':
+        this.#log.prod('🆕\tA new Interval SDK version is available.')
+        break
+      case 'WARNING':
+        this.#log.prod(
+          `${WARN_EMOJI}\tThis version of the Interval SDK has been deprecated. Please update as soon as possible, it will not work in a future update.`
+        )
+        break
+      case 'ERROR':
+        this.#log.prod(
+          `${ERROR_EMOJI}\tThis version of the Interval SDK is no longer supported. Your app will not work until you update.`
+        )
+        break
+    }
+
+    if (message) {
+      this.#log.prod(message)
+    }
+
+    this.#log.prod("\t- See what's new at:", CHANGELOG_URL)
+    this.#log.prod(
+      '\t- Update now by running:',
+      getInstallCommand(`${pkg.name}@latest`, detectPackageManager())
+    )
+
+    console.log('')
   }
 }
 
