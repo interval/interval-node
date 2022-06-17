@@ -573,7 +573,7 @@ const interval = new Interval({
       return { message: 'OK, notified!' }
     },
     upload: async io => {
-      const file = await io.experimental.upload.toURL('Upload an image!', {
+      const file = await io.experimental.upload.toUrl('Upload an image!', {
         helpText: 'Can be any image.',
         allowedExtensions: ['.gif', '.jpg', '.jpeg'],
       })

@@ -310,7 +310,7 @@ export class IOClient {
         time: this.createIOMethod('INPUT_TIME'),
         datetime: this.createIOMethod('INPUT_DATETIME', datetime),
         upload: {
-          toURL: this.createIOMethod('UPLOAD_FILE', toUrl),
+          toUrl: this.createIOMethod('UPLOAD_FILE', toUrl),
         },
       },
     }
