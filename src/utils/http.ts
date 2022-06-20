@@ -4,6 +4,8 @@ import { InternalConfig, Interval } from '..'
 export async function handleRequest(requestId: string, config: InternalConfig) {
   const interval = new Interval(config)
   const response = await interval.respondToRequest(requestId)
+  interval.close()
+
   return response
 }
 
@@ -14,7 +16,10 @@ export function createHttpServer(config: InternalConfig): http.Server {
 export function createHttpRequestHandler(config: InternalConfig) {
   return async (req: http.IncomingMessage, res: http.ServerResponse) => {
     // TODO: Proper headers
-    // TODO: Some authentication somehow?
+
+    if (req.method === 'GET') {
+      return res.writeHead(200).end('OK')
+    }
 
     if (req.method !== 'POST') {
       return res.writeHead(405).end()

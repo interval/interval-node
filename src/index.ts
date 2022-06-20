@@ -137,6 +137,7 @@ export default class Interval {
   #pingIntervalMs: number = 30_000
   #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
   #pingIntervalHandle: NodeJS.Timeout | undefined
+  #intentionallyClosed = false
 
   actions: Actions
 
@@ -224,15 +225,38 @@ export default class Interval {
       return
     }
 
-    await this.#createSocketConnection()
-    this.#createRPCClient(requestId)
-    await this.#initializeHost(requestId)
+    if (!this.#ws) {
+      await this.#createSocketConnection()
+    }
 
-    const result = await new Promise((resolve, reject) => {
+    if (!this.#serverRpc) {
+      this.#createRPCClient(requestId)
+    }
+
+    const result = new Promise((resolve, reject) => {
       this.#transactionCompleteCallbacks.set(requestId, [resolve, reject])
     })
 
-    return result
+    if (!this.organization) {
+      await this.#initializeHost(requestId)
+    }
+
+    return await result
+  }
+
+  close() {
+    this.#intentionallyClosed = true
+
+    if (this.#serverRpc) {
+      this.#serverRpc = undefined
+    }
+
+    if (this.#ws) {
+      this.#ws.close()
+      this.#ws = undefined
+    }
+
+    this.#isConnected = false
   }
 
   async declareHost(httpHostId: string) {
@@ -504,6 +528,11 @@ export default class Interval {
     )
 
     ws.onClose.attach(async ([code, reason]) => {
+      if (this.#intentionallyClosed) {
+        this.#intentionallyClosed = false
+        return
+      }
+
       this.#log.error(`❗ Could not connect to Interval (code ${code})`)
 
       if (reason) {
