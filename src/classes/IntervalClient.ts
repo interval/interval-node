@@ -151,7 +151,7 @@ export default class IntervalClient {
 
     if (Object.keys(this.#actions).length === 0) {
       this.#log.prod(
-        'Calling responsdToRequest() with no defined actions is a no-op, skipping'
+        'Calling respondToRequest() with no defined actions is a no-op, skipping'
       )
       return
     }
