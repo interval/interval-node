@@ -28,7 +28,12 @@ import IntervalClient, {
   actionLocalStorage,
 } from './classes/IntervalClient'
 import { detectPackageManager, getInstallCommand } from './utils/packageManager'
-import { getRequestBody } from './utils/http'
+import {
+  getRequestBody,
+  HttpRequestBody,
+  LambdaRequestPayload,
+  LambdaResponse,
+} from './utils/http'
 
 const CHANGELOG_URL = 'https://interval.com/changelog'
 
@@ -158,6 +163,21 @@ export default class Interval {
     return this.#client?.close()
   }
 
+  async handleRequest({
+    requestId,
+    httpHostId,
+  }: HttpRequestBody): Promise<boolean> {
+    if (requestId) {
+      await this.respondToRequest(requestId)
+      return true
+    } else if (httpHostId) {
+      await this.declareHost(httpHostId)
+      return true
+    } else {
+      return false
+    }
+  }
+
   get httpRequestHandler() {
     const interval = this
 
@@ -178,20 +198,65 @@ export default class Interval {
           return res.writeHead(400).end()
         }
 
-        const { requestId, httpHostId } = body
-
-        if (requestId) {
-          await interval.respondToRequest(requestId)
-          return res.writeHead(200).end()
-        } else if (httpHostId) {
-          await interval.declareHost(httpHostId)
-          return res.writeHead(200).end()
-        } else {
-          return res.writeHead(400).end()
-        }
+        const successful = await interval.handleRequest(body)
+        return res.writeHead(successful ? 200 : 400).end()
       } catch (err) {
         console.error('Error in HTTP request handler:', err)
         return res.writeHead(500).end()
+      }
+    }
+  }
+
+  get lambdaRequestHandler() {
+    const interval = this
+    return async (event: LambdaRequestPayload) => {
+      function makeResponse(
+        statusCode: number,
+        body?: Record<string, string> | string
+      ): LambdaResponse {
+        return {
+          isBase64Encoded: false,
+          statusCode,
+          body: body
+            ? typeof body === 'string'
+              ? body
+              : JSON.stringify(body)
+            : '',
+          headers:
+            body && typeof body !== 'string'
+              ? {
+                  'content-type': 'application/json',
+                }
+              : {},
+        }
+      }
+
+      if (event.requestContext.http.method === 'GET') {
+        return makeResponse(200)
+      }
+
+      if (event.requestContext.http.method !== 'POST') {
+        return makeResponse(405)
+      }
+
+      try {
+        let body: HttpRequestBody | undefined
+        if (event.body) {
+          try {
+            body = JSON.parse(event.body)
+          } catch (err) {
+            console.error('Failed parsing input body as JSON', event.body)
+          }
+        }
+
+        if (!body) {
+          return makeResponse(400)
+        }
+
+        return interval.handleRequest(body)
+      } catch (err) {
+        console.error('Error in Lambda handler', err)
+        return makeResponse(500)
       }
     }
   }

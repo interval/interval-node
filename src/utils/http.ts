@@ -25,3 +25,28 @@ export async function getRequestBody(
     })
   })
 }
+
+export interface HttpRequestBody {
+  requestId?: string
+  httpHostId?: string
+}
+
+/*
+ * A very slim Lambda request payload interface with just the parts we care about right now.
+ */
+export interface LambdaRequestPayload {
+  version: '2.0'
+  requestContext: {
+    http: {
+      method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS'
+    }
+  }
+  body?: string
+}
+
+export interface LambdaResponse {
+  isBase64Encoded: boolean
+  statusCode: number
+  headers: Record<string, string>
+  body: string
+}
