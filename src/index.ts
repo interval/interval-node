@@ -185,7 +185,7 @@ export default class Interval {
         const successful = await interval.handleRequest(body)
         return res.writeHead(successful ? 200 : 400).end()
       } catch (err) {
-        console.error('Error in HTTP request handler:', err)
+        interval.#log.error('Error in HTTP request handler:', err)
         return res.writeHead(500).end()
       }
     }
@@ -231,7 +231,7 @@ export default class Interval {
           try {
             body = JSON.parse(event.body)
           } catch (err) {
-            console.error('Failed parsing input body as JSON', event.body)
+            this.#log.error('Failed parsing input body as JSON', event.body)
           }
         }
 
@@ -241,7 +241,7 @@ export default class Interval {
 
         return interval.handleRequest(body)
       } catch (err) {
-        console.error('Error in Lambda handler', err)
+        this.#log.error('Error in Lambda handler', err)
         return makeResponse(500)
       }
     }
