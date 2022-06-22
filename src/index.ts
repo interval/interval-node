@@ -139,41 +139,29 @@ export default class Interval {
     return this.#client.listen()
   }
 
-  /**
-   * Always creates a new host connection to Interval and uses it only for the single request.
-   */
-  async respondToRequest(requestId: string) {
-    if (!requestId) {
-      throw new Error('Missing request ID')
-    }
-
-    const client = new IntervalClient(this, this.config)
-    const response = await client.respondToRequest(requestId)
-
-    client.close()
-
-    return response
-  }
-
   close() {
     return this.#client?.close()
   }
 
+  /*
+   * Handle a serverless host endpoint request. Receives the deserialized request body object.
+   */
   async handleRequest({
     requestId,
     httpHostId,
   }: HttpRequestBody): Promise<boolean> {
     if (requestId) {
-      await this.respondToRequest(requestId)
+      await this.#respondToRequest(requestId)
       return true
     } else if (httpHostId) {
-      await this.declareHost(httpHostId)
+      await this.#declareHost(httpHostId)
       return true
     } else {
       return false
     }
   }
 
+  // A getter that returns a function instead of a method to avoid `this` binding issues.
   get httpRequestHandler() {
     const interval = this
 
@@ -203,8 +191,10 @@ export default class Interval {
     }
   }
 
+  // A getter that returns a function instead of a method to avoid `this` binding issues.
   get lambdaRequestHandler() {
     const interval = this
+
     return async (event: LambdaRequestPayload) => {
       function makeResponse(
         statusCode: number,
@@ -257,7 +247,23 @@ export default class Interval {
     }
   }
 
-  async declareHost(httpHostId: string) {
+  /**
+   * Always creates a new host connection to Interval and uses it only for the single request.
+   */
+  async #respondToRequest(requestId: string) {
+    if (!requestId) {
+      throw new Error('Missing request ID')
+    }
+
+    const client = new IntervalClient(this, this.config)
+    const response = await client.respondToRequest(requestId)
+
+    client.close()
+
+    return response
+  }
+
+  async #declareHost(httpHostId: string) {
     const actions = Object.entries(this.config.actions ?? {}).map(
       ([slug, def]) => ({
         slug,
