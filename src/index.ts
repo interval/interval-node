@@ -9,7 +9,6 @@ import {
   NOTIFY,
   ActionEnvironment,
   DECLARE_HOST,
-  SdkAlert,
 } from './internalRpcSchema'
 import { SerializableRecord } from './ioSchema'
 import * as pkg from '../package.json'
@@ -27,15 +26,12 @@ import IntervalClient, {
   getHttpEndpoint,
   actionLocalStorage,
 } from './classes/IntervalClient'
-import { detectPackageManager, getInstallCommand } from './utils/packageManager'
 import {
   getRequestBody,
   HttpRequestBody,
   LambdaRequestPayload,
   LambdaResponse,
 } from './utils/http'
-
-const CHANGELOG_URL = 'https://interval.com/changelog'
 
 export type {
   ActionCtx,
@@ -305,7 +301,7 @@ export default class Interval {
     }
 
     if (response.sdkAlert) {
-      this.#handleSdkAlert(response.sdkAlert)
+      this.#log.handleSdkAlert(response.sdkAlert)
     }
 
     if (response.invalidSlugs.length > 0) {
@@ -364,43 +360,6 @@ export default class Interval {
         `There was a problem sending the notification: ${response.message}`
       )
     }
-  }
-
-  #handleSdkAlert(sdkAlert: SdkAlert) {
-    console.log('')
-
-    const WARN_EMOJI = '\u26A0\uFE0F'
-    const ERROR_EMOJI = '‼️'
-
-    const { severity, message } = sdkAlert
-
-    switch (severity) {
-      case 'INFO':
-        this.#log.prod('🆕\tA new Interval SDK version is available.')
-        break
-      case 'WARNING':
-        this.#log.prod(
-          `${WARN_EMOJI}\tThis version of the Interval SDK has been deprecated. Please update as soon as possible, it will not work in a future update.`
-        )
-        break
-      case 'ERROR':
-        this.#log.prod(
-          `${ERROR_EMOJI}\tThis version of the Interval SDK is no longer supported. Your app will not work until you update.`
-        )
-        break
-    }
-
-    if (message) {
-      this.#log.prod(message)
-    }
-
-    this.#log.prod("\t- See what's new at:", CHANGELOG_URL)
-    this.#log.prod(
-      '\t- Update now by running:',
-      getInstallCommand(`${pkg.name}@latest`, detectPackageManager())
-    )
-
-    console.log('')
   }
 }
 

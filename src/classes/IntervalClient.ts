@@ -15,7 +15,6 @@ import {
   LoadingState,
   CREATE_GHOST_MODE_ACCOUNT,
   DECLARE_HOST,
-  SdkAlert,
 } from '../internalRpcSchema'
 import { ActionResultSchema, IO_RESPONSE, T_IO_RESPONSE } from '../ioSchema'
 import { IOClient } from './IOClient'
@@ -28,14 +27,9 @@ import type {
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
 import localConfig from '../localConfig'
-import {
-  detectPackageManager,
-  getInstallCommand,
-} from '../utils/packageManager'
 import { Interval, InternalConfig, IntervalError } from '..'
 
 export const DEFAULT_WEBSOCKET_ENDPOINT = 'wss://interval.com/websocket'
-export const CHANGELOG_URL = 'https://interval.com/changelog'
 
 export function getHttpEndpoint(wsEndpoint: string) {
   const url = new URL(wsEndpoint)
@@ -232,7 +226,7 @@ export default class IntervalClient {
     }
 
     if (response.sdkAlert) {
-      this.#handleSdkAlert(response.sdkAlert)
+      this.#log.handleSdkAlert(response.sdkAlert)
     }
 
     if (response.invalidSlugs.length > 0) {
@@ -750,7 +744,7 @@ export default class IntervalClient {
     }
 
     if (response.sdkAlert) {
-      this.#handleSdkAlert(response.sdkAlert)
+      this.#log.handleSdkAlert(response.sdkAlert)
     }
 
     if (response.type === 'error') {
@@ -841,42 +835,5 @@ export default class IntervalClient {
       index,
       timestamp: new Date().valueOf(),
     })
-  }
-
-  #handleSdkAlert(sdkAlert: SdkAlert) {
-    console.log('')
-
-    const WARN_EMOJI = '\u26A0\uFE0F'
-    const ERROR_EMOJI = '‼️'
-
-    const { severity, message } = sdkAlert
-
-    switch (severity) {
-      case 'INFO':
-        this.#log.prod('🆕\tA new Interval SDK version is available.')
-        break
-      case 'WARNING':
-        this.#log.prod(
-          `${WARN_EMOJI}\tThis version of the Interval SDK has been deprecated. Please update as soon as possible, it will not work in a future update.`
-        )
-        break
-      case 'ERROR':
-        this.#log.prod(
-          `${ERROR_EMOJI}\tThis version of the Interval SDK is no longer supported. Your app will not work until you update.`
-        )
-        break
-    }
-
-    if (message) {
-      this.#log.prod(message)
-    }
-
-    this.#log.prod("\t- See what's new at:", CHANGELOG_URL)
-    this.#log.prod(
-      '\t- Update now by running:',
-      getInstallCommand(`${pkg.name}@latest`, detectPackageManager())
-    )
-
-    console.log('')
   }
 }
