@@ -239,7 +239,8 @@ export default class Interval {
           return makeResponse(400)
         }
 
-        return interval.handleRequest(body)
+        const successful = await interval.handleRequest(body)
+        return makeResponse(successful ? 200 : 500)
       } catch (err) {
         this.#log.error('Error in Lambda handler', err)
         return makeResponse(500)
