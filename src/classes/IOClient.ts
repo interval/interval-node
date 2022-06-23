@@ -18,7 +18,7 @@ import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
 import { date, datetime } from '../components/inputDate'
-import { toUrl } from '../components/upload'
+import { file } from '../components/upload'
 import {
   IORenderSender,
   ResponseHandlerFn,
@@ -309,8 +309,8 @@ export class IOClient {
         date: this.createIOMethod('INPUT_DATE', date),
         time: this.createIOMethod('INPUT_TIME'),
         datetime: this.createIOMethod('INPUT_DATETIME', datetime),
-        upload: {
-          toUrl: this.createIOMethod('UPLOAD_FILE', toUrl),
+        input: {
+          file: this.createIOMethod('UPLOAD_FILE', file),
         },
       },
     }

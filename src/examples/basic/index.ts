@@ -618,14 +618,33 @@ const interval = new Interval({
       return { message: 'OK, notified!' }
     },
     upload: async io => {
-      const file = await io.experimental.upload.toUrl('Upload an image!', {
-        helpText: 'Can be any image.',
-        allowedExtensions: ['.gif', '.jpg', '.jpeg'],
+      const file = await io.experimental.input.file('Upload an image!', {
+        helpText: 'Can be any image, or a CSV (?).',
+        allowedExtensions: ['.gif', '.jpg', '.jpeg', '.csv'],
       })
 
       console.log(file)
 
-      return file
+      const { text, json, buffer, url, ...rest } = file
+
+      return {
+        ...rest,
+        url: await url(),
+        text: rest.type.includes('text/')
+          ? await text().catch(err => {
+              console.log('Invalid text', err)
+              return undefined
+            })
+          : undefined,
+        json: rest.type.includes('text/')
+          ? await json()
+              .then(obj => JSON.stringify(obj))
+              .catch(err => {
+                console.log('Invalid JSON', err)
+                return undefined
+              })
+          : undefined,
+      }
     },
     malformed: async io => {
       // @ts-expect-error: Ensuring we can handle invalid calls
