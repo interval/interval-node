@@ -525,6 +525,11 @@ export default class IntervalClient {
 
           const { actionName: actionSlug, transactionId } = inputs
           const actionDef = this.#actions[actionSlug]
+          if (!actionDef) {
+            this.#log.debug('No action defined for slug', actionSlug)
+            return
+          }
+
           const actionHandler =
             'handler' in actionDef ? actionDef.handler : actionDef
           this.#log.debug(actionHandler)
