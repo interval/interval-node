@@ -3,20 +3,23 @@ import { IntervalActionHandler } from '../..'
 const charges = [
   {
     id: 'b717a9cf-4a3e-41ab-bcda-e2f3ff35c974',
-    name: 'Alex',
+    name: 'Alex Arena',
+    email: 'alex@interval.com',
     amount: 15000,
     purchasedAt: new Date(2022, 0, 15),
   },
   {
     id: 'acc14b04-60d8-4f9d-9907-10ea1ed05fe2',
-    name: 'Dan',
+    name: 'Dan Philibin',
+    email: 'dan@interval.com',
     amount: 0,
     promoCode: 'APPLE',
     purchasedAt: new Date(2015, 3, 22),
   },
   {
     id: '91032195-6836-4573-9cd5-0b06ea2379ec',
-    name: 'Jacob',
+    name: 'Jacob Mischka',
+    email: 'jacob@interval.com',
     amount: 1200,
     promoCode: 'BANANA',
     arr: [1, 2, 3],
@@ -24,7 +27,8 @@ const charges = [
   },
   {
     id: '48d10a1a-9c8c-4426-8d0c-796610c652f3',
-    name: 'Ryan',
+    name: 'Ryan Coppolo',
+    email: 'ryan@interval.com',
     amount: 2022,
     promoCode: 'ORANGE',
     nested: {
@@ -58,18 +62,30 @@ export const table_custom_columns: IntervalActionHandler = async io => {
         ...charges,
         ...charges,
         ...charges,
+        ...charges,
+        ...charges,
+        ...charges,
+        ...charges,
+        ...charges,
+        ...charges,
+        ...charges,
+        ...charges,
       ],
       columns: [
         {
           label: 'ID',
           renderCell: row => ({
-            label: row.id.slice(0, 5),
+            label: row.id,
             href: `https://dashboard.stripe.com/${row.id}`,
           }),
         },
         {
           label: 'Name',
           renderCell: row => row.name,
+        },
+        {
+          label: 'Email',
+          renderCell: row => row.email,
         },
         {
           label: 'Number',
