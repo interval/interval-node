@@ -1,4 +1,5 @@
 import { IntervalActionHandler } from '../..'
+import { faker } from '@faker-js/faker'
 
 const charges = [
   {
@@ -8,14 +9,15 @@ const charges = [
     amount: 15000,
     purchasedAt: new Date(2022, 0, 15),
   },
-  {
-    id: 'acc14b04-60d8-4f9d-9907-10ea1ed05fe2',
-    name: 'Dan Philibin',
-    email: 'dan@interval.com',
-    amount: 0,
-    promoCode: 'APPLE',
-    purchasedAt: new Date(2015, 3, 22),
-  },
+  // need 3 rows so pagination is perceptible at 20 per page
+  // {
+  //   id: 'acc14b04-60d8-4f9d-9907-10ea1ed05fe2',
+  //   name: 'Dan Philibin',
+  //   email: 'dan@interval.com',
+  //   amount: 0,
+  //   promoCode: 'APPLE',
+  //   purchasedAt: new Date(2015, 3, 22),
+  // },
   {
     id: '91032195-6836-4573-9cd5-0b06ea2379ec',
     name: 'Jacob Mischka',
@@ -43,12 +45,110 @@ function formatCurrency(amount: number) {
 }
 
 export const table_basic: IntervalActionHandler = async io => {
-  const selections = await io.select.table('Select from this table', {
-    data: [...charges, ...charges, ...charges, ...charges],
-    minSelections: 1,
-    maxSelections: 3,
-  })
+  const simpleCharges = charges.map(ch => ({
+    name: ch.name,
+    email: faker.internet.email(),
+    amount: ch.amount,
+  }))
+
+  const [name, phone, selections] = await io.group([
+    io.input.text('Full name'),
+    io.input.text('Phone number'),
+    io.select.table('Select a person', {
+      data: [...simpleCharges, ...simpleCharges],
+      minSelections: 1,
+      maxSelections: 3,
+    }),
+  ])
+
   await io.display.object('Selected', { data: selections })
+}
+
+export const table_custom: IntervalActionHandler = async io => {
+  const options = [
+    'id',
+    'name',
+    'email',
+    'url',
+    'number',
+    'paragraph',
+    'address1',
+    'address2',
+    'city',
+    'state',
+    'zip',
+  ].map(f => ({ label: f, value: f }))
+
+  const [rowsCount, fields, tableType] = await io.group([
+    io.input.number('Number of rows', { defaultValue: 50 }),
+    io.select.multiple('Fields', {
+      options: options,
+      defaultValue: options,
+    }),
+    io.select.single('Table type', {
+      options: [
+        { label: 'Display', value: 'display' },
+        { label: 'Select', value: 'select' },
+      ],
+      defaultValue: { label: 'Select', value: 'select' },
+    }),
+  ])
+
+  const rows = []
+  for (let i = 0; i < rowsCount; i++) {
+    const row: { [key: string]: any } = {}
+    for (const field of fields) {
+      switch (field.value) {
+        case 'id':
+          row[field.value] = faker.datatype.uuid()
+          break
+        case 'name':
+          row[field.value] = faker.name.findName()
+          break
+        case 'email':
+          row[field.value] = faker.internet.email()
+          break
+        case 'url':
+          row[field.value] = faker.internet.url()
+          break
+        case 'number':
+          row[field.value] = faker.datatype.number()
+          break
+        case 'paragraph':
+          row[field.value] = faker.lorem.paragraph()
+          break
+        case 'address1':
+          row[field.value] = faker.address.streetAddress()
+          break
+        case 'address2':
+          row[field.value] = faker.address.secondaryAddress()
+          break
+        case 'city':
+          row[field.value] = faker.address.city()
+          break
+        case 'state':
+          row[field.value] = faker.address.state()
+          break
+        case 'zip':
+          row[field.value] = faker.address.zipCode()
+          break
+        default:
+          break
+      }
+    }
+    rows.push(row)
+  }
+
+  if (tableType.value === 'display') {
+    await io.display.table('Table', { data: rows })
+  } else {
+    const [selections] = await io.select.table('Select a person', {
+      data: rows,
+      minSelections: 1,
+      maxSelections: 3,
+    })
+    await io.display.object('Selected', { data: selections })
+  }
 }
 
 export const table_custom_columns: IntervalActionHandler = async io => {

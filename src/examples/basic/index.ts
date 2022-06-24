@@ -2,7 +2,11 @@ import Interval, { IOError, io, ctx } from '../../index'
 import { NotificationDeliveryInstruction } from '../../types'
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
-import { table_basic, table_custom_columns } from './selectFromTable'
+import {
+  table_basic,
+  table_custom_columns,
+  table_custom,
+} from './selectFromTable'
 import unauthorized from './unauthorized'
 import './ghostHost'
 
@@ -82,6 +86,7 @@ const interval = new Interval({
       }
     },
     table_basic,
+    table_custom,
     table_custom_columns,
     // 'progress-through-long-list': async io => {
     //   const resp = await io.experimental.progressThroughList(
