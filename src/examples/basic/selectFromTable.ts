@@ -94,9 +94,9 @@ export const table_custom: IntervalActionHandler = async io => {
     }),
   ])
 
-  const rows = []
+  const rows: { [key: string]: any }[] = []
   for (let i = 0; i < rowsCount; i++) {
-    const row: { [key: string]: any } = {}
+    const row: typeof rows[0] = {}
     for (const field of fields) {
       switch (field.value) {
         case 'id':
