@@ -8,6 +8,7 @@ export const IO_RENDER = z.object({
       methodName: z.string(),
       label: z.string(),
       props: z.any(),
+      propsMeta: z.any().optional(),
       isStateful: z.boolean().optional().default(false),
       isOptional: z.boolean().optional().default(false),
     })
@@ -25,6 +26,7 @@ export const IO_RESPONSE = z.object({
     z.literal('CANCELED'),
   ]),
   values: z.array(z.any()),
+  valuesMeta: z.any().optional(),
 })
 
 export type T_IO_RENDER = z.infer<typeof IO_RENDER>
@@ -93,7 +95,11 @@ export const deserializableSchema = z.union([
 export type Deserializable = z.infer<typeof deserializableSchema>
 export const deserializableRecord = z.record(deserializableSchema)
 export type DeserializableRecord = z.infer<typeof deserializableRecord>
-export const serializableSchema = deserializableSchema.or(z.date())
+
+export const serializableSchema = deserializableSchema
+  .or(z.date())
+  .or(z.bigint())
+
 export type Serializable = z.infer<typeof serializableSchema>
 export const serializableRecord = z.record(serializableSchema)
 export type SerializableRecord = z.infer<typeof serializableRecord>
@@ -105,6 +111,7 @@ export const tableRowValue = z.union([
   z.null(),
   z.date(),
   z.undefined(),
+  z.bigint(),
   z.object({
     label: z.string(),
     value: z
@@ -544,6 +551,7 @@ export type ActionResultSchema = {
   schemaVersion: 0 | 1
   status: 'SUCCESS' | 'FAILURE'
   data: IOFunctionReturnType | null
+  meta?: any
 }
 
 export type ParsedActionResultSchema = Omit<ActionResultSchema, 'data'> & {

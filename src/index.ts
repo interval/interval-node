@@ -2,6 +2,7 @@ import { z, ZodError } from 'zod'
 import { v4 } from 'uuid'
 import { WebSocket } from 'ws'
 import fetch from 'node-fetch'
+import * as superjson from 'superjson'
 import { AsyncLocalStorage } from 'async_hooks'
 import ISocket, { TimeoutError } from './classes/ISocket'
 import { DuplexRPCClient } from './classes/DuplexRPCClient'
@@ -23,6 +24,7 @@ import {
   IO_RESPONSE,
   T_IO_RESPONSE,
   SerializableRecord,
+  IOFunctionReturnType,
 } from './ioSchema'
 import { IOClient } from './classes/IOClient'
 import * as pkg from '../package.json'
@@ -39,6 +41,7 @@ import type {
 import TransactionLoadingState from './classes/TransactionLoadingState'
 import localConfig from './localConfig'
 import { detectPackageManager, getInstallCommand } from './utils/packageManager'
+import { JSONValue } from 'superjson/dist/types'
 
 const CHANGELOG_URL = 'https://interval.com/changelog'
 
@@ -554,9 +557,19 @@ export default class Interval {
           // To maintain consistent ordering for logs despite network race conditions
           let logIndex = 0
 
+          let { params, paramsMeta } = inputs
+
+          if (params && paramsMeta) {
+            params = superjson.deserialize({
+              json: params as JSONValue,
+              meta: paramsMeta,
+            })
+          }
+
           const ctx: ActionCtx = {
             user: inputs.user,
-            params: deserializeDates(inputs.params),
+            // TODO: Remove this when all active SDKs support superjson
+            params: deserializeDates(params),
             environment: inputs.environment,
             organization: this.organization,
             action: {
@@ -588,10 +601,12 @@ export default class Interval {
               .then(res => {
                 // Allow actions to return data even after being canceled
 
+                const { json, meta } = superjson.serialize(res)
                 const result: ActionResultSchema = {
                   schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
                   status: 'SUCCESS',
-                  data: res || null,
+                  data: (json as IOFunctionReturnType) ?? null,
+                  meta,
                 }
 
                 return result
@@ -634,6 +649,8 @@ export default class Interval {
                       )
                       break
                   }
+                } else {
+                  this.#log.error('Error sending action response', err)
                 }
               })
               .finally(() => {
@@ -863,13 +880,18 @@ class Actions {
 
   async enqueue(
     slug: string,
-    config: Pick<QueuedAction, 'assignee' | 'params'> = {}
+    { assignee, params }: Pick<QueuedAction, 'assignee' | 'params'> = {}
   ): Promise<QueuedAction> {
     let body: z.infer<typeof ENQUEUE_ACTION['inputs']>
     try {
+      const { json, meta } = params
+        ? superjson.serialize(params)
+        : { json: undefined, meta: undefined }
       body = ENQUEUE_ACTION.inputs.parse({
-        ...config,
+        assignee,
         slug,
+        params: json,
+        paramsMeta: meta,
       })
     } catch (err) {
       this.#logger.debug(err)
@@ -899,7 +921,8 @@ class Actions {
 
     return {
       id: response.id,
-      ...config,
+      assignee,
+      params,
     }
   }
 
@@ -935,9 +958,16 @@ class Actions {
       )
     }
 
-    const { type, ...rest } = response
+    let { type, params, paramsMeta, ...rest } = response
 
-    return rest
+    if (paramsMeta && params) {
+      params = superjson.deserialize({ json: params, meta: paramsMeta })
+    }
+
+    return {
+      ...rest,
+      params,
+    }
   }
 }
 

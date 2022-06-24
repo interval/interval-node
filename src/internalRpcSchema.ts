@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { serializableRecord } from './ioSchema'
+import { deserializableRecord, serializableRecord } from './ioSchema'
 
 export const DUPLEX_MESSAGE_SCHEMA = z.object({
   id: z.string(),
@@ -42,7 +42,8 @@ export const ENQUEUE_ACTION = {
   inputs: z.object({
     slug: z.string(),
     assignee: z.string().nullish(),
-    params: serializableRecord.nullish(),
+    params: deserializableRecord.nullish(),
+    paramsMeta: z.any().optional(),
   }),
   returns: z.discriminatedUnion('type', [
     z.object({
@@ -72,7 +73,8 @@ export const DEQUEUE_ACTION = {
       type: z.literal('success'),
       id: z.string(),
       assignee: z.string().optional(),
-      params: serializableRecord.optional(),
+      params: deserializableRecord.optional(),
+      paramsMeta: z.any().optional(),
     }),
     z.object({
       type: z.literal('error'),
@@ -216,42 +218,6 @@ export const wsServerSchema = {
       ])
       .nullable(),
   },
-  ENQUEUE_ACTION: {
-    inputs: z.object({
-      // Actually slugs, for backward compatibility
-      // TODO: Change to slug in breaking release
-      actionName: z.string(),
-      assignee: z.string().nullish(),
-      params: serializableRecord.nullish(),
-    }),
-    returns: z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('success'),
-        id: z.string(),
-      }),
-      z.object({
-        type: z.literal('error'),
-        message: z.string(),
-      }),
-    ]),
-  },
-  DEQUEUE_ACTION: {
-    inputs: z.object({
-      id: z.string(),
-    }),
-    returns: z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('success'),
-        id: z.string(),
-        assignee: z.string().optional(),
-        params: serializableRecord.optional(),
-      }),
-      z.object({
-        type: z.literal('error'),
-        message: z.string(),
-      }),
-    ]),
-  },
 }
 
 export type WSServerSchema = typeof wsServerSchema
@@ -332,6 +298,7 @@ export const hostSchema = {
         lastName: z.string().nullable(),
       }),
       params: serializableRecord,
+      paramsMeta: z.any().optional(),
     }),
     returns: z.void().nullable(),
   },

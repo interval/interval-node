@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { deserialize } from 'superjson'
 import {
   ioSchema,
   resolvesImmediately,
@@ -116,6 +117,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       let parsed: ReturnType<typeof returnSchema.parse>
 
       if (value && typeof value === 'object') {
+        // TODO: Remove this when all active SDKs support superjson
         if (Array.isArray(value)) {
           parsed = returnSchema.parse(value.map(v => deserializeDates<any>(v)))
         } else {
