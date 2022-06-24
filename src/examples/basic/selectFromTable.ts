@@ -75,7 +75,12 @@ export const table_custom_columns: IntervalActionHandler = async io => {
         {
           label: 'ID',
           renderCell: row => ({
-            label: row.id,
+            label:
+              row.name === 'Dan Philibin'
+                ? 'b49db41314a645edabee-1c5eae1255df'
+                : row.name === 'Jacob Mischka'
+                ? `https://dashboard.stripe.com/${row.id}`
+                : 'This is a long string of multiline text that is linked in a table column',
             href: `https://dashboard.stripe.com/${row.id}`,
           }),
         },
