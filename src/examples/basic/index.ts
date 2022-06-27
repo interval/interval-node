@@ -620,7 +620,7 @@ const interval = new Interval({
     upload: async io => {
       const file = await io.experimental.input.file('Upload an image!', {
         helpText: 'Can be any image, or a CSV (?).',
-        allowedExtensions: ['.gif', '.jpg', '.jpeg', '.csv'],
+        allowedExtensions: ['.gif', '.jpg', '.jpeg', 'csv'],
       })
 
       console.log(file)
