@@ -18,9 +18,9 @@ import type {
   ActionLogFn,
   IO,
   IntervalActionHandler,
-  IntervalActionDefinition,
   IntervalActionStore,
   NotifyConfig,
+  IntervalActionDefinitions,
 } from './types'
 import IntervalClient, {
   DEFAULT_WEBSOCKET_ENDPOINT,
@@ -44,7 +44,9 @@ export type {
 
 export interface InternalConfig {
   apiKey?: string
-  actions?: Record<string, IntervalActionDefinition>
+  prefix?: string
+  actions?: IntervalActionDefinitions
+  subActions?: Record<string, IntervalActionDefinitions>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
@@ -123,6 +125,14 @@ export default class Interval {
       config.endpoint ?? DEFAULT_WEBSOCKET_ENDPOINT
     )
     this.actions = new Actions(this.#httpEndpoint, this.#logger, this.#apiKey)
+  }
+
+  use(prefix: string, actions: IntervalActionDefinitions) {
+    if (!this.config.subActions) {
+      this.config.subActions = {}
+    }
+
+    this.config.subActions[prefix] = actions
   }
 
   get #log() {

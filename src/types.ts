@@ -52,6 +52,7 @@ export interface IntervalActionStore {
 }
 
 export interface ExplicitIntervalActionDefinition {
+  prefix?: string
   handler: IntervalActionHandler
   backgroundable?: boolean
   name?: string
@@ -61,6 +62,8 @@ export interface ExplicitIntervalActionDefinition {
 export type IntervalActionDefinition =
   | IntervalActionHandler
   | ExplicitIntervalActionDefinition
+
+export type IntervalActionDefinitions = Record<string, IntervalActionDefinition>
 
 export type RequiredPropsIOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,

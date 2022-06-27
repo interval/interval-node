@@ -41,6 +41,7 @@ export type LoadingOptions = z.input<typeof LOADING_OPTIONS>
 export type LoadingState = z.input<typeof LOADING_STATE>
 
 export const ACTION_DEFINITION = z.object({
+  prefix: z.string().optional(),
   slug: z.string(),
   name: z.string().optional(),
   description: z.string().optional(),

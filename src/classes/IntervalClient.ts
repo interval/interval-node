@@ -17,6 +17,7 @@ import {
   LoadingState,
   CREATE_GHOST_MODE_ACCOUNT,
   DECLARE_HOST,
+  ActionDefinition,
 } from '../internalRpcSchema'
 import {
   ActionResultSchema,
@@ -60,7 +61,9 @@ export default class IntervalClient {
   #interval: Interval
   #ghostOrgId: string | undefined
   #apiKey: string | undefined
+  #prefix: string | undefined
   #actions: Record<string, IntervalActionDefinition>
+  #subActions: Record<string, Record<string, IntervalActionDefinition>> = {}
   #endpoint: string = DEFAULT_WEBSOCKET_ENDPOINT
   #httpEndpoint: string
   #logger: Logger
@@ -88,6 +91,21 @@ export default class IntervalClient {
       this.#endpoint = config.endpoint
     }
 
+    if (config.prefix) {
+      this.#prefix = config.prefix
+      if (this.#prefix.startsWith('/')) {
+        this.#prefix = this.#prefix.substring(1)
+      }
+
+      if (this.#prefix.endsWith('/')) {
+        this.#prefix = this.#prefix.substring(0, this.#prefix.length - 1)
+      }
+    }
+
+    if (config.subActions) {
+      this.#subActions = config.subActions
+    }
+
     if (config.retryIntervalMs && config.retryIntervalMs > 0) {
       this.#retryIntervalMs = config.retryIntervalMs
     }
@@ -105,6 +123,33 @@ export default class IntervalClient {
     }
 
     this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
+  }
+
+  getAction(slug: string): IntervalActionDefinition | undefined {
+    const pieces = slug.split('/')
+
+    console.log(pieces, this.#prefix)
+
+    if (this.#prefix) {
+      if (pieces[0] === this.#prefix) {
+        pieces.splice(0, 1)
+      } else {
+        return undefined
+      }
+    }
+
+    const actionSlug = pieces.pop()
+    const prefix = pieces.join('/')
+
+    console.log({ actionSlug, prefix })
+
+    if (!actionSlug) return undefined
+
+    if (prefix) {
+      return this.#subActions[prefix][actionSlug]
+    } else {
+      return this.#actions[actionSlug]
+    }
   }
 
   get #log() {
@@ -129,7 +174,7 @@ export default class IntervalClient {
   }
 
   async listen() {
-    if (Object.keys(this.#actions).length === 0) {
+    if (this.#actionDefinitions.length === 0) {
       this.#log.prod(
         'Calling listen() with no defined actions is a no-op, skipping'
       )
@@ -531,7 +576,7 @@ export default class IntervalClient {
           }
 
           const { actionName: actionSlug, transactionId } = inputs
-          const actionDef = this.#actions[actionSlug]
+          const actionDef = this.getAction(actionSlug)
           if (!actionDef) {
             this.#log.debug('No action defined for slug', actionSlug)
             return
@@ -731,6 +776,26 @@ export default class IntervalClient {
     this.#serverRpc = serverRpc
   }
 
+  get #actionDefinitions(): ActionDefinition[] {
+    return Object.entries(this.#actions)
+      .map(([slug, def]) => ({
+        prefix: this.#prefix,
+        slug,
+        ...('handler' in def ? def : {}),
+        handler: undefined,
+      }))
+      .concat(
+        Object.entries(this.#subActions).flatMap(([prefix, actions]) =>
+          Object.entries(actions).map(([slug, def]) => ({
+            prefix: [this.#prefix, prefix].join('/'),
+            slug,
+            ...('handler' in def ? def : {}),
+            handler: undefined,
+          }))
+        )
+      )
+  }
+
   /**
    * Sends the `INITIALIZE_HOST` RPC call to Interval,
    * declaring the actions that this host is responsible for handling.
@@ -744,14 +809,9 @@ export default class IntervalClient {
       throw new IntervalError('serverRpc not initialized')
     }
 
-    const actions = Object.entries(this.#actions).map(([slug, def]) => ({
-      slug,
-      ...('handler' in def ? def : {}),
-      handler: undefined,
-    }))
-    const slugs = Object.keys(this.#actions)
+    const actions = this.#actionDefinitions
 
-    if (slugs.length === 0) {
+    if (actions.length === 0) {
       this.#log.prod('No actions defined, skipping host initialization')
       return
     }
@@ -786,7 +846,7 @@ export default class IntervalClient {
           '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
         )
 
-        if (response.invalidSlugs.length === slugs.length) {
+        if (response.invalidSlugs.length === actions.length) {
           throw new IntervalError('No valid slugs provided')
         }
       }
