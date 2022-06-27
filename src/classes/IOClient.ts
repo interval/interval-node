@@ -1,5 +1,6 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
+import * as superjson from 'superjson'
 import type {
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
@@ -86,7 +87,16 @@ export class IOClient {
         const packed: T_IO_RENDER_INPUT = {
           id: v4(),
           inputGroupKey,
-          toRender: components.map(c => c.getRenderInfo()),
+          toRender: components
+            .map(c => c.getRenderInfo())
+            .map(({ props, ...renderInfo }) => {
+              const { json, meta } = superjson.serialize(props)
+              return {
+                ...renderInfo,
+                props: json,
+                propsMeta: meta,
+              }
+            }),
           kind: 'RENDER',
         }
 
@@ -113,6 +123,13 @@ export class IOClient {
 
         if (result.values.length !== components.length) {
           throw new Error('Mismatch in return array length')
+        }
+
+        if (result.valuesMeta) {
+          result.values = superjson.deserialize({
+            json: result.values,
+            meta: result.valuesMeta,
+          })
         }
 
         if (result.kind === 'RETURN') {

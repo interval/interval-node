@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { serializableRecord } from './ioSchema'
+import { deserializableRecord, serializableRecord } from './ioSchema'
 
 export const DUPLEX_MESSAGE_SCHEMA = z.object({
   id: z.string(),
@@ -35,14 +35,24 @@ const SDK_ALERT = z.object({
   message: z.string().nullish(),
 })
 
+export type SdkAlert = z.infer<typeof SDK_ALERT>
+
 export type LoadingOptions = z.input<typeof LOADING_OPTIONS>
 export type LoadingState = z.input<typeof LOADING_STATE>
+
+export const ACTION_DEFINITION = z.object({
+  slug: z.string(),
+  backgroundable: z.boolean().optional(),
+})
+
+export type ActionDefinition = z.infer<typeof ACTION_DEFINITION>
 
 export const ENQUEUE_ACTION = {
   inputs: z.object({
     slug: z.string(),
     assignee: z.string().nullish(),
-    params: serializableRecord.nullish(),
+    params: deserializableRecord.nullish(),
+    paramsMeta: z.any().optional(),
   }),
   returns: z.discriminatedUnion('type', [
     z.object({
@@ -72,7 +82,8 @@ export const DEQUEUE_ACTION = {
       type: z.literal('success'),
       id: z.string(),
       assignee: z.string().optional(),
-      params: serializableRecord.optional(),
+      params: deserializableRecord.optional(),
+      paramsMeta: z.any().optional(),
     }),
     z.object({
       type: z.literal('error'),
@@ -102,6 +113,27 @@ export const NOTIFY = {
     z.object({
       type: z.literal('error'),
       message: z.string(),
+    }),
+  ]),
+}
+
+export const DECLARE_HOST = {
+  inputs: z.object({
+    httpHostId: z.string(),
+    actions: z.array(ACTION_DEFINITION),
+    sdkName: z.string(),
+    sdkVersion: z.string(),
+  }),
+  returns: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('success'),
+      invalidSlugs: z.array(z.string()),
+      sdkAlert: SDK_ALERT.nullish(),
+    }),
+    z.object({
+      type: z.literal('error'),
+      message: z.string(),
+      sdkAlert: SDK_ALERT.nullish(),
     }),
   ]),
 }
@@ -178,6 +210,7 @@ export const wsServerSchema = {
         apiKey: z.string().optional(),
         sdkName: z.string().optional(),
         sdkVersion: z.string().optional(),
+        requestId: z.string().optional(),
       }),
       z.union([
         z.object({
@@ -186,12 +219,7 @@ export const wsServerSchema = {
           callableActionNames: z.array(z.string()),
         }),
         z.object({
-          actions: z.array(
-            z.object({
-              slug: z.string(),
-              backgroundable: z.boolean().optional(),
-            })
-          ),
+          actions: z.array(ACTION_DEFINITION),
         }),
       ])
     ),
@@ -215,42 +243,6 @@ export const wsServerSchema = {
         }),
       ])
       .nullable(),
-  },
-  ENQUEUE_ACTION: {
-    inputs: z.object({
-      // Actually slugs, for backward compatibility
-      // TODO: Change to slug in breaking release
-      actionName: z.string(),
-      assignee: z.string().nullish(),
-      params: serializableRecord.nullish(),
-    }),
-    returns: z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('success'),
-        id: z.string(),
-      }),
-      z.object({
-        type: z.literal('error'),
-        message: z.string(),
-      }),
-    ]),
-  },
-  DEQUEUE_ACTION: {
-    inputs: z.object({
-      id: z.string(),
-    }),
-    returns: z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('success'),
-        id: z.string(),
-        assignee: z.string().optional(),
-        params: serializableRecord.optional(),
-      }),
-      z.object({
-        type: z.literal('error'),
-        message: z.string(),
-      }),
-    ]),
   },
 }
 
@@ -332,6 +324,7 @@ export const hostSchema = {
         lastName: z.string().nullable(),
       }),
       params: serializableRecord,
+      paramsMeta: z.any().optional(),
     }),
     returns: z.void().nullable(),
   },

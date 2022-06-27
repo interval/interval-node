@@ -1,3 +1,5 @@
+// TODO: Remove this when all active SDKs support superjson
+
 export function serializeDates<V extends any>(
   record: Record<string, V>
 ): Record<string, Exclude<V, Date> | string> {

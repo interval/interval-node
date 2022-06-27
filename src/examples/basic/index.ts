@@ -646,6 +646,22 @@ const interval = new Interval({
           : undefined,
       }
     },
+    advanced_data: async io => {
+      const data = {
+        bigInt: BigInt(5),
+        map: new Map([
+          ['a', 1],
+          ['b', 2],
+        ]),
+        set: new Set(['a', 'b', 'c']),
+      }
+
+      await io.display.object('Object', {
+        data,
+      })
+
+      return data.bigInt
+    },
     malformed: async io => {
       // @ts-expect-error: Ensuring we can handle invalid calls
       await io.input.text(new Error(), {
