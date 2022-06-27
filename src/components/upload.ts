@@ -1,3 +1,4 @@
+import path from 'path'
 import fetch, { Response } from 'node-fetch'
 import { IntervalError } from '..'
 import { T_IO_PROPS, T_IO_RETURNS } from '../ioSchema'
@@ -8,6 +9,9 @@ export function file(_: T_IO_PROPS<'UPLOAD_FILE'>) {
       return {
         ...response,
         lastModified: new Date(response.lastModified),
+        get extension(): string {
+          return path.extname(response.name)
+        },
         async url(): Promise<string> {
           return url
         },
