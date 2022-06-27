@@ -1,32 +1,18 @@
-import { z, ZodError } from 'zod'
-import { v4 } from 'uuid'
-import { WebSocket } from 'ws'
+import { z } from 'zod'
+import type { IncomingMessage, ServerResponse } from 'http'
 import fetch from 'node-fetch'
-import { AsyncLocalStorage } from 'async_hooks'
-import ISocket, { TimeoutError } from './classes/ISocket'
-import { DuplexRPCClient } from './classes/DuplexRPCClient'
+import * as superjson from 'superjson'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
 import {
-  wsServerSchema,
-  hostSchema,
-  TRANSACTION_RESULT_SCHEMA_VERSION,
   ENQUEUE_ACTION,
   DEQUEUE_ACTION,
   NOTIFY,
   ActionEnvironment,
-  LoadingState,
-  CREATE_GHOST_MODE_ACCOUNT,
+  DECLARE_HOST,
 } from './internalRpcSchema'
-import {
-  ActionResultSchema,
-  IO_RESPONSE,
-  T_IO_RESPONSE,
-  SerializableRecord,
-} from './ioSchema'
-import { IOClient } from './classes/IOClient'
+import { SerializableRecord } from './ioSchema'
 import * as pkg from '../package.json'
-import { deserializeDates } from './utils/deserialize'
 import type {
   ActionCtx,
   ActionLogFn,
@@ -36,11 +22,17 @@ import type {
   IntervalActionStore,
   NotifyConfig,
 } from './types'
-import TransactionLoadingState from './classes/TransactionLoadingState'
-import localConfig from './localConfig'
-import { detectPackageManager, getInstallCommand } from './utils/packageManager'
-
-const CHANGELOG_URL = 'https://interval.com/changelog'
+import IntervalClient, {
+  DEFAULT_WEBSOCKET_ENDPOINT,
+  getHttpEndpoint,
+  actionLocalStorage,
+} from './classes/IntervalClient'
+import {
+  getRequestBody,
+  HttpRequestBody,
+  LambdaRequestPayload,
+  LambdaResponse,
+} from './utils/http'
 
 export type {
   ActionCtx,
@@ -60,12 +52,6 @@ export interface InternalConfig {
   closeUnresponsiveConnectionTimeoutMs?: number
 }
 
-interface SetupConfig {
-  instanceId?: string
-}
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
 export interface QueuedAction {
   id: string
   assignee?: string
@@ -77,8 +63,6 @@ export class IntervalError extends Error {
     super(message)
   }
 }
-
-const actionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
 
 export function getActionStore(): IntervalActionStore {
   const store = actionLocalStorage.getStore()
@@ -114,27 +98,12 @@ export const ctx: ActionCtx = {
   get notify() { return getActionStore().ctx.notify },
 }
 
-function getHttpEndpoint(wsEndpoint: string) {
-  const url = new URL(wsEndpoint)
-  url.protocol = url.protocol.replace('ws', 'http')
-  url.pathname = ''
-  const str = url.toString()
-
-  return str.endsWith('/') ? str.slice(0, -1) : str
-}
-
 export default class Interval {
-  #ghostOrgId: string | undefined
-  #apiKey: string | undefined
-  #actions: Record<string, IntervalActionDefinition>
-  #endpoint: string = 'wss://interval.com/websocket'
-  #httpEndpoint: string
+  config: InternalConfig
   #logger: Logger
-  #retryIntervalMs: number = 3000
-  #pingIntervalMs: number = 30_000
-  #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
-  #pingIntervalHandle: NodeJS.Timeout | undefined
-
+  #client: IntervalClient | undefined
+  #apiKey: string | undefined
+  #httpEndpoint: string
   actions: Actions
 
   organization:
@@ -146,32 +115,13 @@ export default class Interval {
   environment: ActionEnvironment | undefined
 
   constructor(config: InternalConfig) {
+    this.config = config
     this.#apiKey = config.apiKey
-    this.#actions = config.actions ?? {}
     this.#logger = new Logger(config.logLevel)
 
-    if (config.endpoint) {
-      this.#endpoint = config.endpoint
-    }
-
-    this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
-
-    if (config.retryIntervalMs && config.retryIntervalMs > 0) {
-      this.#retryIntervalMs = config.retryIntervalMs
-    }
-
-    if (config.pingIntervalMs && config.pingIntervalMs > 0) {
-      this.#pingIntervalMs = config.pingIntervalMs
-    }
-
-    if (
-      config.closeUnresponsiveConnectionTimeoutMs &&
-      config.closeUnresponsiveConnectionTimeoutMs > 0
-    ) {
-      this.#closeUnresponsiveConnectionTimeoutMs =
-        config.closeUnresponsiveConnectionTimeoutMs
-    }
-
+    this.#httpEndpoint = getHttpEndpoint(
+      config.endpoint ?? DEFAULT_WEBSOCKET_ENDPOINT
+    )
     this.actions = new Actions(this.#httpEndpoint, this.#logger, this.#apiKey)
   }
 
@@ -179,30 +129,204 @@ export default class Interval {
     return this.#logger
   }
 
-  #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
-  #pendingIOCalls = new Map<string, string>()
-  #transactionLoadingStates = new Map<string, LoadingState>()
-  #ws: ISocket | undefined = undefined
-  #serverRpc:
-    | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
-    | undefined = undefined
-  #isConnected = false
-
-  get isConnected() {
-    return this.#isConnected
+  get isConnected(): boolean {
+    return this.#client?.isConnected ?? false
   }
 
   async listen() {
-    if (Object.keys(this.#actions).length === 0) {
-      this.#log.prod(
-        'Calling listen() with no defined actions is a no-op, skipping'
-      )
+    if (!this.#client) {
+      this.#client = new IntervalClient(this, this.config)
+    }
+    return this.#client.listen()
+  }
+
+  close() {
+    return this.#client?.close()
+  }
+
+  /*
+   * Handle a serverless host endpoint request. Receives the deserialized request body object.
+   */
+  async handleRequest({
+    requestId,
+    httpHostId,
+  }: HttpRequestBody): Promise<boolean> {
+    if (requestId) {
+      await this.#respondToRequest(requestId)
+      return true
+    } else if (httpHostId) {
+      await this.#declareHost(httpHostId)
+      return true
+    } else {
+      return false
+    }
+  }
+
+  // A getter that returns a function instead of a method to avoid `this` binding issues.
+  get httpRequestHandler() {
+    const interval = this
+
+    return async (req: IncomingMessage, res: ServerResponse) => {
+      // TODO: Proper headers
+
+      if (req.method === 'GET') {
+        return res.writeHead(200).end('OK')
+      }
+
+      if (req.method !== 'POST') {
+        return res.writeHead(405).end()
+      }
+
+      try {
+        const body = await getRequestBody(req)
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+          return res.writeHead(400).end()
+        }
+
+        const successful = await interval.handleRequest(body)
+        return res.writeHead(successful ? 200 : 400).end()
+      } catch (err) {
+        interval.#log.error('Error in HTTP request handler:', err)
+        return res.writeHead(500).end()
+      }
+    }
+  }
+
+  // A getter that returns a function instead of a method to avoid `this` binding issues.
+  get lambdaRequestHandler() {
+    const interval = this
+
+    return async (event: LambdaRequestPayload) => {
+      function makeResponse(
+        statusCode: number,
+        body?: Record<string, string> | string
+      ): LambdaResponse {
+        return {
+          isBase64Encoded: false,
+          statusCode,
+          body: body
+            ? typeof body === 'string'
+              ? body
+              : JSON.stringify(body)
+            : '',
+          headers:
+            body && typeof body !== 'string'
+              ? {
+                  'content-type': 'application/json',
+                }
+              : {},
+        }
+      }
+
+      if (event.requestContext.http.method === 'GET') {
+        return makeResponse(200)
+      }
+
+      if (event.requestContext.http.method !== 'POST') {
+        return makeResponse(405)
+      }
+
+      try {
+        let body: HttpRequestBody | undefined
+        if (event.body) {
+          try {
+            body = JSON.parse(event.body)
+          } catch (err) {
+            this.#log.error('Failed parsing input body as JSON', event.body)
+          }
+        }
+
+        if (!body) {
+          return makeResponse(400)
+        }
+
+        const successful = await interval.handleRequest(body)
+        return makeResponse(successful ? 200 : 500)
+      } catch (err) {
+        this.#log.error('Error in Lambda handler', err)
+        return makeResponse(500)
+      }
+    }
+  }
+
+  /**
+   * Always creates a new host connection to Interval and uses it only for the single request.
+   */
+  async #respondToRequest(requestId: string) {
+    if (!requestId) {
+      throw new Error('Missing request ID')
+    }
+
+    const client = new IntervalClient(this, this.config)
+    const response = await client.respondToRequest(requestId)
+
+    client.close()
+
+    return response
+  }
+
+  async #declareHost(httpHostId: string) {
+    const actions = Object.entries(this.config.actions ?? {}).map(
+      ([slug, def]) => ({
+        slug,
+        ...('handler' in def ? def : {}),
+        handler: undefined,
+      })
+    )
+    const slugs = actions.map(a => a.slug)
+
+    if (slugs.length === 0) {
+      this.#log.prod('No actions defined, skipping host declaration')
       return
     }
 
-    await this.#createSocketConnection()
-    this.#createRPCClient()
-    await this.#initializeHost()
+    const body: z.infer<typeof DECLARE_HOST['inputs']> = {
+      httpHostId,
+      actions,
+      sdkName: pkg.name,
+      sdkVersion: pkg.version,
+    }
+
+    const response = await fetch(`${this.#httpEndpoint}/api/hosts/declare`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.#apiKey}`,
+      },
+      body: JSON.stringify(body),
+    })
+      .then(r => r.json())
+      .then(r => DECLARE_HOST.returns.parseAsync(r))
+      .catch(err => {
+        this.#logger.debug(err)
+        throw new IntervalError('Received invalid API response.')
+      })
+
+    if (response.type === 'error') {
+      throw new IntervalError(
+        `There was a problem declaring the host: ${response.message}`
+      )
+    }
+
+    if (response.sdkAlert) {
+      this.#log.handleSdkAlert(response.sdkAlert)
+    }
+
+    if (response.invalidSlugs.length > 0) {
+      this.#log.warn('[Interval]', '⚠ Invalid slugs detected:\n')
+
+      for (const slug of response.invalidSlugs) {
+        this.#log.warn(`  - ${slug}`)
+      }
+
+      this.#log.warn(
+        '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
+      )
+
+      if (response.invalidSlugs.length === slugs.length) {
+        throw new IntervalError('No valid slugs provided')
+      }
+    }
   }
 
   async notify(config: NotifyConfig): Promise<void> {
@@ -244,598 +368,6 @@ export default class Interval {
         `There was a problem sending the notification: ${response.message}`
       )
     }
-
-    return
-  }
-
-  /**
-   * Resends pending IO calls upon reconnection.
-   */
-  async #resendPendingIOCalls() {
-    if (!this.#isConnected) return
-
-    const toResend = new Map(this.#pendingIOCalls)
-
-    while (toResend.size > 0) {
-      await Promise.allSettled(
-        Array.from(toResend.entries()).map(([transactionId, ioCall]) =>
-          this.#send('SEND_IO_CALL', {
-            transactionId,
-            ioCall,
-          })
-            .then(response => {
-              toResend.delete(transactionId)
-
-              if (!response) {
-                // Unsuccessful response, don't try again
-                this.#pendingIOCalls.delete(transactionId)
-              }
-            })
-            .catch(async err => {
-              if (err instanceof IOError) {
-                this.#logger.error(
-                  'Failed resending pending IO call: ',
-                  err.kind
-                )
-
-                if (
-                  err.kind === 'CANCELED' ||
-                  err.kind === 'TRANSACTION_CLOSED'
-                ) {
-                  this.#logger.debug('Aborting resending pending IO call')
-                  toResend.delete(transactionId)
-                  this.#pendingIOCalls.delete(transactionId)
-                  return
-                }
-              } else {
-                this.#logger.debug('Failed resending pending IO call:', err)
-              }
-
-              this.#logger.debug(
-                `Trying again in ${Math.round(
-                  this.#retryIntervalMs / 1000
-                )}s...`
-              )
-              await sleep(this.#retryIntervalMs)
-            })
-        )
-      )
-    }
-  }
-
-  /**
-   * Resends pending transaction loading states upon reconnection.
-   */
-  async #resendTransactionLoadingStates() {
-    if (!this.#isConnected) return
-
-    const toResend = new Map(this.#transactionLoadingStates)
-
-    while (toResend.size > 0) {
-      await Promise.allSettled(
-        Array.from(toResend.entries()).map(([transactionId, loadingState]) =>
-          this.#send('SEND_LOADING_CALL', {
-            transactionId,
-            ...loadingState,
-          })
-            .then(response => {
-              toResend.delete(transactionId)
-
-              if (!response) {
-                // Unsuccessful response, don't try again
-                this.#transactionLoadingStates.delete(transactionId)
-              }
-            })
-            .catch(async err => {
-              if (err instanceof IOError) {
-                this.#logger.error(
-                  'Failed resending transaction loading state: ',
-                  err.kind
-                )
-
-                if (
-                  err.kind === 'CANCELED' ||
-                  err.kind === 'TRANSACTION_CLOSED'
-                ) {
-                  this.#logger.debug(
-                    'Aborting resending transaction loading state'
-                  )
-                  this.#transactionLoadingStates.delete(transactionId)
-                  return
-                }
-              } else {
-                this.#logger.debug('Failed resending pending IO call:', err)
-              }
-
-              this.#logger.debug(
-                `Trying again in ${Math.round(
-                  this.#retryIntervalMs / 1000
-                )}s...`
-              )
-              await sleep(this.#retryIntervalMs)
-            })
-        )
-      )
-    }
-  }
-
-  async #findOrCreateGhostModeAccount() {
-    let config = await localConfig.get()
-
-    let ghostOrgId = config?.ghostOrgId
-
-    if (!ghostOrgId) {
-      const response = await fetch(
-        this.#httpEndpoint + '/api/auth/ghost/create',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-        .then(r => r.json())
-        .then(r => CREATE_GHOST_MODE_ACCOUNT.returns.parseAsync(r))
-        .catch(err => {
-          this.#log.debug(err)
-          throw new IntervalError('Received invalid API response.')
-        })
-
-      await localConfig.write({
-        ghostOrgId: response.ghostOrgId,
-      })
-
-      ghostOrgId = response.ghostOrgId
-    }
-
-    return ghostOrgId
-  }
-
-  /**
-   * Establishes the underlying ISocket connection to Interval.
-   */
-  async #createSocketConnection(connectConfig?: SetupConfig) {
-    const id = connectConfig?.instanceId ?? v4()
-
-    const headers: Record<string, string> = { 'x-instance-id': id }
-    if (this.#apiKey) {
-      headers['x-api-key'] = this.#apiKey
-    } else if (!this.#apiKey) {
-      this.#ghostOrgId = await this.#findOrCreateGhostModeAccount()
-      headers['x-ghost-org-id'] = this.#ghostOrgId
-    }
-
-    const ws = new ISocket(
-      new WebSocket(this.#endpoint, {
-        headers,
-        followRedirects: true,
-      }),
-      { id }
-    )
-
-    ws.onClose.attach(async ([code, reason]) => {
-      this.#log.error(`❗ Could not connect to Interval (code ${code})`)
-
-      if (reason) {
-        this.#log.error('Reason:', reason)
-      }
-
-      if (this.#pingIntervalHandle) {
-        clearInterval(this.#pingIntervalHandle)
-        this.#pingIntervalHandle = undefined
-      }
-      // don't initialize retry process again if already started
-      if (!this.#isConnected) return
-
-      this.#log.prod('🔌 Reconnecting...')
-
-      this.#isConnected = false
-
-      while (!this.#isConnected) {
-        this.#createSocketConnection({ instanceId: ws.id })
-          .then(() => {
-            this.#log.prod('⚡ Reconnection successful')
-            this.#isConnected = true
-            this.#resendPendingIOCalls()
-            this.#resendTransactionLoadingStates()
-          })
-          .catch(() => {
-            /* */
-          })
-
-        this.#log.prod(
-          `Unable to connect. Retrying in ${Math.round(
-            this.#retryIntervalMs / 1000
-          )}s...`
-        )
-        await sleep(this.#retryIntervalMs)
-      }
-    })
-
-    await ws.connect()
-
-    this.#ws = ws
-    this.#isConnected = true
-
-    let lastSuccessfulPing = new Date()
-    this.#pingIntervalHandle = setInterval(async () => {
-      if (!this.#isConnected) {
-        if (this.#pingIntervalHandle) {
-          clearInterval(this.#pingIntervalHandle)
-          this.#pingIntervalHandle = undefined
-        }
-
-        return
-      }
-
-      try {
-        await ws.ping()
-        lastSuccessfulPing = new Date()
-      } catch (err) {
-        this.#logger.warn('Pong not received in time')
-        if (!(err instanceof TimeoutError)) {
-          this.#logger.error(err)
-        }
-
-        if (
-          lastSuccessfulPing.getTime() <
-          new Date().getTime() - this.#closeUnresponsiveConnectionTimeoutMs
-        ) {
-          this.#logger.error(
-            'No pong received in last three minutes, closing connection to Interval and retrying...'
-          )
-          if (this.#pingIntervalHandle) {
-            clearInterval(this.#pingIntervalHandle)
-            this.#pingIntervalHandle = undefined
-          }
-          ws.close()
-        }
-      }
-    }, this.#pingIntervalMs)
-
-    if (!this.#serverRpc) return
-
-    this.#serverRpc.setCommunicator(ws)
-
-    await this.#initializeHost()
-  }
-
-  /**
-   * Creates the DuplexRPCClient responsible for sending
-   * messages to Interval.
-   */
-  #createRPCClient() {
-    if (!this.#ws) {
-      throw new Error('ISocket not initialized')
-    }
-
-    const serverRpc = new DuplexRPCClient({
-      communicator: this.#ws,
-      canCall: wsServerSchema,
-      canRespondTo: hostSchema,
-      handlers: {
-        START_TRANSACTION: async inputs => {
-          if (!this.organization) {
-            this.#log.error('No organization defined')
-            return
-          }
-
-          const { actionName: actionSlug, transactionId } = inputs
-          const actionDef = this.#actions[actionSlug]
-          const actionHandler =
-            'handler' in actionDef ? actionDef.handler : actionDef
-          this.#log.debug(actionHandler)
-
-          if (!actionHandler) {
-            this.#log.debug('No actionHandler called', actionSlug)
-            return
-          }
-
-          const client = new IOClient({
-            logger: this.#logger,
-            send: async ioRenderInstruction => {
-              const ioCall = JSON.stringify(ioRenderInstruction)
-              this.#pendingIOCalls.set(transactionId, ioCall)
-
-              await this.#send('SEND_IO_CALL', {
-                transactionId,
-                ioCall,
-              })
-
-              this.#transactionLoadingStates.delete(transactionId)
-            },
-          })
-
-          this.#ioResponseHandlers.set(
-            transactionId,
-            client.onResponse.bind(client)
-          )
-
-          // To maintain consistent ordering for logs despite network race conditions
-          let logIndex = 0
-
-          const ctx: ActionCtx = {
-            user: inputs.user,
-            params: deserializeDates(inputs.params),
-            environment: inputs.environment,
-            organization: this.organization,
-            action: {
-              slug: actionSlug,
-            },
-            log: (...args) => this.#sendLog(transactionId, logIndex++, ...args),
-            notify: async config => {
-              await this.notify({
-                ...config,
-                transactionId: inputs.transactionId,
-              })
-            },
-            loading: new TransactionLoadingState({
-              logger: this.#logger,
-              send: async loadingState => {
-                this.#transactionLoadingStates.set(transactionId, loadingState)
-                await this.#send('SEND_LOADING_CALL', {
-                  transactionId,
-                  ...loadingState,
-                })
-              },
-            }),
-          }
-
-          const { io } = client
-
-          actionLocalStorage.run({ io, ctx }, () => {
-            actionHandler(client.io, ctx)
-              .then(res => {
-                // Allow actions to return data even after being canceled
-
-                const result: ActionResultSchema = {
-                  schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
-                  status: 'SUCCESS',
-                  data: res || null,
-                }
-
-                return result
-              })
-              .catch(err => {
-                // Action did not catch the cancellation error
-                if (err instanceof IOError && err.kind === 'CANCELED') throw err
-
-                this.#logger.error(err)
-
-                const result: ActionResultSchema = {
-                  schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
-                  status: 'FAILURE',
-                  data: err.message
-                    ? { error: err.name, message: err.message }
-                    : null,
-                }
-
-                return result
-              })
-              .then((res: ActionResultSchema) => {
-                this.#send('MARK_TRANSACTION_COMPLETE', {
-                  transactionId,
-                  result: JSON.stringify(res),
-                })
-              })
-              .catch(err => {
-                if (err instanceof IOError) {
-                  switch (err.kind) {
-                    case 'CANCELED':
-                      this.#log.prod(
-                        'Transaction canceled for action',
-                        actionSlug
-                      )
-                      break
-                    case 'TRANSACTION_CLOSED':
-                      this.#log.prod(
-                        'Attempted to make IO call after transaction already closed in action',
-                        actionSlug
-                      )
-                      break
-                  }
-                }
-              })
-              .finally(() => {
-                this.#pendingIOCalls.delete(transactionId)
-                this.#transactionLoadingStates.delete(transactionId)
-                this.#ioResponseHandlers.delete(transactionId)
-              })
-          })
-
-          return
-        },
-        IO_RESPONSE: async inputs => {
-          this.#log.debug('got io response', inputs)
-
-          try {
-            const ioResp = IO_RESPONSE.parse(JSON.parse(inputs.value))
-            const replyHandler = this.#ioResponseHandlers.get(
-              ioResp.transactionId
-            )
-
-            if (!replyHandler) {
-              this.#log.debug('Missing reply handler for', inputs.transactionId)
-              return
-            }
-
-            replyHandler(ioResp)
-          } catch (err) {
-            if (err instanceof ZodError) {
-              this.#log.error('Received invalid IO response:', inputs)
-              this.#log.debug(err)
-            } else {
-              this.#log.error('Failed handling IO response:', err)
-            }
-          }
-        },
-      },
-    })
-
-    this.#serverRpc = serverRpc
-  }
-
-  /**
-   * Sends the `INITIALIZE_HOST` RPC call to Interval,
-   * declaring the actions that this host is responsible for handling.
-   */
-  async #initializeHost() {
-    if (!this.#serverRpc) {
-      throw new IntervalError('serverRpc not initialized')
-    }
-
-    if (!this.#ws) {
-      throw new IntervalError('ISocket not initialized')
-    }
-
-    const actions = Object.entries(this.#actions).map(([slug, def]) => ({
-      slug,
-      ...('handler' in def ? def : {}),
-      handler: undefined,
-    }))
-    const slugs = Object.keys(this.#actions)
-
-    if (slugs.length === 0) {
-      this.#log.prod('No actions defined, skipping host initialization')
-      return
-    }
-
-    const response = await this.#send('INITIALIZE_HOST', {
-      apiKey: this.#apiKey,
-      actions,
-      sdkName: pkg.name,
-      sdkVersion: pkg.version,
-    })
-
-    if (!response) {
-      throw new IntervalError('Unknown error')
-    }
-
-    if (response.sdkAlert) {
-      console.log('')
-
-      const WARN_EMOJI = '\u26A0\uFE0F'
-      const ERROR_EMOJI = '‼️'
-
-      const { severity, message } = response.sdkAlert
-
-      switch (severity) {
-        case 'INFO':
-          this.#log.prod('🆕\tA new Interval SDK version is available.')
-          break
-        case 'WARNING':
-          this.#log.prod(
-            `${WARN_EMOJI}\tThis version of the Interval SDK has been deprecated. Please update as soon as possible, it will not work in a future update.`
-          )
-          break
-        case 'ERROR':
-          this.#log.prod(
-            `${ERROR_EMOJI}\tThis version of the Interval SDK is no longer supported. Your app will not work until you update.`
-          )
-          break
-      }
-
-      if (message) {
-        this.#log.prod(message)
-      }
-
-      this.#log.prod("\t- See what's new at:", CHANGELOG_URL)
-      this.#log.prod(
-        '\t- Update now by running:',
-        getInstallCommand(`${pkg.name}@latest`, detectPackageManager())
-      )
-
-      console.log('')
-    }
-
-    if (response.type === 'error') {
-      throw new IntervalError(response.message)
-    } else {
-      if (response.invalidSlugs.length > 0) {
-        this.#log.warn('[Interval]', '⚠ Invalid slugs detected:\n')
-
-        for (const slug of response.invalidSlugs) {
-          this.#log.warn(`  - ${slug}`)
-        }
-
-        this.#log.warn(
-          '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
-        )
-
-        if (response.invalidSlugs.length === slugs.length) {
-          throw new IntervalError('No valid slugs provided')
-        }
-      }
-
-      this.organization = response.organization
-      this.environment = response.environment
-
-      this.#log.prod(
-        `🔗 Connected! Access your actions at: ${response.dashboardUrl}`
-      )
-      this.#log.debug('Host ID:', this.#ws.id)
-    }
-  }
-
-  async #send<MethodName extends keyof typeof wsServerSchema>(
-    methodName: MethodName,
-    inputs: z.input<typeof wsServerSchema[MethodName]['inputs']>
-  ) {
-    if (!this.#serverRpc) throw new IntervalError('serverRpc not initialized')
-
-    while (true) {
-      try {
-        return await this.#serverRpc.send(methodName, inputs)
-      } catch (err) {
-        if (err instanceof TimeoutError) {
-          this.#log.debug(
-            `RPC call timed out, retrying in ${Math.round(
-              this.#retryIntervalMs / 1000
-            )}s...`
-          )
-          this.#log.debug(err)
-          sleep(this.#retryIntervalMs)
-        } else {
-          throw err
-        }
-      }
-    }
-  }
-
-  /**
-   * This is used for testing and intentionally non-private.
-   * Do not use unless you're absolutely sure what you're doing.
-   */
-  protected async __dangerousInternalSend(methodName: any, inputs: any) {
-    if (!this.#serverRpc) throw new IntervalError('serverRpc not initialized')
-
-    return await this.#serverRpc.send(methodName, inputs)
-  }
-
-  #sendLog(transactionId: string, index: number, ...args: any[]) {
-    if (!args.length) return
-
-    let data = args
-      .map(arg => {
-        if (arg === undefined) return 'undefined'
-        if (typeof arg === 'string') return arg
-        return JSON.stringify(arg, undefined, 2)
-      })
-      .join(' ')
-
-    if (data.length > 10_000) {
-      data =
-        data.slice(0, 10_000) +
-        '...' +
-        '\n^ Warning: 10k logline character limit reached.\nTo avoid this error, try separating your data into multiple ctx.log() calls.'
-    }
-
-    this.#send('SEND_LOG', {
-      transactionId,
-      data,
-      index,
-      timestamp: new Date().valueOf(),
-    })
   }
 }
 
@@ -863,13 +395,18 @@ class Actions {
 
   async enqueue(
     slug: string,
-    config: Pick<QueuedAction, 'assignee' | 'params'> = {}
+    { assignee, params }: Pick<QueuedAction, 'assignee' | 'params'> = {}
   ): Promise<QueuedAction> {
     let body: z.infer<typeof ENQUEUE_ACTION['inputs']>
     try {
+      const { json, meta } = params
+        ? superjson.serialize(params)
+        : { json: undefined, meta: undefined }
       body = ENQUEUE_ACTION.inputs.parse({
-        ...config,
+        assignee,
         slug,
+        params: json,
+        paramsMeta: meta,
       })
     } catch (err) {
       this.#logger.debug(err)
@@ -899,7 +436,8 @@ class Actions {
 
     return {
       id: response.id,
-      ...config,
+      assignee,
+      params,
     }
   }
 
@@ -935,9 +473,16 @@ class Actions {
       )
     }
 
-    const { type, ...rest } = response
+    let { type, params, paramsMeta, ...rest } = response
 
-    return rest
+    if (paramsMeta && params) {
+      params = superjson.deserialize({ json: params, meta: paramsMeta })
+    }
+
+    return {
+      ...rest,
+      params,
+    }
   }
 }
 

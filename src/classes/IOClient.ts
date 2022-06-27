@@ -1,5 +1,6 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
+import * as superjson from 'superjson'
 import type {
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
@@ -18,7 +19,7 @@ import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
 import { date, datetime } from '../components/inputDate'
-import { toUrl } from '../components/upload'
+import { file } from '../components/upload'
 import {
   IORenderSender,
   ResponseHandlerFn,
@@ -86,7 +87,16 @@ export class IOClient {
         const packed: T_IO_RENDER_INPUT = {
           id: v4(),
           inputGroupKey,
-          toRender: components.map(c => c.getRenderInfo()),
+          toRender: components
+            .map(c => c.getRenderInfo())
+            .map(({ props, ...renderInfo }) => {
+              const { json, meta } = superjson.serialize(props)
+              return {
+                ...renderInfo,
+                props: json,
+                propsMeta: meta,
+              }
+            }),
           kind: 'RENDER',
         }
 
@@ -113,6 +123,13 @@ export class IOClient {
 
         if (result.values.length !== components.length) {
           throw new Error('Mismatch in return array length')
+        }
+
+        if (result.valuesMeta) {
+          result.values = superjson.deserialize({
+            json: result.values,
+            meta: result.valuesMeta,
+          })
         }
 
         if (result.kind === 'RETURN') {
@@ -309,8 +326,8 @@ export class IOClient {
         date: this.createIOMethod('INPUT_DATE', date),
         time: this.createIOMethod('INPUT_TIME'),
         datetime: this.createIOMethod('INPUT_DATETIME', datetime),
-        upload: {
-          toUrl: this.createIOMethod('UPLOAD_FILE', toUrl),
+        input: {
+          file: this.createIOMethod('UPLOAD_FILE', file),
         },
       },
     }
