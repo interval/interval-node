@@ -37,6 +37,11 @@ prod.use('deeper', {
 
     return message
   },
+  configure: async io => {
+    const message = await io.input.text('Hello?')
+
+    return message
+  },
 })
 
 prod.listen()
