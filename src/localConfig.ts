@@ -4,7 +4,7 @@ import z from 'zod'
 import util from 'util'
 
 const writeFile = util.promisify(fs.writeFile)
-const removeFile = util.promisify(fs.rm)
+const removeFile = util.promisify(fs.unlink)
 const readFile = util.promisify(fs.readFile)
 
 /*
