@@ -60,6 +60,24 @@ export type IntervalActionDefinition =
   | IntervalActionHandler
   | ExplicitIntervalActionDefinition
 
+export type RequiredPropsIOComponentFunction<
+  MethodName extends T_IO_METHOD_NAMES,
+  Props,
+  Output = ComponentReturnValue<MethodName>
+> = (
+  label: string,
+  props: Props
+) => IOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
+
+export type RequiredPropsExclusiveIOComponentFunction<
+  MethodName extends T_IO_METHOD_NAMES,
+  Props,
+  Output = ComponentReturnValue<MethodName>
+> = (
+  label: string,
+  props: Props
+) => ExclusiveIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
+
 export type IOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
   Props,
