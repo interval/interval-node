@@ -1,30 +1,31 @@
 import { z } from 'zod'
 import { T_IO_PROPS, T_IO_RETURNS, richSelectOption } from '../ioSchema'
 
-type SelectSingleProps = Omit<
-  T_IO_PROPS<'SELECT_SINGLE'>,
-  'options' | 'defaultValue'
-> & {
-  options: (z.infer<typeof richSelectOption> | string)[]
-  defaultValue?: z.infer<typeof richSelectOption> | string
+type SelectSingleProps<
+  Option extends z.infer<typeof richSelectOption> | string
+> = Omit<T_IO_PROPS<'SELECT_SINGLE'>, 'options' | 'defaultValue'> & {
+  options: Option[]
+  defaultValue?: Option
 }
 
-export default function selectSingle<Props extends SelectSingleProps>(
-  props: Props
-) {
-  const options = props.options.map(option => {
+export default function selectSingle<
+  Option extends z.infer<typeof richSelectOption> | string
+>(props: SelectSingleProps<Option>) {
+  const normalizedOptions = props.options.map(option => {
     if (typeof option === 'string') {
       return {
         label: option,
         value: option,
       }
     } else {
-      return option
+      return option as Exclude<Option, string>
     }
   })
 
-  type Options = typeof options
-  const optionMap = new Map(options.map(o => [o.value, o]))
+  type Options = typeof props.options
+  const optionMap = new Map(
+    normalizedOptions.map((o, i) => [o.value, props.options[i]])
+  )
   const stripper = richSelectOption.strip()
 
   const defaultValue =
@@ -33,13 +34,13 @@ export default function selectSingle<Props extends SelectSingleProps>(
           label: props.defaultValue,
           value: props.defaultValue,
         }
-      : props.defaultValue
+      : (props.defaultValue as Exclude<Option, string>)
 
   return {
     props: {
       ...props,
       defaultValue: defaultValue ? stripper.parse(defaultValue) : undefined,
-      options: options.map(o => stripper.parse(o)),
+      options: normalizedOptions.map(o => stripper.parse(o)),
     },
     getValue(response: T_IO_RETURNS<'SELECT_SINGLE'>) {
       return optionMap.get(response.value) as Options[0]
