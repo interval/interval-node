@@ -77,8 +77,14 @@ export class IOPromise<
     )
   }
 
-  optional(): OptionalIOPromise<MethodName, Props, Output> {
-    return new OptionalIOPromise(this)
+  optional(isOptional?: true): OptionalIOPromise<MethodName, Props, Output>
+  optional(isOptional?: false): IOPromise<MethodName, Props, Output>
+  optional(
+    isOptional = true
+  ):
+    | OptionalIOPromise<MethodName, Props, Output>
+    | IOPromise<MethodName, Props, Output> {
+    return isOptional ? new OptionalIOPromise(this) : this
   }
 }
 
