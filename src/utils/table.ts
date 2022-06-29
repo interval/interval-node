@@ -5,18 +5,21 @@ import {
   internalTableRow,
 } from '../ioSchema'
 import { z } from 'zod'
+import Logger from '../classes/Logger'
 
 /**
  * Generates column headers from rows if no columns are provided.
  */
-export function columnsBuilder(props: {
-  columns?: (z.infer<typeof tableColumn> | string)[]
-  data: z.infer<typeof tableRow>[]
-}): z.infer<typeof tableColumn>[] {
+export function columnsBuilder(
+  props: {
+    columns?: (z.infer<typeof tableColumn> | string)[]
+    data: z.infer<typeof tableRow>[]
+  },
+  logMissingColumn: (column: string) => void
+): z.infer<typeof tableColumn>[] {
+  const dataColumns = new Set(props.data.flatMap(record => Object.keys(record)))
   if (!props.columns) {
-    const labels = Array.from(
-      new Set(props.data.flatMap(record => Object.keys(record))).values()
-    )
+    const labels = Array.from(dataColumns.values())
 
     return labels.map(label => ({
       label,
@@ -26,6 +29,10 @@ export function columnsBuilder(props: {
 
   return props.columns.map(column => {
     if (typeof column === 'string') {
+      if (!dataColumns.has(column)) {
+        logMissingColumn(column)
+      }
+
       return {
         label: column,
         renderCell: row => row[column],

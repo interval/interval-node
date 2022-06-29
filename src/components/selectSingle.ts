@@ -27,12 +27,18 @@ export default function selectSingle<Props extends SelectSingleProps>(
   const optionMap = new Map(options.map(o => [o.value, o]))
   const stripper = richSelectOption.strip()
 
+  const defaultValue =
+    typeof props.defaultValue === 'string'
+      ? {
+          label: props.defaultValue,
+          value: props.defaultValue,
+        }
+      : props.defaultValue
+
   return {
     props: {
       ...props,
-      defaultValue: props.defaultValue
-        ? stripper.parse(props.defaultValue)
-        : undefined,
+      defaultValue: defaultValue ? stripper.parse(defaultValue) : undefined,
       options: options.map(o => stripper.parse(o)),
     },
     getValue(response: T_IO_RETURNS<'SELECT_SINGLE'>) {

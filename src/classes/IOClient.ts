@@ -308,14 +308,14 @@ export class IOClient {
       select: {
         single: this.createIOMethod('SELECT_SINGLE', selectSingle),
         multiple: this.createIOMethod('SELECT_MULTIPLE', selectMultiple),
-        table: this.createIOMethod('SELECT_TABLE', selectTable),
+        table: this.createIOMethod('SELECT_TABLE', selectTable(this.logger)),
       },
       display: {
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
         link: this.createIOMethod('DISPLAY_LINK'),
         object: this.createIOMethod('DISPLAY_OBJECT'),
-        table: this.createIOMethod('DISPLAY_TABLE', displayTable),
+        table: this.createIOMethod('DISPLAY_TABLE', displayTable(this.logger)),
       },
       experimental: {
         spreadsheet: this.createIOMethod('INPUT_SPREADSHEET', spreadsheet),
