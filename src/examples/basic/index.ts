@@ -12,6 +12,8 @@ const prod = new Interval({
   actions: {
     ImportUsers: {
       backgroundable: true,
+      name: 'Import users',
+      description: "Doesn't actually import users",
       handler: async io => {
         console.log("I'm a live mode action")
         const name = await io.input.text('Enter the name for a user')

@@ -54,6 +54,8 @@ export interface IntervalActionStore {
 export interface ExplicitIntervalActionDefinition {
   handler: IntervalActionHandler
   backgroundable?: boolean
+  name?: string
+  description?: string
 }
 
 export type IntervalActionDefinition =

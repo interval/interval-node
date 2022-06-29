@@ -42,6 +42,8 @@ export type LoadingState = z.input<typeof LOADING_STATE>
 
 export const ACTION_DEFINITION = z.object({
   slug: z.string(),
+  name: z.string().optional(),
+  description: z.string().optional(),
   backgroundable: z.boolean().optional(),
 })
 
