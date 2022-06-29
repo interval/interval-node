@@ -304,7 +304,7 @@ export class IOClient {
    */
   makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
     inner: IOComponentFunction<MethodName, Props, Output>,
-    propsRequired: false
+    propsRequired?: false
   ): ExclusiveIOComponentFunction<MethodName, Props, Output>
   makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
     inner: IOComponentFunction<MethodName, Props, Output>,
