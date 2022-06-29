@@ -10,7 +10,7 @@ import { z } from 'zod'
  * Generates column headers from rows if no columns are provided.
  */
 export function columnsBuilder(props: {
-  columns?: z.infer<typeof tableColumn>[]
+  columns?: (z.infer<typeof tableColumn> | string)[]
   data: z.infer<typeof tableRow>[]
 }): z.infer<typeof tableColumn>[] {
   if (!props.columns) {
@@ -24,7 +24,16 @@ export function columnsBuilder(props: {
     }))
   }
 
-  return props.columns
+  return props.columns.map(column => {
+    if (typeof column === 'string') {
+      return {
+        label: column,
+        renderCell: row => row[column],
+      }
+    } else {
+      return column
+    }
+  })
 }
 
 /**

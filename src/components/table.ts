@@ -30,7 +30,7 @@ export interface Column<Row> extends z.input<typeof tableColumn> {
 export function selectTable<Row extends z.input<typeof tableRow> = any>(
   props: Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
     data: Row[]
-    columns?: Column<Row>[]
+    columns?: (Column<Row> | string)[]
   }
 ) {
   type DataList = typeof props['data']
@@ -58,7 +58,7 @@ export function selectTable<Row extends z.input<typeof tableRow> = any>(
 export function displayTable<Row = any>(
   props: Omit<T_IO_PROPS<'DISPLAY_TABLE'>, 'data' | 'columns'> & {
     data: Row[]
-    columns?: Column<Row>[]
+    columns?: (Column<Row> | string)[]
   }
 ) {
   const columns = columnsBuilder(props)
