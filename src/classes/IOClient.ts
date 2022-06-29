@@ -14,7 +14,6 @@ import { IOPromise, ExclusiveIOPromise } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
 import { selectTable, displayTable } from '../components/table'
-import findAndSelectUser from '../components/selectUser'
 import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
@@ -354,11 +353,6 @@ export class IOClient {
           'INPUT_SPREADSHEET',
           true,
           spreadsheet
-        ),
-        findAndSelectUser: this.createIOMethod(
-          'SELECT_USER',
-          true,
-          findAndSelectUser
         ),
         date: this.createIOMethod('INPUT_DATE', false, date),
         time: this.createIOMethod('INPUT_TIME'),
