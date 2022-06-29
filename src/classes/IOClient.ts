@@ -14,7 +14,6 @@ import { IOPromise, ExclusiveIOPromise } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
 import { selectTable, displayTable } from '../components/table'
-import findAndSelectUser from '../components/selectUser'
 import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
@@ -30,7 +29,10 @@ import {
   ExclusiveIOComponentFunction,
   ComponentRenderer,
   IOComponentDefinition,
+  RequiredPropsIOComponentFunction,
+  RequiredPropsExclusiveIOComponentFunction,
 } from '../types'
+import { stripUndefined } from '../utils/deserialize'
 
 interface ClientConfig {
   logger: Logger
@@ -90,7 +92,7 @@ export class IOClient {
           toRender: components
             .map(c => c.getRenderInfo())
             .map(({ props, ...renderInfo }) => {
-              const { json, meta } = superjson.serialize(props)
+              const { json, meta } = superjson.serialize(stripUndefined(props))
               return {
                 ...renderInfo,
                 props: json,
@@ -237,8 +239,29 @@ export class IOClient {
     Output = T_IO_RETURNS<MethodName>
   >(
     methodName: MethodName,
+    propsRequired?: false,
     componentDef?: IOComponentDefinition<MethodName, Props, Output>
-  ): IOComponentFunction<MethodName, Props, Output> {
+  ): IOComponentFunction<MethodName, Props, Output>
+  createIOMethod<
+    MethodName extends T_IO_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    propsRequired?: true,
+    componentDef?: IOComponentDefinition<MethodName, Props, Output>
+  ): RequiredPropsIOComponentFunction<MethodName, Props, Output>
+  createIOMethod<
+    MethodName extends T_IO_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    _propsRequired = false,
+    componentDef?: IOComponentDefinition<MethodName, Props, Output>
+  ):
+    | IOComponentFunction<MethodName, Props, Output>
+    | RequiredPropsIOComponentFunction<MethodName, Props, Output> {
     return (label: string, props?: Props) => {
       let internalProps = props ? (props as T_IO_PROPS<MethodName>) : {}
       let getValue = (r: T_IO_RETURNS<MethodName>) => r as unknown as Output
@@ -280,7 +303,16 @@ export class IOClient {
    * ExclusiveIOPromise, which cannot be rendered in a group.
    */
   makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
-    inner: IOComponentFunction<MethodName, Props, Output>
+    inner: IOComponentFunction<MethodName, Props, Output>,
+    propsRequired: false
+  ): ExclusiveIOComponentFunction<MethodName, Props, Output>
+  makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
+    inner: IOComponentFunction<MethodName, Props, Output>,
+    propsRequired?: true
+  ): RequiredPropsExclusiveIOComponentFunction<MethodName, Props, Output>
+  makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
+    inner: IOComponentFunction<MethodName, Props, Output>,
+    _propsRequired = false
   ): ExclusiveIOComponentFunction<MethodName, Props, Output> {
     return (label: string, props?: Props) => {
       return new ExclusiveIOPromise(inner(label, props))
@@ -296,7 +328,7 @@ export class IOClient {
 
       confirm: this.makeExclusive(this.createIOMethod('CONFIRM')),
 
-      search: this.createIOMethod('SEARCH', search),
+      search: this.createIOMethod('SEARCH', true, search),
 
       input: {
         text: this.createIOMethod('INPUT_TEXT'),
@@ -306,28 +338,36 @@ export class IOClient {
         richText: this.createIOMethod('INPUT_RICH_TEXT'),
       },
       select: {
-        single: this.createIOMethod('SELECT_SINGLE', selectSingle),
-        multiple: this.createIOMethod('SELECT_MULTIPLE', selectMultiple),
-        table: this.createIOMethod('SELECT_TABLE', selectTable(this.logger)),
+        single: this.createIOMethod('SELECT_SINGLE', true, selectSingle),
+        multiple: this.createIOMethod('SELECT_MULTIPLE', true, selectMultiple),
+        table: this.createIOMethod(
+          'SELECT_TABLE',
+          true,
+          selectTable(this.logger)
+        ),
       },
       display: {
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
         link: this.createIOMethod('DISPLAY_LINK'),
         object: this.createIOMethod('DISPLAY_OBJECT'),
-        table: this.createIOMethod('DISPLAY_TABLE', displayTable(this.logger)),
+        table: this.createIOMethod(
+          'DISPLAY_TABLE',
+          true,
+          displayTable(this.logger)
+        ),
       },
       experimental: {
-        spreadsheet: this.createIOMethod('INPUT_SPREADSHEET', spreadsheet),
-        findAndSelectUser: this.createIOMethod(
-          'SELECT_USER',
-          findAndSelectUser
+        spreadsheet: this.createIOMethod(
+          'INPUT_SPREADSHEET',
+          true,
+          spreadsheet
         ),
-        date: this.createIOMethod('INPUT_DATE', date),
+        date: this.createIOMethod('INPUT_DATE', false, date),
         time: this.createIOMethod('INPUT_TIME'),
-        datetime: this.createIOMethod('INPUT_DATETIME', datetime),
+        datetime: this.createIOMethod('INPUT_DATETIME', false, datetime),
         input: {
-          file: this.createIOMethod('UPLOAD_FILE', file),
+          file: this.createIOMethod('UPLOAD_FILE', false, file),
         },
       },
     }
