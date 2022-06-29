@@ -55,3 +55,20 @@ export function deserializeDates<V extends any>(
 
   return ret
 }
+
+export function stripUndefined<
+  K extends string | number | symbol,
+  V,
+  T extends Record<K, V> | undefined
+>(obj: T): T {
+  if (!obj) return obj
+
+  const newObj = { ...obj } as Exclude<typeof obj, undefined>
+  for (const [key, val] of Object.entries(newObj)) {
+    if (val === undefined) {
+      delete newObj[key as K]
+    }
+  }
+
+  return newObj
+}

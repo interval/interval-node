@@ -14,9 +14,8 @@ type InternalResults = T_IO_PROPS<'SEARCH'>['results']
 export default function search<Result = any>({
   onSearch,
   initialResults = [],
-  placeholder,
   renderResult,
-  helpText,
+  ...rest
 }: {
   placeholder?: string
   helpText?: string
@@ -54,8 +53,7 @@ export default function search<Result = any>({
   }
 
   const props: T_IO_PROPS<'SEARCH'> = {
-    placeholder,
-    helpText,
+    ...rest,
     results: renderResults(initialResults),
   }
 

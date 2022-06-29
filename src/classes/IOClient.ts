@@ -32,6 +32,7 @@ import {
   RequiredPropsIOComponentFunction,
   RequiredPropsExclusiveIOComponentFunction,
 } from '../types'
+import { stripUndefined } from '../utils/deserialize'
 
 interface ClientConfig {
   logger: Logger
@@ -91,7 +92,7 @@ export class IOClient {
           toRender: components
             .map(c => c.getRenderInfo())
             .map(({ props, ...renderInfo }) => {
-              const { json, meta } = superjson.serialize(props)
+              const { json, meta } = superjson.serialize(stripUndefined(props))
               return {
                 ...renderInfo,
                 props: json,
