@@ -80,6 +80,11 @@ export class IOPromise<
   optional(isOptional?: true): OptionalIOPromise<MethodName, Props, Output>
   optional(isOptional?: false): IOPromise<MethodName, Props, Output>
   optional(
+    isOptional?: boolean
+  ):
+    | OptionalIOPromise<MethodName, Props, Output>
+    | IOPromise<MethodName, Props, Output>
+  optional(
     isOptional = true
   ):
     | OptionalIOPromise<MethodName, Props, Output>
