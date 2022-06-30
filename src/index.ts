@@ -33,6 +33,7 @@ import {
   LambdaRequestPayload,
   LambdaResponse,
 } from './utils/http'
+import ActionGroup from './classes/ActionGroup'
 
 export type {
   ActionCtx,
@@ -42,11 +43,12 @@ export type {
   IntervalActionStore,
 }
 
+export { ActionGroup }
+
 export interface InternalConfig {
   apiKey?: string
-  prefix?: string
   actions?: IntervalActionDefinitions
-  subActions?: Record<string, IntervalActionDefinitions>
+  groups?: Record<string, ActionGroup>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
@@ -127,12 +129,12 @@ export default class Interval {
     this.actions = new Actions(this.#httpEndpoint, this.#logger, this.#apiKey)
   }
 
-  use(prefix: string, actions: IntervalActionDefinitions) {
-    if (!this.config.subActions) {
-      this.config.subActions = {}
+  use(prefix: string, group: ActionGroup) {
+    if (!this.config.groups) {
+      this.config.groups = {}
     }
 
-    this.config.subActions[prefix] = actions
+    this.config.groups[prefix] = group
   }
 
   get #log() {
