@@ -128,8 +128,6 @@ export default class IntervalClient {
   getAction(slug: string): IntervalActionDefinition | undefined {
     const pieces = slug.split('/')
 
-    console.log(pieces, this.#prefix)
-
     if (this.#prefix) {
       if (pieces[0] === this.#prefix) {
         pieces.splice(0, 1)
@@ -140,8 +138,6 @@ export default class IntervalClient {
 
     const actionSlug = pieces.pop()
     const prefix = pieces.join('/')
-
-    console.log({ actionSlug, prefix })
 
     if (!actionSlug) return undefined
 
