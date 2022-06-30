@@ -223,16 +223,20 @@ const interval = new Interval({
 
       return { email }
     },
-    helloCurrentUser: async (io, ctx) => {
-      console.log(ctx.params)
+    helloCurrentUser: {
+      name: 'Hello, current user!',
+      description: '👋',
+      handler: async (io, ctx) => {
+        console.log(ctx.params)
 
-      let heading = `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`
+        let heading = `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`
 
-      if (ctx.params.message) {
-        heading += ` (Message: ${ctx.params.message})`
-      }
+        if (ctx.params.message) {
+          heading += ` (Message: ${ctx.params.message})`
+        }
 
-      io.display.heading(heading).then(() => {})
+        io.display.heading(heading).then(() => {})
+      },
     },
     dates: async io => {
       const [date, time, datetime] = await io.group([
