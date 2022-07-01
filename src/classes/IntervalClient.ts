@@ -18,6 +18,7 @@ import {
   CREATE_GHOST_MODE_ACCOUNT,
   DECLARE_HOST,
   ActionDefinition,
+  GroupDefinition,
 } from '../internalRpcSchema'
 import {
   ActionResultSchema,
@@ -72,6 +73,7 @@ export default class IntervalClient {
   #intentionallyClosed = false
 
   #actionDefinitions: ActionDefinition[]
+  #groupDefinitions: GroupDefinition[]
   #actionHandlers: Record<string, IntervalActionHandler>
 
   organization:
@@ -91,8 +93,9 @@ export default class IntervalClient {
       this.#endpoint = config.endpoint
     }
 
-    const actionHandlers: Record<string, IntervalActionHandler> = {}
+    const groupDefinitions: GroupDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
+    const actionHandlers: Record<string, IntervalActionHandler> = {}
 
     if (config.actions) {
       for (const [slug, def] of Object.entries(config.actions)) {
@@ -108,9 +111,13 @@ export default class IntervalClient {
     if (config.groups) {
       function walkActionGroup(groupSlug: string, group: ActionGroup) {
         for (const [slug, def] of Object.entries(group.actions)) {
+          groupDefinitions.push({
+            slug: groupSlug,
+            name: group.name,
+          })
+
           actionDefinitions.push({
             groupSlug,
-            groupName: group.name,
             slug,
             ...('handler' in def ? def : {}),
             handler: undefined,
@@ -130,6 +137,7 @@ export default class IntervalClient {
       }
     }
 
+    this.#groupDefinitions = groupDefinitions
     this.#actionDefinitions = actionDefinitions
     this.#actionHandlers = actionHandlers
 
@@ -786,6 +794,7 @@ export default class IntervalClient {
     const response = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
       actions,
+      groups: this.#groupDefinitions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
       requestId,

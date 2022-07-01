@@ -42,7 +42,6 @@ export type LoadingState = z.input<typeof LOADING_STATE>
 
 export const ACTION_DEFINITION = z.object({
   groupSlug: z.string().optional(),
-  groupName: z.string().optional(),
   slug: z.string(),
   name: z.string().optional(),
   description: z.string().optional(),
@@ -50,6 +49,13 @@ export const ACTION_DEFINITION = z.object({
 })
 
 export type ActionDefinition = z.infer<typeof ACTION_DEFINITION>
+
+export const GROUP_DEFINITION = z.object({
+  slug: z.string(),
+  name: z.string(),
+})
+
+export type GroupDefinition = z.infer<typeof GROUP_DEFINITION>
 
 export const ENQUEUE_ACTION = {
   inputs: z.object({
@@ -125,6 +131,7 @@ export const DECLARE_HOST = {
   inputs: z.object({
     httpHostId: z.string(),
     actions: z.array(ACTION_DEFINITION),
+    groups: z.array(GROUP_DEFINITION).optional(),
     sdkName: z.string(),
     sdkVersion: z.string(),
   }),
@@ -224,6 +231,7 @@ export const wsServerSchema = {
         }),
         z.object({
           actions: z.array(ACTION_DEFINITION),
+          groups: z.array(GROUP_DEFINITION).optional(),
         }),
       ])
     ),
