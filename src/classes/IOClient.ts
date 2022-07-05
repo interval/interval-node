@@ -10,7 +10,7 @@ import type {
 } from '../ioSchema'
 import Logger from './Logger'
 import { AnyIOComponent } from './IOComponent'
-import { IOPromise, ExclusiveIOPromise } from './IOPromise'
+import { IOPromise, ExclusiveIOPromise, IOGroupPromise } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
 import { selectTable, displayTable } from '../components/table'
@@ -33,6 +33,7 @@ import {
   RequiredPropsExclusiveIOComponentFunction,
 } from '../types'
 import { stripUndefined } from '../utils/deserialize'
+import { IntervalError } from '..'
 
 interface ClientConfig {
   logger: Logger
@@ -206,31 +207,24 @@ export class IOClient {
     IOPromises extends [
       MaybeOptionalGroupIOPromise,
       ...MaybeOptionalGroupIOPromise[]
-    ],
-    Components extends [AnyIOComponent, ...AnyIOComponent[]]
-  >(ioPromises: IOPromises) {
-    const components = ioPromises.map(pi => {
-      // In case user is using JavaScript or ignores the type error
-      if (pi instanceof ExclusiveIOPromise) {
-        this.logger.warn(
-          '[Interval]',
-          `Component with label "${pi.component.label}" is not supported inside a group, please remove it from the group`
-        )
-      }
-      return pi.component
-    }) as unknown as Components
+    ]
+  >(promises: IOPromises) {
+    const exclusivePromises = promises.filter(
+      pi => pi instanceof ExclusiveIOPromise
+    )
 
-    type ReturnValues = {
-      [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
-        ? ReturnType<IOPromises[Idx]['getValue']>
-        : IOPromises[Idx] extends OptionalGroupIOPromise
-        ? ReturnType<IOPromises[Idx]['getValue']>
-        : IOPromises[Idx]
+    if (exclusivePromises.length > 0) {
+      throw new IntervalError(
+        `Components with the following labels are not supported inside groups, please remove them from the group: ${exclusivePromises
+          .map(pi => pi.component.label)
+          .join(', ')}`
+      )
     }
 
-    return this.renderComponents(components).then(values =>
-      values.map((val, i) => ioPromises[i].getValue(val as never))
-    ) as unknown as ReturnValues
+    return new IOGroupPromise({
+      promises,
+      renderer: this.renderComponents.bind(this),
+    })
   }
 
   createIOMethod<

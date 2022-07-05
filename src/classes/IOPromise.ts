@@ -1,7 +1,16 @@
 import { T_IO_METHOD_NAMES, T_IO_PROPS, T_IO_STATE } from '../ioSchema'
-import IOComponent, { ComponentReturnValue } from './IOComponent'
+import IOComponent, {
+  AnyIOComponent,
+  ComponentReturnValue,
+} from './IOComponent'
 import IOError from './IOError'
-import { ComponentRenderer } from '../types'
+import {
+  ComponentRenderer,
+  ComponentsRenderer,
+  GroupIOPromise,
+  MaybeOptionalGroupIOPromise,
+  OptionalGroupIOPromise,
+} from '../types'
 
 /**
  * A custom wrapper class that handles creating the underlying component
@@ -145,3 +154,69 @@ export class ExclusiveIOPromise<
   Props = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
 > extends IOPromise<MethodName, Props, Output> {}
+
+/**
+ * A thin subtype of IOPromise that does nothing but mark the component
+ * as "display" for display-only components.
+ */
+export type DisplayIOPromise =
+  | IOPromise<'DISPLAY_HEADING', any, any>
+  | IOPromise<'DISPLAY_MARKDOWN', any, any>
+  | IOPromise<'DISPLAY_LINK', any, any>
+  | IOPromise<'DISPLAY_OBJECT', any, any>
+  | IOPromise<'DISPLAY_TABLE', any, any>
+
+export class IOGroupPromise<
+  IOPromises extends [
+    MaybeOptionalGroupIOPromise,
+    ...MaybeOptionalGroupIOPromise[]
+  ]
+> {
+  promises: IOPromises
+  renderer: ComponentsRenderer
+
+  constructor(config: { promises: IOPromises; renderer: ComponentsRenderer }) {
+    this.promises = config.promises
+    this.renderer = config.renderer
+  }
+
+  then(
+    resolve: (
+      output:
+        | {
+            [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
+              ? ReturnType<IOPromises[Idx]['getValue']>
+              : IOPromises[Idx] extends OptionalGroupIOPromise
+              ? ReturnType<IOPromises[Idx]['getValue']>
+              : IOPromises[Idx]
+          }
+        | undefined
+    ) => void,
+    reject?: (err: IOError) => void
+  ) {
+    type ReturnValues = {
+      [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
+        ? ReturnType<IOPromises[Idx]['getValue']>
+        : IOPromises[Idx] extends OptionalGroupIOPromise
+        ? ReturnType<IOPromises[Idx]['getValue']>
+        : IOPromises[Idx]
+    }
+
+    this.renderer(
+      this.promises.map(p => p.component) as unknown as [
+        AnyIOComponent,
+        ...AnyIOComponent[]
+      ]
+    )
+      .then(values => {
+        resolve(
+          values.map((val, i) =>
+            this.promises[i].getValue(val as never)
+          ) as unknown as ReturnValues
+        )
+      })
+      .catch(err => {
+        if (reject) reject(err)
+      })
+  }
+}

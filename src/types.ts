@@ -12,7 +12,10 @@ import type {
 import type { HostSchema } from './internalRpcSchema'
 import type { IOClient } from './classes/IOClient'
 import type IOComponent from './classes/IOComponent'
-import type { ComponentReturnValue } from './classes/IOComponent'
+import type {
+  AnyIOComponent,
+  ComponentReturnValue,
+} from './classes/IOComponent'
 import type {
   IOPromise,
   OptionalIOPromise,
@@ -102,8 +105,23 @@ export type ExclusiveIOComponentFunction<
 ) => ExclusiveIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
 export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = (
-  components: [IOComponent<MethodName>]
-) => Promise<[ComponentReturnValue<MethodName>]>
+  components: [IOComponent<MethodName>, ...IOComponent<MethodName>[]]
+) => Promise<
+  [ComponentReturnValue<MethodName>, ...ComponentReturnValue<MethodName>[]]
+>
+
+export type ComponentsRenderer<
+  Components extends [AnyIOComponent, ...AnyIOComponent[]] = [
+    AnyIOComponent,
+    ...AnyIOComponent[]
+  ]
+> = (components: Components) => Promise<
+  {
+    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+      ? z.infer<Components[Idx]['schema']['returns']> | undefined
+      : Components[Idx]
+  }
+>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 
