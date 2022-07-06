@@ -1,5 +1,5 @@
 import http from 'http'
-import Interval from '../..'
+import Interval from '../../experimental'
 
 const interval = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
