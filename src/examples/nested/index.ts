@@ -71,4 +71,6 @@ const prod = new Interval({
   },
 })
 
+prod.use('test', nested)
+
 prod.listen()
