@@ -1,4 +1,4 @@
-import Interval, { ActionGroup } from '../..'
+import Interval, { ActionGroup, IntervalActionHandler } from '../..'
 
 const interval = new Interval({
   apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
@@ -6,19 +6,18 @@ const interval = new Interval({
   endpoint: 'ws://localhost:3000/websocket',
 })
 
+const action: IntervalActionHandler = async io => {
+  const message = await io.input.text('Hello?')
+
+  return message
+}
+
 const nested = new ActionGroup({
   name: 'Nested',
   actions: {
-    hello: async io => {
-      const message = await io.input.text('Hello?')
-
-      return message
-    },
-    configure: async io => {
-      const message = await io.input.text('Hello?')
-
-      return message
-    },
+    action,
+    hello: action,
+    configure: action,
   },
 })
 
@@ -27,16 +26,23 @@ nested.use(
   new ActionGroup({
     name: 'More nested',
     actions: {
-      hello: async io => {
-        const message = await io.input.text('Hello?')
-
-        return message
-      },
+      action,
     },
   })
 )
 
 interval.use('nested', nested)
+
+nested.use(
+  'other',
+  new ActionGroup({
+    name: 'Other',
+    actions: {
+      action,
+      hello: action,
+    },
+  })
+)
 
 interval.listen()
 
@@ -57,16 +63,9 @@ const prod = new Interval({
     'test/deeper': new ActionGroup({
       name: 'Deeper',
       actions: {
-        hello: async io => {
-          const message = await io.input.text('Hello?')
-
-          return message
-        },
-        configure: async io => {
-          const message = await io.input.text('Hello?')
-
-          return message
-        },
+        action,
+        hello: action,
+        configure: action,
       },
     }),
   },
