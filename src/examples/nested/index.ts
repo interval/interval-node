@@ -6,26 +6,32 @@ const interval = new Interval({
   endpoint: 'ws://localhost:3000/websocket',
 })
 
-const nested = new ActionGroup('Nested', {
-  hello: async io => {
-    const message = await io.input.text('Hello?')
+const nested = new ActionGroup({
+  name: 'Nested',
+  actions: {
+    hello: async io => {
+      const message = await io.input.text('Hello?')
 
-    return message
-  },
-  configure: async io => {
-    const message = await io.input.text('Hello?')
+      return message
+    },
+    configure: async io => {
+      const message = await io.input.text('Hello?')
 
-    return message
+      return message
+    },
   },
 })
 
 nested.use(
   'more',
-  new ActionGroup('More nested', {
-    hello: async io => {
-      const message = await io.input.text('Hello?')
+  new ActionGroup({
+    name: 'More nested',
+    actions: {
+      hello: async io => {
+        const message = await io.input.text('Hello?')
 
-      return message
+        return message
+      },
     },
   })
 )
@@ -48,16 +54,19 @@ const prod = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   groups: {
-    'test/deeper': new ActionGroup('Deeper', {
-      hello: async io => {
-        const message = await io.input.text('Hello?')
+    'test/deeper': new ActionGroup({
+      name: 'Deeper',
+      actions: {
+        hello: async io => {
+          const message = await io.input.text('Hello?')
 
-        return message
-      },
-      configure: async io => {
-        const message = await io.input.text('Hello?')
+          return message
+        },
+        configure: async io => {
+          const message = await io.input.text('Hello?')
 
-        return message
+          return message
+        },
       },
     }),
   },
