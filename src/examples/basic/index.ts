@@ -2,7 +2,11 @@ import Interval, { IOError, io, ctx } from '../../index'
 import { NotificationDeliveryInstruction } from '../../types'
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
-import { table_basic, table_custom_columns } from './selectFromTable'
+import {
+  table_basic,
+  table_custom_columns,
+  table_custom,
+} from './selectFromTable'
 import unauthorized from './unauthorized'
 import './ghostHost'
 
@@ -84,6 +88,7 @@ const interval = new Interval({
       }
     },
     table_basic,
+    table_custom,
     table_custom_columns,
     // 'progress-through-long-list': async io => {
     //   const resp = await io.experimental.progressThroughList(
@@ -218,16 +223,20 @@ const interval = new Interval({
 
       return { email }
     },
-    helloCurrentUser: async (io, ctx) => {
-      console.log(ctx.params)
+    helloCurrentUser: {
+      name: 'Hello, current user!',
+      description: '👋',
+      handler: async (io, ctx) => {
+        console.log(ctx.params)
 
-      let heading = `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`
+        let heading = `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`
 
-      if (ctx.params.message) {
-        heading += ` (Message: ${ctx.params.message})`
-      }
+        if (ctx.params.message) {
+          heading += ` (Message: ${ctx.params.message})`
+        }
 
-      io.display.heading(heading).then(() => {})
+        io.display.heading(heading).then(() => {})
+      },
     },
     dates: async io => {
       const [date, time, datetime] = await io.group([

@@ -304,7 +304,7 @@ export class IOClient {
    */
   makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
     inner: IOComponentFunction<MethodName, Props, Output>,
-    propsRequired: false
+    propsRequired?: false
   ): ExclusiveIOComponentFunction<MethodName, Props, Output>
   makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
     inner: IOComponentFunction<MethodName, Props, Output>,
@@ -340,14 +340,22 @@ export class IOClient {
       select: {
         single: this.createIOMethod('SELECT_SINGLE', true, selectSingle),
         multiple: this.createIOMethod('SELECT_MULTIPLE', true, selectMultiple),
-        table: this.createIOMethod('SELECT_TABLE', true, selectTable),
+        table: this.createIOMethod(
+          'SELECT_TABLE',
+          true,
+          selectTable(this.logger)
+        ),
       },
       display: {
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
         link: this.createIOMethod('DISPLAY_LINK'),
         object: this.createIOMethod('DISPLAY_OBJECT'),
-        table: this.createIOMethod('DISPLAY_TABLE', true, displayTable),
+        table: this.createIOMethod(
+          'DISPLAY_TABLE',
+          true,
+          displayTable(this.logger)
+        ),
       },
       experimental: {
         spreadsheet: this.createIOMethod(
