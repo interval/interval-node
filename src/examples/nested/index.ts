@@ -1,6 +1,7 @@
-import Interval, { ActionGroup, IntervalActionHandler } from '../..'
+import { IntervalActionHandler } from '../..'
+import ExperimentalInterval, { ActionGroup } from '../../experimental'
 
-const interval = new Interval({
+const interval = new ExperimentalInterval({
   apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
@@ -46,7 +47,7 @@ nested.use(
 
 interval.listen()
 
-const anon = new Interval({
+const anon = new ExperimentalInterval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
 })
@@ -55,20 +56,10 @@ anon.use('nested', nested)
 
 anon.listen()
 
-const prod = new Interval({
+const prod = new ExperimentalInterval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
-  groups: {
-    'test/deeper': new ActionGroup({
-      name: 'Deeper',
-      actions: {
-        action,
-        hello: action,
-        configure: action,
-      },
-    }),
-  },
 })
 
 prod.use('test', nested)
