@@ -17,6 +17,8 @@ import {
   LoadingState,
   CREATE_GHOST_MODE_ACCOUNT,
   DECLARE_HOST,
+  ActionDefinition,
+  GroupDefinition,
 } from '../internalRpcSchema'
 import {
   ActionResultSchema,
@@ -29,12 +31,13 @@ import * as pkg from '../../package.json'
 import { deserializeDates } from '../utils/deserialize'
 import type {
   ActionCtx,
-  IntervalActionDefinition,
+  IntervalActionHandler,
   IntervalActionStore,
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
 import localConfig from '../localConfig'
 import { Interval, InternalConfig, IntervalError } from '..'
+import ActionGroup from './ActionGroup'
 
 export const DEFAULT_WEBSOCKET_ENDPOINT = 'wss://interval.com/websocket'
 
@@ -60,7 +63,6 @@ export default class IntervalClient {
   #interval: Interval
   #ghostOrgId: string | undefined
   #apiKey: string | undefined
-  #actions: Record<string, IntervalActionDefinition>
   #endpoint: string = DEFAULT_WEBSOCKET_ENDPOINT
   #httpEndpoint: string
   #logger: Logger
@@ -69,6 +71,10 @@ export default class IntervalClient {
   #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
   #pingIntervalHandle: NodeJS.Timeout | undefined
   #intentionallyClosed = false
+
+  #actionDefinitions: ActionDefinition[]
+  #groupDefinitions: GroupDefinition[]
+  #actionHandlers: Record<string, IntervalActionHandler>
 
   organization:
     | {
@@ -81,12 +87,59 @@ export default class IntervalClient {
   constructor(interval: Interval, config: InternalConfig) {
     this.#interval = interval
     this.#apiKey = config.apiKey
-    this.#actions = config.actions ?? {}
     this.#logger = new Logger(config.logLevel)
 
     if (config.endpoint) {
       this.#endpoint = config.endpoint
     }
+
+    const groupDefinitions: GroupDefinition[] = []
+    const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
+    const actionHandlers: Record<string, IntervalActionHandler> = {}
+
+    if (config.actions) {
+      for (const [slug, def] of Object.entries(config.actions)) {
+        actionDefinitions.push({
+          slug,
+          ...('handler' in def ? def : {}),
+          handler: undefined,
+        })
+        actionHandlers[slug] = 'handler' in def ? def.handler : def
+      }
+    }
+
+    if (config.groups) {
+      function walkActionGroup(groupSlug: string, group: ActionGroup) {
+        for (const [slug, def] of Object.entries(group.actions)) {
+          groupDefinitions.push({
+            slug: groupSlug,
+            name: group.name,
+          })
+
+          actionDefinitions.push({
+            groupSlug,
+            slug,
+            ...('handler' in def ? def : {}),
+            handler: undefined,
+          })
+
+          actionHandlers[`${groupSlug}/${slug}`] =
+            'handler' in def ? def.handler : def
+        }
+
+        for (const [subGroupSlug, subGroup] of Object.entries(group.groups)) {
+          walkActionGroup(`${groupSlug}/${subGroupSlug}`, subGroup)
+        }
+      }
+
+      for (const [groupSlug, group] of Object.entries(config.groups)) {
+        walkActionGroup(groupSlug, group)
+      }
+    }
+
+    this.#groupDefinitions = groupDefinitions
+    this.#actionDefinitions = actionDefinitions
+    this.#actionHandlers = actionHandlers
 
     if (config.retryIntervalMs && config.retryIntervalMs > 0) {
       this.#retryIntervalMs = config.retryIntervalMs
@@ -129,7 +182,7 @@ export default class IntervalClient {
   }
 
   async listen() {
-    if (Object.keys(this.#actions).length === 0) {
+    if (this.#actionDefinitions.length === 0) {
       this.#log.prod(
         'Calling listen() with no defined actions is a no-op, skipping'
       )
@@ -150,7 +203,7 @@ export default class IntervalClient {
       throw new Error('Missing request ID')
     }
 
-    if (Object.keys(this.#actions).length === 0) {
+    if (Object.keys(this.#actionHandlers).length === 0) {
       this.#log.prod(
         'Calling respondToRequest() with no defined actions is a no-op, skipping'
       )
@@ -192,21 +245,14 @@ export default class IntervalClient {
   }
 
   async declareHost(httpHostId: string) {
-    const actions = Object.entries(this.#actions).map(([slug, def]) => ({
-      slug,
-      ...('handler' in def ? def : {}),
-      handler: undefined,
-    }))
-    const slugs = Object.keys(this.#actions)
-
-    if (slugs.length === 0) {
+    if (this.#actionDefinitions.length === 0) {
       this.#log.prod('No actions defined, skipping host declaration')
       return
     }
 
     const body: z.infer<typeof DECLARE_HOST['inputs']> = {
       httpHostId,
-      actions,
+      actions: this.#actionDefinitions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
     }
@@ -247,7 +293,7 @@ export default class IntervalClient {
         '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
       )
 
-      if (response.invalidSlugs.length === slugs.length) {
+      if (response.invalidSlugs.length === this.#actionDefinitions.length) {
         throw new IntervalError('No valid slugs provided')
       }
     }
@@ -531,14 +577,8 @@ export default class IntervalClient {
           }
 
           const { actionName: actionSlug, transactionId } = inputs
-          const actionDef = this.#actions[actionSlug]
-          if (!actionDef) {
-            this.#log.debug('No action defined for slug', actionSlug)
-            return
-          }
+          const actionHandler = this.#actionHandlers[actionSlug]
 
-          const actionHandler =
-            'handler' in actionDef ? actionDef.handler : actionDef
           this.#log.debug(actionHandler)
 
           if (!actionHandler) {
@@ -744,14 +784,9 @@ export default class IntervalClient {
       throw new IntervalError('serverRpc not initialized')
     }
 
-    const actions = Object.entries(this.#actions).map(([slug, def]) => ({
-      slug,
-      ...('handler' in def ? def : {}),
-      handler: undefined,
-    }))
-    const slugs = Object.keys(this.#actions)
+    const actions = this.#actionDefinitions
 
-    if (slugs.length === 0) {
+    if (actions.length === 0) {
       this.#log.prod('No actions defined, skipping host initialization')
       return
     }
@@ -759,6 +794,7 @@ export default class IntervalClient {
     const response = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
       actions,
+      groups: this.#groupDefinitions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
       requestId,
@@ -786,7 +822,7 @@ export default class IntervalClient {
           '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
         )
 
-        if (response.invalidSlugs.length === slugs.length) {
+        if (response.invalidSlugs.length === actions.length) {
           throw new IntervalError('No valid slugs provided')
         }
       }

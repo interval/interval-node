@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import type { IncomingMessage, ServerResponse } from 'http'
 import fetch from 'node-fetch'
 import * as superjson from 'superjson'
 import IOError from './classes/IOError'
@@ -9,30 +8,23 @@ import {
   DEQUEUE_ACTION,
   NOTIFY,
   ActionEnvironment,
-  DECLARE_HOST,
 } from './internalRpcSchema'
 import { SerializableRecord } from './ioSchema'
-import * as pkg from '../package.json'
 import type {
   ActionCtx,
   ActionLogFn,
   IO,
   IntervalActionHandler,
-  IntervalActionDefinition,
   IntervalActionStore,
   NotifyConfig,
+  IntervalActionDefinitions,
 } from './types'
 import IntervalClient, {
   DEFAULT_WEBSOCKET_ENDPOINT,
   getHttpEndpoint,
   actionLocalStorage,
 } from './classes/IntervalClient'
-import {
-  getRequestBody,
-  HttpRequestBody,
-  LambdaRequestPayload,
-  LambdaResponse,
-} from './utils/http'
+import ActionGroup from './classes/ActionGroup'
 
 export type {
   ActionCtx,
@@ -44,7 +36,8 @@ export type {
 
 export interface InternalConfig {
   apiKey?: string
-  actions?: Record<string, IntervalActionDefinition>
+  actions?: IntervalActionDefinitions
+  groups?: Record<string, ActionGroup>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
@@ -114,7 +107,7 @@ export default class Interval {
     | undefined
   environment: ActionEnvironment | undefined
 
-  constructor(config: InternalConfig) {
+  constructor(config: Omit<InternalConfig, 'groups'>) {
     this.config = config
     this.#apiKey = config.apiKey
     this.#logger = new Logger(config.logLevel)
@@ -125,7 +118,19 @@ export default class Interval {
     this.actions = new Actions(this.#httpEndpoint, this.#logger, this.#apiKey)
   }
 
+  protected get apiKey(): string | undefined {
+    return this.#apiKey
+  }
+
+  protected get httpEndpoint(): string {
+    return this.#httpEndpoint
+  }
+
   get #log() {
+    return this.#logger
+  }
+
+  protected get log() {
     return this.#logger
   }
 
@@ -142,191 +147,6 @@ export default class Interval {
 
   close() {
     return this.#client?.close()
-  }
-
-  /*
-   * Handle a serverless host endpoint request. Receives the deserialized request body object.
-   */
-  async handleRequest({
-    requestId,
-    httpHostId,
-  }: HttpRequestBody): Promise<boolean> {
-    if (requestId) {
-      await this.#respondToRequest(requestId)
-      return true
-    } else if (httpHostId) {
-      await this.#declareHost(httpHostId)
-      return true
-    } else {
-      return false
-    }
-  }
-
-  // A getter that returns a function instead of a method to avoid `this` binding issues.
-  get httpRequestHandler() {
-    const interval = this
-
-    return async (req: IncomingMessage, res: ServerResponse) => {
-      // TODO: Proper headers
-
-      if (req.method === 'GET') {
-        return res.writeHead(200).end('OK')
-      }
-
-      if (req.method !== 'POST') {
-        return res.writeHead(405).end()
-      }
-
-      try {
-        const body = await getRequestBody(req)
-        if (!body || typeof body !== 'object' || Array.isArray(body)) {
-          return res.writeHead(400).end()
-        }
-
-        const successful = await interval.handleRequest(body)
-        return res.writeHead(successful ? 200 : 400).end()
-      } catch (err) {
-        interval.#log.error('Error in HTTP request handler:', err)
-        return res.writeHead(500).end()
-      }
-    }
-  }
-
-  // A getter that returns a function instead of a method to avoid `this` binding issues.
-  get lambdaRequestHandler() {
-    const interval = this
-
-    return async (event: LambdaRequestPayload) => {
-      function makeResponse(
-        statusCode: number,
-        body?: Record<string, string> | string
-      ): LambdaResponse {
-        return {
-          isBase64Encoded: false,
-          statusCode,
-          body: body
-            ? typeof body === 'string'
-              ? body
-              : JSON.stringify(body)
-            : '',
-          headers:
-            body && typeof body !== 'string'
-              ? {
-                  'content-type': 'application/json',
-                }
-              : {},
-        }
-      }
-
-      if (event.requestContext.http.method === 'GET') {
-        return makeResponse(200)
-      }
-
-      if (event.requestContext.http.method !== 'POST') {
-        return makeResponse(405)
-      }
-
-      try {
-        let body: HttpRequestBody | undefined
-        if (event.body) {
-          try {
-            body = JSON.parse(event.body)
-          } catch (err) {
-            this.#log.error('Failed parsing input body as JSON', event.body)
-          }
-        }
-
-        if (!body) {
-          return makeResponse(400)
-        }
-
-        const successful = await interval.handleRequest(body)
-        return makeResponse(successful ? 200 : 500)
-      } catch (err) {
-        this.#log.error('Error in Lambda handler', err)
-        return makeResponse(500)
-      }
-    }
-  }
-
-  /**
-   * Always creates a new host connection to Interval and uses it only for the single request.
-   */
-  async #respondToRequest(requestId: string) {
-    if (!requestId) {
-      throw new Error('Missing request ID')
-    }
-
-    const client = new IntervalClient(this, this.config)
-    const response = await client.respondToRequest(requestId)
-
-    client.close()
-
-    return response
-  }
-
-  async #declareHost(httpHostId: string) {
-    const actions = Object.entries(this.config.actions ?? {}).map(
-      ([slug, def]) => ({
-        slug,
-        ...('handler' in def ? def : {}),
-        handler: undefined,
-      })
-    )
-    const slugs = actions.map(a => a.slug)
-
-    if (slugs.length === 0) {
-      this.#log.prod('No actions defined, skipping host declaration')
-      return
-    }
-
-    const body: z.infer<typeof DECLARE_HOST['inputs']> = {
-      httpHostId,
-      actions,
-      sdkName: pkg.name,
-      sdkVersion: pkg.version,
-    }
-
-    const response = await fetch(`${this.#httpEndpoint}/api/hosts/declare`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.#apiKey}`,
-      },
-      body: JSON.stringify(body),
-    })
-      .then(r => r.json())
-      .then(r => DECLARE_HOST.returns.parseAsync(r))
-      .catch(err => {
-        this.#logger.debug(err)
-        throw new IntervalError('Received invalid API response.')
-      })
-
-    if (response.type === 'error') {
-      throw new IntervalError(
-        `There was a problem declaring the host: ${response.message}`
-      )
-    }
-
-    if (response.sdkAlert) {
-      this.#log.handleSdkAlert(response.sdkAlert)
-    }
-
-    if (response.invalidSlugs.length > 0) {
-      this.#log.warn('[Interval]', '⚠ Invalid slugs detected:\n')
-
-      for (const slug of response.invalidSlugs) {
-        this.#log.warn(`  - ${slug}`)
-      }
-
-      this.#log.warn(
-        '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
-      )
-
-      if (response.invalidSlugs.length === slugs.length) {
-        throw new IntervalError('No valid slugs provided')
-      }
-    }
   }
 
   async notify(config: NotifyConfig): Promise<void> {
