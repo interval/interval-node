@@ -147,6 +147,20 @@ const interval = new Interval({
         io.input.boolean('Boolean'),
       ])
     },
+    petr_repro: async () => {
+      // Data will be undefined if you just click "continue" without modifying the form.
+      const data = await io.select.single('Some field', {
+        options: [],
+        defaultValue: { label: 'my label', value: 'my_value' },
+      })
+
+      // This should be an object equal to the defaultValue
+      console.log('data', data)
+
+      await io.display.object('Return', {
+        data: { mySuperValue: data || 'No data' },
+      })
+    },
     enter_a_number: async io => {
       const num = await io.input.number('Enter a number')
 

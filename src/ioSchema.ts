@@ -51,6 +51,8 @@ export const labelValue = z
   })
   .passthrough()
 
+export type LabelValue = z.infer<typeof labelValue>
+
 export const richSelectOption = z
   .object({
     label: z.string(),
@@ -59,6 +61,8 @@ export const richSelectOption = z
     imageUrl: z.string().nullish(),
   })
   .passthrough()
+
+export type RichSelectOption = z.infer<typeof richSelectOption>
 
 const objectLiteralSchema = z.union([
   z.string(),
