@@ -17,9 +17,9 @@ export type ColumnResult =
       label: string | number | boolean | null | Date | undefined
       value?: CellValue
     } & (
-      | {}
-      | { href: string }
+      | { url: string }
       | { action: string; params?: z.infer<typeof serializableRecord> }
+      | {}
     ))
   | CellValue
 

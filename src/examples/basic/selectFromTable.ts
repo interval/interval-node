@@ -193,7 +193,7 @@ export const table_custom_columns: IntervalActionHandler = async io => {
                 : row.name === 'Jacob Mischka'
                 ? `https://dashboard.stripe.com/${row.id}`
                 : 'This is a long string of multiline text that is linked in a table column',
-            href: `https://dashboard.stripe.com/${row.id}`,
+            url: `https://dashboard.stripe.com/${row.id}`,
           }),
         },
         {

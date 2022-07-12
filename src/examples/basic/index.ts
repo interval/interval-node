@@ -40,7 +40,7 @@ const actionLinks: IntervalActionHandler = async () => {
       ],
     }),
     io.display.link('External link', {
-      href: 'https://example.com',
+      url: 'https://example.com',
     }),
     io.display.link('Action link', {
       action: 'helloCurrentUser',
@@ -466,7 +466,7 @@ const interval = new Interval({
             label: 'Website',
             renderCell: row => ({
               label: row.website_url,
-              href: row.website_url,
+              url: row.website_url,
             }),
           },
           {

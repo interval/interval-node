@@ -25,6 +25,7 @@ import { selectTable, displayTable } from '../components/table'
 import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
+import displayLink from '../components/displayLink'
 import { date, datetime } from '../components/inputDate'
 import { file } from '../components/upload'
 import {
@@ -434,7 +435,9 @@ export class IOClient {
       display: {
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
-        link: this.createIOMethod('DISPLAY_LINK'),
+        link: this.createIOMethod('DISPLAY_LINK', {
+          componentDef: displayLink,
+        }),
         object: this.createIOMethod('DISPLAY_OBJECT'),
         table: this.createIOMethod('DISPLAY_TABLE', {
           propsRequired: true,

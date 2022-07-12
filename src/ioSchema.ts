@@ -131,6 +131,7 @@ export const tableRowValue = z.union([
       ])
       .optional(),
     href: z.string().optional(),
+    url: z.string().optional(),
     action: z.string().optional(),
     params: serializableRecord.optional(),
   }),
@@ -179,13 +180,16 @@ export const tableColumn = z.object({
           }),
           z.union([
             z.object({
-              href: z.string().optional(),
+              url: z.string(),
             }),
             z.object({
-              href: z.never(),
+              href: z.string(),
+            }),
+            z.object({
               action: z.string(),
               params: serializableRecord,
             }),
+            z.object({}),
           ])
         ),
         z.string(),
@@ -411,17 +415,10 @@ export const ioSchema = {
       }),
       z.union([
         z.object({
-          href: z
-            .string()
-            .url()
-            .refine(
-              url =>
-                url.startsWith('https://') ||
-                url.startsWith('http://localhost:'),
-              {
-                message: 'Only absolute HTTPS URLs are supported',
-              }
-            ),
+          url: z.string().url(),
+        }),
+        z.object({
+          href: z.string().url(),
         }),
         z.object({
           action: z.string(),
