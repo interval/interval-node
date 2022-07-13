@@ -106,6 +106,16 @@ const interval = new Interval({
       await io.display.heading('I block :(')
       console.log('done!')
     },
+    dynamic_group: async io => {
+      const promises = [
+        io.input.text('Your name'),
+        io.input.number('Pick a number').optional(),
+      ]
+
+      const resp = await io.group(promises)
+
+      console.log(resp)
+    },
     optional_values: async io => {
       const [name, num, color] = await io.group([
         io.input.text('Your name'),
@@ -274,20 +284,30 @@ const interval = new Interval({
       return datetime
     },
     validityTester: async io => {
-      await io.group([
-        io.input.number('Enter a number'),
-        io.input.number('Enter a second number').optional(),
-        io.input.text('First name', {
-          maxLength: 20,
-        }),
-        io.input
-          .text('Last name', {
-            minLength: 5,
-          })
-          .optional(),
-        io.input.email('Email'),
-        io.input.email('Backup email').optional(),
-      ])
+      await io
+        .group([
+          io.input.number('Enter a number'),
+          io.input.number('Enter a second number').optional(),
+          io.input
+            .text('First name', {
+              maxLength: 20,
+            })
+            .validate(result => {
+              if (result !== 'Jacob') return 'Must be Jacob.'
+            }),
+          io.input
+            .text('Last name', {
+              minLength: 5,
+            })
+            .optional(),
+          io.input.email('Email'),
+          io.input.email('Backup email').optional(),
+        ])
+        .validate(([, , firstName, lastName]) => {
+          if (firstName === 'Jacob' && lastName !== 'Mischka') {
+            return 'Last name is not correct.'
+          }
+        })
     },
     optionalCheckboxes: async io => {
       const options = [

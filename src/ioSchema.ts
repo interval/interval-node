@@ -11,8 +11,10 @@ export const IO_RENDER = z.object({
       propsMeta: z.any().optional(),
       isStateful: z.boolean().optional().default(false),
       isOptional: z.boolean().optional().default(false),
+      validationErrorMessage: z.string().optional(),
     })
   ),
+  validationErrorMessage: z.string().optional(),
   kind: z.literal('RENDER'),
 })
 

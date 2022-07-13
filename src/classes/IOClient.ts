@@ -10,7 +10,12 @@ import type {
 } from '../ioSchema'
 import Logger from './Logger'
 import { AnyIOComponent } from './IOComponent'
-import { IOPromise, ExclusiveIOPromise, IOGroupPromise } from './IOPromise'
+import {
+  IOPromise,
+  ExclusiveIOPromise,
+  IOGroupPromise,
+  IOPromiseValidator,
+} from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
 import { selectTable, displayTable } from '../components/table'
@@ -23,8 +28,6 @@ import {
   IORenderSender,
   ResponseHandlerFn,
   MaybeOptionalGroupIOPromise,
-  GroupIOPromise,
-  OptionalGroupIOPromise,
   IOComponentFunction,
   ExclusiveIOComponentFunction,
   ComponentRenderer,
@@ -39,6 +42,18 @@ interface ClientConfig {
   logger: Logger
   send: IORenderSender
 }
+
+export type IOClientRenderReturnValues<
+  Components extends [AnyIOComponent, ...AnyIOComponent[]]
+> = {
+  [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+    ? z.infer<Components[Idx]['schema']['returns']> | undefined
+    : Components[Idx]
+}
+
+export type IOClientRenderValidator<
+  Components extends [AnyIOComponent, ...AnyIOComponent[]]
+> = IOPromiseValidator<IOClientRenderReturnValues<Components>>
 
 /**
  * The client class that handles IO calls for a given transaction.
@@ -70,110 +85,141 @@ export class IOClient {
    */
   async renderComponents<
     Components extends [AnyIOComponent, ...AnyIOComponent[]]
-  >(components: Components) {
+  >(
+    components: Components,
+    groupValidator?: IOClientRenderValidator<Components>
+  ) {
     if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
       throw new IOError('TRANSACTION_CLOSED')
     }
 
-    type ReturnValues = {
-      [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-        ? z.infer<Components[Idx]['schema']['returns']> | undefined
-        : Components[Idx]
-    }
+    let validationErrorMessage: string | undefined
 
-    return new Promise<ReturnValues>(async (resolve, reject) => {
-      const inputGroupKey = v4()
-      let isReturned = false
+    return new Promise<IOClientRenderReturnValues<Components>>(
+      async (resolve, reject) => {
+        const inputGroupKey = v4()
+        let isReturned = false
 
-      const render = async () => {
-        const packed: T_IO_RENDER_INPUT = {
-          id: v4(),
-          inputGroupKey,
-          toRender: components
-            .map(c => c.getRenderInfo())
-            .map(({ props, ...renderInfo }) => {
-              const { json, meta } = superjson.serialize(stripUndefined(props))
-              return {
-                ...renderInfo,
-                props: json,
-                propsMeta: meta,
-              }
-            }),
-          kind: 'RENDER',
-        }
-
-        await this.send(packed)
-      }
-
-      this.onResponseHandler = async result => {
-        if (result.inputGroupKey && result.inputGroupKey !== inputGroupKey) {
-          this.logger.debug('Received response for other input group')
-          return
-        }
-
-        if (this.isCanceled || isReturned) {
-          this.logger.debug('Received response after IO call complete')
-          return
-        }
-
-        // Transaction canceled from Interval cloud UI
-        if (result.kind === 'CANCELED') {
-          this.isCanceled = true
-          reject(new IOError('CANCELED'))
-          return
-        }
-
-        if (result.values.length !== components.length) {
-          throw new Error('Mismatch in return array length')
-        }
-
-        if (result.valuesMeta) {
-          result.values = superjson.deserialize({
-            json: result.values,
-            meta: result.valuesMeta,
-          })
-        }
-
-        if (result.kind === 'RETURN') {
-          isReturned = true
-
-          result.values.map((v, index) =>
-            // @ts-ignore
-            components[index].setReturnValue(v)
-          )
-
-          return
-        }
-
-        if (result.kind === 'SET_STATE') {
-          for (const [index, newState] of result.values.entries()) {
-            const prevState = components[index].getInstance().state
-
-            if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
-              this.logger.debug(`New state at ${index}`, newState)
-              // @ts-ignore
-              await components[index].setState(newState)
-            }
+        const render = async () => {
+          const packed: T_IO_RENDER_INPUT = {
+            id: v4(),
+            inputGroupKey,
+            toRender: components
+              .map(c => c.getRenderInfo())
+              .map(({ props, ...renderInfo }) => {
+                const { json, meta } = superjson.serialize(
+                  stripUndefined(props)
+                )
+                return {
+                  ...renderInfo,
+                  props: json,
+                  propsMeta: meta,
+                }
+              }),
+            validationErrorMessage,
+            kind: 'RENDER',
           }
-          render()
+
+          await this.send(packed)
         }
+
+        this.onResponseHandler = async result => {
+          if (result.inputGroupKey && result.inputGroupKey !== inputGroupKey) {
+            this.logger.debug('Received response for other input group')
+            return
+          }
+
+          if (this.isCanceled || isReturned) {
+            this.logger.debug('Received response after IO call complete')
+            return
+          }
+
+          // Transaction canceled from Interval cloud UI
+          if (result.kind === 'CANCELED') {
+            this.isCanceled = true
+            reject(new IOError('CANCELED'))
+            return
+          }
+
+          if (result.values.length !== components.length) {
+            throw new Error('Mismatch in return array length')
+          }
+
+          if (result.valuesMeta) {
+            result.values = superjson.deserialize({
+              json: result.values,
+              meta: result.valuesMeta,
+            })
+          }
+
+          if (result.kind === 'RETURN') {
+            let isValid = true
+
+            result.values.forEach((v, index) => {
+              const component = components[index]
+              if (component.validator) {
+                if (component.handleValidation(v) !== undefined) {
+                  isValid = false
+                }
+              }
+            })
+
+            if (!isValid) {
+              render()
+              return
+            }
+
+            if (groupValidator) {
+              validationErrorMessage = groupValidator(
+                result.values as IOClientRenderReturnValues<typeof components>
+              )
+
+              if (validationErrorMessage) {
+                render()
+                return
+              }
+            }
+
+            isReturned = true
+
+            result.values.forEach((v, index) => {
+              // @ts-ignore
+              components[index].setReturnValue(v)
+            })
+
+            return
+          }
+
+          if (result.kind === 'SET_STATE') {
+            for (const [index, newState] of result.values.entries()) {
+              const prevState = components[index].getInstance().state
+
+              if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
+                this.logger.debug(`New state at ${index}`, newState)
+                // @ts-ignore
+                await components[index].setState(newState)
+              }
+            }
+            render()
+          }
+        }
+
+        for (const c of components) {
+          // every time any component changes their state, we call render (again)
+          c.onStateChange(render)
+        }
+
+        // Initial render
+        render()
+
+        const response = (await Promise.all(
+          components.map(comp => comp.returnValue)
+        )) as unknown as Promise<IOClientRenderReturnValues<Components>>
+
+        resolve(response)
       }
-
-      for (const c of components) {
-        // every time any component changes their state, we call render (again)
-        c.onStateChange(render)
-      }
-
-      // Initial render
-      render()
-
-      const response = (await Promise.all(
-        components.map(comp => comp.returnValue)
-      )) as unknown as Promise<ReturnValues>
-
-      resolve(response)
-    })
+    )
   }
 
   /**
@@ -183,27 +229,16 @@ export class IOClient {
    * for each given component using the corresponding IOPromise's `getValue`
    * method.
    */
-  async group<
+  group<
     IOPromises extends [
       MaybeOptionalGroupIOPromise,
       ...MaybeOptionalGroupIOPromise[]
-    ],
-    Components extends [AnyIOComponent, ...AnyIOComponent[]]
-  >(
-    ioPromises: IOPromises
-  ): Promise<
-    {
-      [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
-        ? ReturnType<IOPromises[Idx]['getValue']>
-        : IOPromises[Idx] extends OptionalGroupIOPromise
-        ? ReturnType<IOPromises[Idx]['getValue']>
-        : IOPromises[Idx]
-    }
-  >
-  async group(
+    ]
+  >(ioPromises: IOPromises): IOGroupPromise<IOPromises>
+  group(
     ioPromises: MaybeOptionalGroupIOPromise[]
-  ): Promise<ReturnType<MaybeOptionalGroupIOPromise['getValue']>>
-  async group<
+  ): IOGroupPromise<MaybeOptionalGroupIOPromise[]>
+  group<
     IOPromises extends [
       MaybeOptionalGroupIOPromise,
       ...MaybeOptionalGroupIOPromise[]
@@ -309,7 +344,7 @@ export class IOClient {
     _propsRequired = false
   ): ExclusiveIOComponentFunction<MethodName, Props, Output> {
     return (label: string, props?: Props) => {
-      return new ExclusiveIOPromise(inner(label, props))
+      return inner(label, props).exclusive()
     }
   }
 

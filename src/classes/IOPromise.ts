@@ -11,6 +11,7 @@ import {
   MaybeOptionalGroupIOPromise,
   OptionalGroupIOPromise,
 } from '../types'
+import { IOClientRenderReturnValues } from './IOClient'
 
 /**
  * A custom wrapper class that handles creating the underlying component
@@ -25,16 +26,17 @@ export class IOPromise<
   Props = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
 > {
-  methodName: MethodName
-  renderer: ComponentRenderer<MethodName>
-  label: string
-  props: Props
-  valueGetter:
+  protected methodName: MethodName
+  protected renderer: ComponentRenderer<MethodName>
+  protected label: string
+  protected props: Props
+  protected valueGetter:
     | ((response: ComponentReturnValue<MethodName>) => Output)
     | undefined
-  onStateChange:
+  protected onStateChange:
     | ((incomingState: T_IO_STATE<MethodName>) => Promise<Partial<Props>>)
     | undefined
+  protected validator: IOPromiseValidator<Output> | undefined
 
   constructor({
     renderer,
@@ -43,6 +45,7 @@ export class IOPromise<
     props,
     valueGetter,
     onStateChange,
+    validator,
   }: {
     renderer: ComponentRenderer<MethodName>
     methodName: MethodName
@@ -52,6 +55,7 @@ export class IOPromise<
     onStateChange?: (
       incomingState: T_IO_STATE<MethodName>
     ) => Promise<Partial<Props>>
+    validator?: IOPromiseValidator<Output> | undefined
   }) {
     this.renderer = renderer
     this.methodName = methodName
@@ -59,6 +63,7 @@ export class IOPromise<
     this.props = props
     this.valueGetter = valueGetter
     this.onStateChange = onStateChange
+    this.validator = validator
   }
 
   then(resolve: (output: Output) => void, reject?: (err: IOError) => void) {
@@ -82,8 +87,29 @@ export class IOPromise<
       this.methodName,
       this.label,
       this.props,
-      this.onStateChange
+      this.onStateChange,
+      false,
+      this.validator ? this.#handleValidation.bind(this) : undefined
     )
+  }
+
+  #handleValidation(
+    returnValue: ComponentReturnValue<MethodName> | undefined
+  ): string | undefined {
+    if (returnValue === undefined) {
+      // This should be caught already, primarily here for types
+      return 'This field is required.'
+    }
+
+    if (this.validator) {
+      return this.validator(this.getValue(returnValue))
+    }
+  }
+
+  validate(validator: IOPromiseValidator<Output>): this {
+    this.validator = validator
+
+    return this
   }
 
   optional(isOptional?: true): OptionalIOPromise<MethodName, Props, Output>
@@ -98,7 +124,27 @@ export class IOPromise<
   ):
     | OptionalIOPromise<MethodName, Props, Output>
     | IOPromise<MethodName, Props, Output> {
-    return isOptional ? new OptionalIOPromise(this) : this
+    return isOptional
+      ? new OptionalIOPromise({
+          renderer: this.renderer,
+          methodName: this.methodName,
+          label: this.label,
+          props: this.props,
+          valueGetter: this.valueGetter,
+          onStateChange: this.onStateChange,
+        })
+      : this
+  }
+
+  exclusive(): ExclusiveIOPromise<MethodName, Props, Output> {
+    return new ExclusiveIOPromise({
+      renderer: this.renderer,
+      methodName: this.methodName,
+      label: this.label,
+      props: this.props,
+      valueGetter: this.valueGetter,
+      onStateChange: this.onStateChange,
+    })
   }
 }
 
@@ -130,8 +176,17 @@ export class OptionalIOPromise<
       this.label,
       this.props,
       this.onStateChange,
-      true
+      true,
+      this.validator ? this.#handleValidation : undefined
     )
+  }
+
+  #handleValidation(
+    returnValue: ComponentReturnValue<MethodName> | undefined
+  ): string | undefined {
+    if (this.validator) {
+      return this.validator(this.getValue(returnValue))
+    }
   }
 
   getValue(
@@ -166,47 +221,64 @@ export type DisplayIOPromise =
   | IOPromise<'DISPLAY_OBJECT', any, any>
   | IOPromise<'DISPLAY_TABLE', any, any>
 
-export class IOGroupPromise<
+export type IOGroupReturnValues<
   IOPromises extends [
     MaybeOptionalGroupIOPromise,
     ...MaybeOptionalGroupIOPromise[]
   ]
+> = {
+  [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
+    ? ReturnType<IOPromises[Idx]['getValue']>
+    : IOPromises[Idx] extends OptionalGroupIOPromise
+    ? ReturnType<IOPromises[Idx]['getValue']>
+    : IOPromises[Idx]
+}
+
+export type IOGroupComponents<
+  IOPromises extends [
+    MaybeOptionalGroupIOPromise,
+    ...MaybeOptionalGroupIOPromise[]
+  ]
+> = {
+  [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
+    ? IOPromises[Idx]['component']
+    : IOPromises[Idx] extends OptionalGroupIOPromise
+    ? IOPromises[Idx]['component']
+    : IOPromises[Idx]
+}
+
+export type IOPromiseValidator<ReturnValue> = (
+  returnValue: ReturnValue
+) => string | undefined
+
+export class IOGroupPromise<
+  IOPromises extends MaybeOptionalGroupIOPromise[],
+  ReturnValues = IOPromises extends [
+    MaybeOptionalGroupIOPromise,
+    ...MaybeOptionalGroupIOPromise[]
+  ]
+    ? IOGroupReturnValues<IOPromises>
+    : unknown[]
 > {
   promises: IOPromises
-  renderer: ComponentsRenderer
+  #renderer: ComponentsRenderer
+  #validator: IOPromiseValidator<ReturnValues> | undefined
 
   constructor(config: { promises: IOPromises; renderer: ComponentsRenderer }) {
     this.promises = config.promises
-    this.renderer = config.renderer
+    this.#renderer = config.renderer
   }
 
   then(
-    resolve: (
-      output:
-        | {
-            [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
-              ? ReturnType<IOPromises[Idx]['getValue']>
-              : IOPromises[Idx] extends OptionalGroupIOPromise
-              ? ReturnType<IOPromises[Idx]['getValue']>
-              : IOPromises[Idx]
-          }
-        | undefined
-    ) => void,
+    resolve: (output: ReturnValues) => void,
     reject?: (err: IOError) => void
   ) {
-    type ReturnValues = {
-      [Idx in keyof IOPromises]: IOPromises[Idx] extends GroupIOPromise
-        ? ReturnType<IOPromises[Idx]['getValue']>
-        : IOPromises[Idx] extends OptionalGroupIOPromise
-        ? ReturnType<IOPromises[Idx]['getValue']>
-        : IOPromises[Idx]
-    }
-
-    this.renderer(
+    this.#renderer(
       this.promises.map(p => p.component) as unknown as [
         AnyIOComponent,
         ...AnyIOComponent[]
-      ]
+      ],
+      this.#validator ? this.#handleValidation.bind(this) : undefined
     )
       .then(values => {
         resolve(
@@ -218,5 +290,26 @@ export class IOGroupPromise<
       .catch(err => {
         if (reject) reject(err)
       })
+  }
+
+  validate(validator: IOPromiseValidator<ReturnValues> | undefined): this {
+    this.#validator = validator
+
+    return this
+  }
+
+  // These types aren't as tight as they could be, but
+  // TypeScript doesn't like IOGroupComponents defined above here
+  #handleValidation(
+    returnValues: IOClientRenderReturnValues<
+      [AnyIOComponent, ...AnyIOComponent[]]
+    >
+  ): string | undefined {
+    if (!this.#validator) return
+
+    const values = returnValues.map((v, index) =>
+      this.promises[index].getValue(v as never)
+    ) as unknown as ReturnValues
+    return this.#validator(values)
   }
 }

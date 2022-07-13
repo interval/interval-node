@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { deserialize } from 'superjson'
 import {
   ioSchema,
   resolvesImmediately,
@@ -7,6 +6,7 @@ import {
   T_IO_RETURNS,
 } from '../ioSchema'
 import { deserializeDates } from '../utils/deserialize'
+import { IOPromiseValidator } from './IOPromise'
 
 type IoSchema = typeof ioSchema
 export interface ComponentInstance<MN extends keyof IoSchema> {
@@ -16,6 +16,7 @@ export interface ComponentInstance<MN extends keyof IoSchema> {
   state: z.infer<IoSchema[MN]['state']>
   isStateful?: boolean
   isOptional?: boolean
+  validationErrorMessage?: string | undefined
 }
 
 export type ComponentRenderInfo<MN extends keyof IoSchema> = Omit<
@@ -50,6 +51,10 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       ) => Promise<Partial<z.input<IoSchema[MethodName]['props']>>>)
     | undefined
 
+  validator:
+    | IOPromiseValidator<ComponentReturnValue<MethodName> | undefined>
+    | undefined
+
   /**
    * @param methodName - The component's method name from ioSchema, used
    * to determine the valid types for communication with Interval.
@@ -68,10 +73,12 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     handleStateChange?: (
       incomingState: z.infer<IoSchema[MethodName]['state']>
     ) => Promise<Partial<z.input<IoSchema[MethodName]['props']>>>,
-    isOptional: boolean = false
+    isOptional: boolean = false,
+    validator?: IOPromiseValidator<ComponentReturnValue<MethodName> | undefined>
   ) {
     this.handleStateChange = handleStateChange
     this.schema = ioSchema[methodName]
+    this.validator = validator
 
     try {
       initialProps = this.schema.props.parse(initialProps ?? {})
@@ -102,6 +109,16 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
         this.resolver(null)
       }
     })
+  }
+
+  handleValidation(
+    returnValue: ComponentReturnValue<MethodName> | undefined
+  ): string | undefined {
+    if (this.validator) {
+      const message = this.validator(returnValue)
+      this.instance.validationErrorMessage = message
+      return message
+    }
   }
 
   setReturnValue(value: z.input<IoSchema[MethodName]['returns']>) {
@@ -187,6 +204,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       props: this.instance.props,
       isStateful: this.instance.isStateful,
       isOptional: this.instance.isOptional,
+      validationErrorMessage: this.instance.validationErrorMessage,
     }
   }
 }

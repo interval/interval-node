@@ -10,7 +10,11 @@ import type {
   IOFunctionReturnType,
 } from './ioSchema'
 import type { HostSchema } from './internalRpcSchema'
-import type { IOClient } from './classes/IOClient'
+import type {
+  IOClient,
+  IOClientRenderReturnValues,
+  IOClientRenderValidator,
+} from './classes/IOClient'
 import type IOComponent from './classes/IOComponent'
 import type {
   AnyIOComponent,
@@ -115,7 +119,10 @@ export type ComponentsRenderer<
     AnyIOComponent,
     ...AnyIOComponent[]
   ]
-> = (components: Components) => Promise<
+> = (
+  components: Components,
+  validator?: IOClientRenderValidator<Components>
+) => Promise<
   {
     [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
       ? z.infer<Components[Idx]['schema']['returns']> | undefined
