@@ -154,24 +154,26 @@ export class IOClient {
           }
 
           if (result.kind === 'RETURN') {
-            let isValid = true
-
-            result.values.forEach((v, index) => {
-              const component = components[index]
-              if (component.validator) {
-                if (component.handleValidation(v) !== undefined) {
-                  isValid = false
+            const validities = await Promise.all(
+              result.values.map(async (v, index) => {
+                const component = components[index]
+                if (component.validator) {
+                  const resp = await component.handleValidation(v)
+                  if (resp !== undefined) {
+                    return false
+                  }
                 }
-              }
-            })
+                return true
+              })
+            )
 
-            if (!isValid) {
+            if (validities.some(v => !v)) {
               render()
               return
             }
 
             if (groupValidator) {
-              validationErrorMessage = groupValidator(
+              validationErrorMessage = await groupValidator(
                 result.values as IOClientRenderReturnValues<typeof components>
               )
 

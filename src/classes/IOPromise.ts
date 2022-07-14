@@ -93,9 +93,9 @@ export class IOPromise<
     )
   }
 
-  #handleValidation(
+  async #handleValidation(
     returnValue: ComponentReturnValue<MethodName> | undefined
-  ): string | undefined {
+  ): Promise<string | undefined> {
     if (returnValue === undefined) {
       // This should be caught already, primarily here for types
       return 'This field is required.'
@@ -181,9 +181,9 @@ export class OptionalIOPromise<
     )
   }
 
-  #handleValidation(
+  async #handleValidation(
     returnValue: ComponentReturnValue<MethodName> | undefined
-  ): string | undefined {
+  ): Promise<string | undefined> {
     if (this.validator) {
       return this.validator(this.getValue(returnValue))
     }
@@ -249,7 +249,7 @@ export type IOGroupComponents<
 
 export type IOPromiseValidator<ReturnValue> = (
   returnValue: ReturnValue
-) => string | undefined
+) => string | undefined | Promise<string | undefined>
 
 export class IOGroupPromise<
   IOPromises extends MaybeOptionalGroupIOPromise[],
@@ -300,11 +300,11 @@ export class IOGroupPromise<
 
   // These types aren't as tight as they could be, but
   // TypeScript doesn't like IOGroupComponents defined above here
-  #handleValidation(
+  async #handleValidation(
     returnValues: IOClientRenderReturnValues<
       [AnyIOComponent, ...AnyIOComponent[]]
     >
-  ): string | undefined {
+  ): Promise<string | undefined> {
     if (!this.#validator) return
 
     const values = returnValues.map((v, index) =>

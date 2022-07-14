@@ -111,11 +111,11 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     })
   }
 
-  handleValidation(
+  async handleValidation(
     returnValue: ComponentReturnValue<MethodName> | undefined
-  ): string | undefined {
+  ): Promise<string | undefined> {
     if (this.validator) {
-      const message = this.validator(returnValue)
+      const message = await this.validator(returnValue)
       this.instance.validationErrorMessage = message
       return message
     }
