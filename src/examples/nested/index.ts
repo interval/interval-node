@@ -1,5 +1,5 @@
 import { IntervalActionHandler } from '../..'
-import ExperimentalInterval, { ActionGroup } from '../../experimental'
+import ExperimentalInterval, { ActionGroup, io } from '../../experimental'
 
 const interval = new ExperimentalInterval({
   apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
@@ -7,7 +7,7 @@ const interval = new ExperimentalInterval({
   endpoint: 'ws://localhost:3000/websocket',
 })
 
-const action: IntervalActionHandler = async io => {
+const action: IntervalActionHandler = async () => {
   const message = await io.input.text('Hello?')
 
   return message
