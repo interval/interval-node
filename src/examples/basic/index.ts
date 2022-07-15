@@ -292,7 +292,8 @@ const interval = new Interval({
             .text('First name', {
               maxLength: 20,
             })
-            .validate(result => {
+            .validate(async result => {
+              await sleep(2000)
               if (result !== 'Jacob') return 'Must be Jacob.'
             }),
           io.input
@@ -304,6 +305,7 @@ const interval = new Interval({
           io.input.email('Backup email').optional(),
         ])
         .validate(([, , firstName, lastName]) => {
+          if (lastName === undefined && firstName === 'Jacob') return
           if (firstName === 'Jacob' && lastName !== 'Mischka') {
             return 'Last name is not correct.'
           }
