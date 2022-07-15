@@ -177,7 +177,7 @@ export class OptionalIOPromise<
       this.props,
       this.onStateChange,
       true,
-      this.validator ? this.#handleValidation : undefined
+      this.validator ? this.#handleValidation.bind(this) : undefined
     )
   }
 
