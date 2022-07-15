@@ -338,8 +338,16 @@ export class IOClient {
         richText: this.createIOMethod('INPUT_RICH_TEXT'),
       },
       select: {
-        single: this.createIOMethod('SELECT_SINGLE', true, selectSingle),
-        multiple: this.createIOMethod('SELECT_MULTIPLE', true, selectMultiple),
+        single: this.createIOMethod(
+          'SELECT_SINGLE',
+          true,
+          selectSingle(this.logger)
+        ),
+        multiple: this.createIOMethod(
+          'SELECT_MULTIPLE',
+          true,
+          selectMultiple(this.logger)
+        ),
         table: this.createIOMethod(
           'SELECT_TABLE',
           true,
