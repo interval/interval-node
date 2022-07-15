@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import fetch from 'node-fetch'
 import type { IncomingMessage, ServerResponse } from 'http'
-import Interval, { IntervalError } from '.'
+import Interval, { io, ctx, IntervalError } from '.'
 import IntervalClient from './classes/IntervalClient'
 import ActionGroup from './classes/ActionGroup'
 import * as pkg from '../package.json'
@@ -13,7 +13,7 @@ import {
   LambdaResponse,
 } from './utils/http'
 
-export { ActionGroup }
+export { ActionGroup, io, ctx, IntervalError }
 
 export default class ExperimentalInterval extends Interval {
   /*

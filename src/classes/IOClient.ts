@@ -420,11 +420,11 @@ export class IOClient {
       select: {
         single: this.createIOMethod('SELECT_SINGLE', {
           propsRequired: true,
-          componentDef: selectSingle,
+          componentDef: selectSingle(this.logger),
         }),
         multiple: this.createIOMethod('SELECT_MULTIPLE', {
           propsRequired: true,
-          componentDef: selectMultiple,
+          componentDef: selectMultiple(this.logger),
         }),
         table: this.createIOMethod('SELECT_TABLE', {
           propsRequired: true,
