@@ -176,6 +176,7 @@ export class InputIOPromise<
       props: this.props,
       valueGetter: this.valueGetter,
       onStateChange: this.onStateChange,
+      validator: this.validator,
     })
   }
 }
