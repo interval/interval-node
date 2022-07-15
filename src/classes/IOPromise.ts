@@ -1,4 +1,10 @@
-import { T_IO_METHOD_NAMES, T_IO_PROPS, T_IO_STATE } from '../ioSchema'
+import {
+  T_IO_DISPLAY_METHOD_NAMES,
+  T_IO_INPUT_METHOD_NAMES,
+  T_IO_METHOD_NAMES,
+  T_IO_PROPS,
+  T_IO_STATE,
+} from '../ioSchema'
 import IOComponent, {
   AnyIOComponent,
   ComponentReturnValue,
@@ -88,6 +94,32 @@ export class IOPromise<
       this.label,
       this.props,
       this.onStateChange,
+      false
+    )
+  }
+}
+
+/**
+ * A thin subtype of IOPromise that does nothing but mark the component
+ * as "display" for display-only components.
+ */
+export class DisplayIOPromise<
+  MethodName extends T_IO_DISPLAY_METHOD_NAMES,
+  Props = T_IO_PROPS<MethodName>,
+  Output = ComponentReturnValue<MethodName>
+> extends IOPromise<MethodName, Props, Output> {}
+
+export class InputIOPromise<
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
+  Props = T_IO_PROPS<MethodName>,
+  Output = ComponentReturnValue<MethodName>
+> extends IOPromise<MethodName, Props, Output> {
+  get component() {
+    return new IOComponent(
+      this.methodName,
+      this.label,
+      this.props,
+      this.onStateChange,
       false,
       this.validator ? this.#handleValidation.bind(this) : undefined
     )
@@ -153,10 +185,10 @@ export class IOPromise<
  * "optional" and returns `undefined` if not provided by the action runner.
  */
 export class OptionalIOPromise<
-  MethodName extends T_IO_METHOD_NAMES,
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
-> extends IOPromise<MethodName, Props, Output | undefined> {
+> extends InputIOPromise<MethodName, Props, Output | undefined> {
   then(
     resolve: (output: Output | undefined) => void,
     reject?: (err: IOError) => void
@@ -205,21 +237,10 @@ export class OptionalIOPromise<
  * as "exclusive" for components that cannot be rendered in a group.
  */
 export class ExclusiveIOPromise<
-  MethodName extends T_IO_METHOD_NAMES,
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
-> extends IOPromise<MethodName, Props, Output> {}
-
-/**
- * A thin subtype of IOPromise that does nothing but mark the component
- * as "display" for display-only components.
- */
-export type DisplayIOPromise =
-  | IOPromise<'DISPLAY_HEADING', any, any>
-  | IOPromise<'DISPLAY_MARKDOWN', any, any>
-  | IOPromise<'DISPLAY_LINK', any, any>
-  | IOPromise<'DISPLAY_OBJECT', any, any>
-  | IOPromise<'DISPLAY_TABLE', any, any>
+> extends InputIOPromise<MethodName, Props, Output> {}
 
 export type IOGroupReturnValues<
   IOPromises extends [

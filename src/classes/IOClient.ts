@@ -7,14 +7,17 @@ import type {
   T_IO_PROPS,
   T_IO_RETURNS,
   T_IO_METHOD_NAMES,
+  T_IO_DISPLAY_METHOD_NAMES,
+  T_IO_INPUT_METHOD_NAMES,
 } from '../ioSchema'
 import Logger from './Logger'
 import { AnyIOComponent } from './IOComponent'
 import {
-  IOPromise,
   ExclusiveIOPromise,
   IOGroupPromise,
   IOPromiseValidator,
+  DisplayIOPromise,
+  InputIOPromise,
 } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
@@ -28,12 +31,14 @@ import {
   IORenderSender,
   ResponseHandlerFn,
   MaybeOptionalGroupIOPromise,
-  IOComponentFunction,
   ExclusiveIOComponentFunction,
   ComponentRenderer,
   IOComponentDefinition,
-  RequiredPropsIOComponentFunction,
   RequiredPropsExclusiveIOComponentFunction,
+  DisplayIOComponentFunction,
+  RequiredPropsDisplayIOComponentFunction,
+  InputIOComponentFunction,
+  RequiredPropsInputIOComponentFunction,
 } from '../types'
 import { stripUndefined } from '../utils/deserialize'
 import { IntervalError } from '..'
@@ -265,34 +270,62 @@ export class IOClient {
   }
 
   createIOMethod<
-    MethodName extends T_IO_METHOD_NAMES,
+    MethodName extends T_IO_DISPLAY_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
     Output = T_IO_RETURNS<MethodName>
   >(
     methodName: MethodName,
-    propsRequired?: false,
-    componentDef?: IOComponentDefinition<MethodName, Props, Output>
-  ): IOComponentFunction<MethodName, Props, Output>
+    config?: {
+      propsRequired?: false
+      componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    }
+  ): DisplayIOComponentFunction<MethodName, Props, Output>
+  createIOMethod<
+    MethodName extends T_IO_DISPLAY_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    config: {
+      propsRequired?: true
+      componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    }
+  ): RequiredPropsDisplayIOComponentFunction<MethodName, Props, Output>
+  createIOMethod<
+    MethodName extends T_IO_INPUT_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    config?: {
+      propsRequired?: false
+      componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    }
+  ): InputIOComponentFunction<MethodName, Props, Output>
+  createIOMethod<
+    MethodName extends T_IO_INPUT_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    config: {
+      propsRequired?: true
+      componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    }
+  ): RequiredPropsInputIOComponentFunction<MethodName, Props, Output>
   createIOMethod<
     MethodName extends T_IO_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
     Output = T_IO_RETURNS<MethodName>
   >(
     methodName: MethodName,
-    propsRequired?: true,
-    componentDef?: IOComponentDefinition<MethodName, Props, Output>
-  ): RequiredPropsIOComponentFunction<MethodName, Props, Output>
-  createIOMethod<
-    MethodName extends T_IO_METHOD_NAMES,
-    Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
-  >(
-    methodName: MethodName,
-    _propsRequired = false,
-    componentDef?: IOComponentDefinition<MethodName, Props, Output>
-  ):
-    | IOComponentFunction<MethodName, Props, Output>
-    | RequiredPropsIOComponentFunction<MethodName, Props, Output> {
+    {
+      componentDef,
+    }: {
+      propsRequired?: boolean
+      componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    } = {}
+  ) {
     return (label: string, props?: Props) => {
       let internalProps = props ? (props as T_IO_PROPS<MethodName>) : {}
       let getValue = (r: T_IO_RETURNS<MethodName>) => r as unknown as Output
@@ -316,16 +349,29 @@ export class IOClient {
         }
       }
 
-      return new IOPromise<MethodName, T_IO_PROPS<MethodName>, Output>({
-        methodName,
-        renderer: this.renderComponents.bind(
-          this
-        ) as ComponentRenderer<MethodName>,
-        label,
-        props: internalProps,
-        valueGetter: getValue,
-        onStateChange,
-      })
+      const isDisplay = methodName.startsWith('DISPLAY_')
+
+      return isDisplay
+        ? new DisplayIOPromise({
+            methodName: methodName as T_IO_DISPLAY_METHOD_NAMES,
+            renderer: this.renderComponents.bind(
+              this
+            ) as ComponentRenderer<T_IO_DISPLAY_METHOD_NAMES>,
+            label,
+            props: internalProps,
+            valueGetter: getValue,
+            onStateChange,
+          })
+        : new InputIOPromise({
+            methodName: methodName as T_IO_INPUT_METHOD_NAMES,
+            renderer: this.renderComponents.bind(
+              this
+            ) as ComponentRenderer<T_IO_INPUT_METHOD_NAMES>,
+            label,
+            props: internalProps,
+            valueGetter: getValue,
+            onStateChange,
+          })
     }
   }
 
@@ -333,16 +379,16 @@ export class IOClient {
    * A very thin wrapper function that converts an IOPromise to an
    * ExclusiveIOPromise, which cannot be rendered in a group.
    */
-  makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
-    inner: IOComponentFunction<MethodName, Props, Output>,
+  makeExclusive<MethodName extends T_IO_INPUT_METHOD_NAMES, Props, Output>(
+    inner: InputIOComponentFunction<MethodName, Props, Output>,
     propsRequired?: false
   ): ExclusiveIOComponentFunction<MethodName, Props, Output>
-  makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
-    inner: IOComponentFunction<MethodName, Props, Output>,
+  makeExclusive<MethodName extends T_IO_INPUT_METHOD_NAMES, Props, Output>(
+    inner: InputIOComponentFunction<MethodName, Props, Output>,
     propsRequired?: true
   ): RequiredPropsExclusiveIOComponentFunction<MethodName, Props, Output>
-  makeExclusive<MethodName extends T_IO_METHOD_NAMES, Props, Output>(
-    inner: IOComponentFunction<MethodName, Props, Output>,
+  makeExclusive<MethodName extends T_IO_INPUT_METHOD_NAMES, Props, Output>(
+    inner: InputIOComponentFunction<MethodName, Props, Output>,
     _propsRequired = false
   ): ExclusiveIOComponentFunction<MethodName, Props, Output> {
     return (label: string, props?: Props) => {
@@ -359,7 +405,10 @@ export class IOClient {
 
       confirm: this.makeExclusive(this.createIOMethod('CONFIRM')),
 
-      search: this.createIOMethod('SEARCH', true, search),
+      search: this.createIOMethod('SEARCH', {
+        propsRequired: true,
+        componentDef: search,
+      }),
 
       input: {
         text: this.createIOMethod('INPUT_TEXT'),
@@ -369,36 +418,41 @@ export class IOClient {
         richText: this.createIOMethod('INPUT_RICH_TEXT'),
       },
       select: {
-        single: this.createIOMethod('SELECT_SINGLE', true, selectSingle),
-        multiple: this.createIOMethod('SELECT_MULTIPLE', true, selectMultiple),
-        table: this.createIOMethod(
-          'SELECT_TABLE',
-          true,
-          selectTable(this.logger)
-        ),
+        single: this.createIOMethod('SELECT_SINGLE', {
+          propsRequired: true,
+          componentDef: selectSingle,
+        }),
+        multiple: this.createIOMethod('SELECT_MULTIPLE', {
+          propsRequired: true,
+          componentDef: selectMultiple,
+        }),
+        table: this.createIOMethod('SELECT_TABLE', {
+          propsRequired: true,
+          componentDef: selectTable(this.logger),
+        }),
       },
       display: {
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
         link: this.createIOMethod('DISPLAY_LINK'),
         object: this.createIOMethod('DISPLAY_OBJECT'),
-        table: this.createIOMethod(
-          'DISPLAY_TABLE',
-          true,
-          displayTable(this.logger)
-        ),
+        table: this.createIOMethod('DISPLAY_TABLE', {
+          propsRequired: true,
+          componentDef: displayTable(this.logger),
+        }),
       },
       experimental: {
-        spreadsheet: this.createIOMethod(
-          'INPUT_SPREADSHEET',
-          true,
-          spreadsheet
-        ),
-        date: this.createIOMethod('INPUT_DATE', false, date),
+        spreadsheet: this.createIOMethod('INPUT_SPREADSHEET', {
+          propsRequired: true,
+          componentDef: spreadsheet,
+        }),
+        date: this.createIOMethod('INPUT_DATE', { componentDef: date }),
         time: this.createIOMethod('INPUT_TIME'),
-        datetime: this.createIOMethod('INPUT_DATETIME', false, datetime),
+        datetime: this.createIOMethod('INPUT_DATETIME', {
+          componentDef: datetime,
+        }),
         input: {
-          file: this.createIOMethod('UPLOAD_FILE', false, file),
+          file: this.createIOMethod('UPLOAD_FILE', { componentDef: file }),
         },
       },
     }

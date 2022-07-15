@@ -8,13 +8,11 @@ import type {
   T_IO_Schema,
   T_IO_METHOD_NAMES,
   IOFunctionReturnType,
+  T_IO_DISPLAY_METHOD_NAMES,
+  T_IO_INPUT_METHOD_NAMES,
 } from './ioSchema'
 import type { HostSchema } from './internalRpcSchema'
-import type {
-  IOClient,
-  IOClientRenderReturnValues,
-  IOClientRenderValidator,
-} from './classes/IOClient'
+import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
 import type IOComponent from './classes/IOComponent'
 import type {
   AnyIOComponent,
@@ -24,6 +22,8 @@ import type {
   IOPromise,
   OptionalIOPromise,
   ExclusiveIOPromise,
+  DisplayIOPromise,
+  InputIOPromise,
 } from './classes/IOPromise'
 import type IOError from './classes/IOError'
 import type TransactionLoadingState from './classes/TransactionLoadingState'
@@ -82,7 +82,7 @@ export type RequiredPropsIOComponentFunction<
 ) => IOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
 export type RequiredPropsExclusiveIOComponentFunction<
-  MethodName extends T_IO_METHOD_NAMES,
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props,
   Output = ComponentReturnValue<MethodName>
 > = (
@@ -99,8 +99,44 @@ export type IOComponentFunction<
   props?: Props
 ) => IOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
+export type InputIOComponentFunction<
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
+  Props,
+  Output = ComponentReturnValue<MethodName>
+> = (
+  label: string,
+  props?: Props
+) => InputIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
+
+export type RequiredPropsInputIOComponentFunction<
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
+  Props,
+  Output = ComponentReturnValue<MethodName>
+> = (
+  label: string,
+  props: Props
+) => InputIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
+
+export type DisplayIOComponentFunction<
+  MethodName extends T_IO_DISPLAY_METHOD_NAMES,
+  Props,
+  Output = ComponentReturnValue<MethodName>
+> = (
+  label: string,
+  props?: Props
+) => DisplayIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
+
+export type RequiredPropsDisplayIOComponentFunction<
+  MethodName extends T_IO_DISPLAY_METHOD_NAMES,
+  Props,
+  Output = ComponentReturnValue<MethodName>
+> = (
+  label: string,
+  props: Props
+) => DisplayIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
+
 export type ExclusiveIOComponentFunction<
-  MethodName extends T_IO_METHOD_NAMES,
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props,
   Output = ComponentReturnValue<MethodName>
 > = (
@@ -184,14 +220,14 @@ export type GroupIOPromiseMap = {
 export type GroupIOPromise = GroupIOPromiseMap[T_IO_METHOD_NAMES]
 
 export type OptionalGroupIOPromiseMap = {
-  [MethodName in T_IO_METHOD_NAMES]: T_IO_Schema[MethodName] extends {
+  [MethodName in T_IO_INPUT_METHOD_NAMES]: T_IO_Schema[MethodName] extends {
     exclusive: z.ZodLiteral<true>
   }
     ? never
     : OptionalIOPromise<MethodName, T_IO_PROPS<MethodName>, any>
 }
 export type OptionalGroupIOPromise =
-  OptionalGroupIOPromiseMap[T_IO_METHOD_NAMES]
+  OptionalGroupIOPromiseMap[T_IO_INPUT_METHOD_NAMES]
 
 export type MaybeOptionalGroupIOPromise =
   | GroupIOPromise

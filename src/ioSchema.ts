@@ -488,6 +488,18 @@ export type IoMethod = {
 export type T_IO_Schema = typeof ioSchema
 export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
+export type T_IO_DISPLAY_METHOD_NAMES =
+  | 'DISPLAY_HEADING'
+  | 'DISPLAY_MARKDOWN'
+  | 'DISPLAY_LINK'
+  | 'DISPLAY_OBJECT'
+  | 'DISPLAY_TABLE'
+
+export type T_IO_INPUT_METHOD_NAMES = Exclude<
+  T_IO_METHOD_NAMES,
+  T_IO_DISPLAY_METHOD_NAMES
+>
+
 type T_Fields = 'props' | 'state' | 'returns'
 
 // prettier-ignore
