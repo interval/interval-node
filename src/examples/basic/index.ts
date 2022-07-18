@@ -1,5 +1,8 @@
 import Interval, { IOError, io, ctx } from '../../index'
-import { NotificationDeliveryInstruction } from '../../types'
+import {
+  IntervalActionHandler,
+  NotificationDeliveryInstruction,
+} from '../../types'
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import {
@@ -10,10 +13,55 @@ import {
 import unauthorized from './unauthorized'
 import './ghostHost'
 
+const actionLinks: IntervalActionHandler = async () => {
+  await io.group([
+    io.display.table('In a table!', {
+      data: [
+        { slug: undefined },
+        { slug: 'noInteractiveElements' },
+        {
+          slug: 'helloCurrentUser',
+          params: { message: 'Hi from a table!' },
+        },
+      ],
+      columns: [
+        {
+          label: 'Action slug',
+          renderCell: row => row.slug,
+        },
+        {
+          label: 'Link',
+          renderCell: row => ({
+            label: row.slug ?? '(undefined)',
+            action: row.slug,
+            params: row.params,
+          }),
+        },
+      ],
+    }),
+    io.display.link('External link', {
+      href: 'https://example.com',
+    }),
+    io.display.link('Action link', {
+      action: 'helloCurrentUser',
+      params: {
+        message: 'From a button!',
+      },
+    }),
+    io.display.link('This same action', {
+      action: 'actionLinks',
+      params: {
+        prevActionAt: new Date().toISOString(),
+      },
+    }),
+  ])
+}
+
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3000/websocket',
   actions: {
+    actionLinks,
     ImportUsers: {
       backgroundable: true,
       name: 'Import users',
@@ -581,43 +629,7 @@ const interval = new Interval({
 
       return { usd, eur, jpy }
     },
-    actionLinks: async io => {
-      await io.group([
-        io.display.table('In a table!', {
-          data: [
-            { slug: undefined },
-            { slug: 'noInteractiveElements' },
-            {
-              slug: 'helloCurrentUser',
-              params: { message: 'Hi from a table!' },
-            },
-          ],
-          columns: [
-            {
-              label: 'Action slug',
-              renderCell: row => row.slug,
-            },
-            {
-              label: 'Link',
-              renderCell: row => ({
-                label: row.slug ?? '(undefined)',
-                action: row.slug,
-                params: row.params,
-              }),
-            },
-          ],
-        }),
-        io.display.link('External link', {
-          href: 'https://example.com',
-        }),
-        io.display.link('Action link', {
-          action: 'helloCurrentUser',
-          params: {
-            message: 'From a button!',
-          },
-        }),
-      ])
-    },
+    actionLinks,
     globalIO: async () => {
       await io.display.markdown(`Hello from \`${ctx.action.slug}!\``)
     },
