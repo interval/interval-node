@@ -327,8 +327,12 @@ export const hostSchema = {
     inputs: z.object({
       transactionId: z.string(),
       // Actually slug, for backward compatibility
-      // TODO: Change to slug in breaking release
+      // TODO: Remove breaking release, superfluous with slug below
       actionName: z.string(),
+      action: z.object({
+        slug: z.string(),
+        url: z.string(),
+      }),
       environment: actionEnvironment,
       user: z.object({
         email: z.string(),

@@ -41,6 +41,7 @@ export type ActionCtx = Pick<
   }
   action: {
     slug: string
+    url: string
   }
 }
 

@@ -576,13 +576,13 @@ export default class IntervalClient {
             return
           }
 
-          const { actionName: actionSlug, transactionId } = inputs
-          const actionHandler = this.#actionHandlers[actionSlug]
+          const { action, transactionId } = inputs
+          const actionHandler = this.#actionHandlers[action.slug]
 
           this.#log.debug(actionHandler)
 
           if (!actionHandler) {
-            this.#log.debug('No actionHandler called', actionSlug)
+            this.#log.debug('No actionHandler called', action.slug)
             return
           }
 
@@ -623,9 +623,7 @@ export default class IntervalClient {
             params: deserializeDates(params),
             environment: inputs.environment,
             organization: this.organization,
-            action: {
-              slug: actionSlug,
-            },
+            action,
             log: (...args) => this.#sendLog(transactionId, logIndex++, ...args),
             notify: async config => {
               await this.#interval.notify({
@@ -704,13 +702,13 @@ export default class IntervalClient {
                     case 'CANCELED':
                       this.#log.prod(
                         'Transaction canceled for action',
-                        actionSlug
+                        action.slug
                       )
                       break
                     case 'TRANSACTION_CLOSED':
                       this.#log.prod(
                         'Attempted to make IO call after transaction already closed in action',
-                        actionSlug
+                        action.slug
                       )
                       break
                   }
