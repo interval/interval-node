@@ -13,9 +13,7 @@ import {
   LambdaResponse,
 } from './utils/http'
 
-export { ActionGroup, io, ctx, IntervalError }
-
-export default class ExperimentalInterval extends Interval {
+class ExperimentalInterval extends Interval {
   /*
    * Add an ActionGroup and its child actions to this deployment.
    */
@@ -212,3 +210,7 @@ export default class ExperimentalInterval extends Interval {
     }
   }
 }
+
+export { ActionGroup, io, ctx, IntervalError, ExperimentalInterval as Interval }
+
+export default ExperimentalInterval
