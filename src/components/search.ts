@@ -4,8 +4,10 @@ import IOError from '../classes/IOError'
 type RenderResultDef =
   | string
   | number
+  | boolean
+  | Date
   | {
-      label: string | number
+      label: string | number | boolean | Date
       description?: string
       imageUrl?: string
     }

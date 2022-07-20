@@ -46,10 +46,23 @@ export const typeValue = z.enum([
 ])
 export type TypeValue = z.infer<typeof typeValue>
 
+export const primitiveValue = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.date(),
+])
+
+const objectLiteralSchema = primitiveValue.nullish()
+
+type Literal = boolean | null | number | string | Date | undefined
+// `object` is workaround for https://github.com/microsoft/TypeScript/issues/15300
+type KeyValue = Literal | { [key: string]: KeyValue } | KeyValue[] | object
+
 export const labelValue = z
   .object({
-    label: z.union([z.string(), z.number()]),
-    value: z.union([z.string(), z.number()]),
+    label: primitiveValue,
+    value: primitiveValue,
   })
   .passthrough()
 
@@ -57,27 +70,14 @@ export type LabelValue = z.infer<typeof labelValue>
 
 export const richSelectOption = z
   .object({
-    label: z.union([z.string(), z.number()]),
-    value: z.union([z.string(), z.number()]),
+    label: primitiveValue,
+    value: primitiveValue,
     description: z.string().nullish(),
     imageUrl: z.string().nullish(),
   })
   .passthrough()
 
 export type RichSelectOption = z.infer<typeof richSelectOption>
-
-const objectLiteralSchema = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.null(),
-  z.date(),
-  z.undefined(),
-])
-
-type Literal = boolean | null | number | string | Date | undefined
-// `object` is workaround for https://github.com/microsoft/TypeScript/issues/15300
-type KeyValue = Literal | { [key: string]: KeyValue } | KeyValue[] | object
 
 const keyValueObject: z.ZodSchema<KeyValue> = z.lazy(() =>
   z.union([
@@ -352,7 +352,7 @@ export const ioSchema = {
       results: z.array(
         z.object({
           value: z.string(),
-          label: z.union([z.string(), z.number()]),
+          label: primitiveValue,
           description: z.string().nullish(),
           imageUrl: z.string().nullish(),
         })

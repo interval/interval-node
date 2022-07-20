@@ -377,17 +377,17 @@ const interval = new Interval({
       const options = [
         {
           value: 0,
-          label: 'A',
+          label: 0,
           extraData: 'A',
         },
         {
-          value: 1,
-          label: 'B',
+          value: new Date(2022, 6, 1),
+          label: new Date(2022, 6, 1),
           extraData: 'B',
         },
         {
-          value: 2,
-          label: 'C',
+          value: true,
+          label: true,
           extraData: 'C',
         },
       ]
