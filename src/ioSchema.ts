@@ -57,8 +57,8 @@ export type LabelValue = z.infer<typeof labelValue>
 
 export const richSelectOption = z
   .object({
-    label: z.string(),
-    value: z.string(),
+    label: z.union([z.string(), z.number()]),
+    value: z.union([z.string(), z.number()]),
     description: z.string().nullish(),
     imageUrl: z.string().nullish(),
   })
@@ -354,7 +354,7 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
     }),
     state: z.object({ queryTerm: z.string() }),
-    returns: z.string(),
+    returns: z.union([z.string(), z.number()]),
   },
   CONFIRM: {
     props: z.object({
