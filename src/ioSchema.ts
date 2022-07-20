@@ -349,12 +349,19 @@ export const ioSchema = {
   },
   SEARCH: {
     props: z.object({
-      results: z.array(richSelectOption),
+      results: z.array(
+        z.object({
+          value: z.string(),
+          label: z.union([z.string(), z.number()]),
+          description: z.string().nullish(),
+          imageUrl: z.string().nullish(),
+        })
+      ),
       placeholder: z.optional(z.string()),
       helpText: z.optional(z.string()),
     }),
     state: z.object({ queryTerm: z.string() }),
-    returns: z.union([z.string(), z.number()]),
+    returns: z.string(),
   },
   CONFIRM: {
     props: z.object({

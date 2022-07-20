@@ -3,8 +3,9 @@ import IOError from '../classes/IOError'
 
 type RenderResultDef =
   | string
+  | number
   | {
-      label: string
+      label: string | number
       description?: string
       imageUrl?: string
     }
@@ -61,7 +62,7 @@ export default function search<Result = any>({
     props,
     getValue(response: T_IO_RETURNS<'SEARCH'>) {
       try {
-        const [batchIndex, index] = String(response).split(':')
+        const [batchIndex, index] = response.split(':')
         const batch = resultMap.get(batchIndex)
         if (!batch) throw new IOError('BAD_RESPONSE')
 
