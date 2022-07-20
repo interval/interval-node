@@ -48,8 +48,8 @@ export type TypeValue = z.infer<typeof typeValue>
 
 export const labelValue = z
   .object({
-    label: z.string(),
-    value: z.string(),
+    label: z.union([z.string(), z.number()]),
+    value: z.union([z.string(), z.number()]),
   })
   .passthrough()
 

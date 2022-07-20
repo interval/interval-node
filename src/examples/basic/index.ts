@@ -376,17 +376,17 @@ const interval = new Interval({
     optionalCheckboxes: async io => {
       const options = [
         {
-          value: 'A',
+          value: 0,
           label: 'A',
           extraData: 'A',
         },
         {
-          value: 'B',
+          value: 1,
           label: 'B',
           extraData: 'B',
         },
         {
-          value: 'C',
+          value: 2,
           label: 'C',
           extraData: 'C',
         },
