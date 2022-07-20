@@ -36,19 +36,30 @@ export default function selectMultiple(logger: Logger) {
       }
     }
 
+    function getComparisonValue(value: z.infer<typeof primitiveValue>) {
+      if (value instanceof Date) {
+        return `date:${value.valueOf()}`
+      }
+
+      return `${typeof value}:${value}`
+    }
+
     const normalizedOptions: z.infer<typeof labelValue>[] = props.options.map(
       option => normalizeOption(option)
     )
     type Options = typeof props.options
     const optionMap = new Map(
-      normalizedOptions.map((o, i) => [o.value.toString(), props.options[i]])
+      normalizedOptions.map((o, i) => [
+        getComparisonValue(o.value),
+        props.options[i],
+      ])
     )
 
     let defaultValue = props.defaultValue?.map(d => normalizeOption(d))
 
     if (
       defaultValue &&
-      defaultValue.every(val => !optionMap.has(val.value.toString()))
+      defaultValue.every(val => !optionMap.has(getComparisonValue(val.value)))
     ) {
       logger.warn(
         'The defaultValue property must be a subset of the provided options, the provided defaultValue will be discarded.'
@@ -65,7 +76,9 @@ export default function selectMultiple(logger: Logger) {
         options: normalizedOptions.map(o => stripper.parse(o)),
       },
       getValue(response: T_IO_RETURNS<'SELECT_MULTIPLE'>): Options {
-        return response.map(r => optionMap.get(r.value.toString())) as Options
+        return response.map(r =>
+          optionMap.get(getComparisonValue(r.value))
+        ) as Options
       },
     }
   }

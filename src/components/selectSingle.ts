@@ -40,13 +40,24 @@ export default function selectSingle(logger: Logger) {
       }
     }
 
+    function getComparisonValue(value: z.infer<typeof primitiveValue>) {
+      if (value instanceof Date) {
+        return `date:${value.valueOf()}`
+      }
+
+      return `${typeof value}:${value}`
+    }
+
     const normalizedOptions = props.options.map(option =>
       normalizeOption(option)
     )
 
     type Options = typeof props.options
     const optionMap = new Map(
-      normalizedOptions.map((o, i) => [o.value.toString(), props.options[i]])
+      normalizedOptions.map((o, i) => [
+        getComparisonValue(o.value),
+        props.options[i],
+      ])
     )
     const stripper = richSelectOption.strip()
 
@@ -54,7 +65,10 @@ export default function selectSingle(logger: Logger) {
       ? normalizeOption(props.defaultValue)
       : undefined
 
-    if (defaultValue && !optionMap.has(defaultValue.value.toString())) {
+    if (
+      defaultValue &&
+      !optionMap.has(getComparisonValue(defaultValue.value))
+    ) {
       logger.warn(
         'The defaultValue property must be a value in the provided options, the provided defaultValue will be discarded.'
       )
@@ -68,7 +82,7 @@ export default function selectSingle(logger: Logger) {
         options: normalizedOptions.map(o => stripper.parse(o)),
       },
       getValue(response: T_IO_RETURNS<'SELECT_SINGLE'>) {
-        return optionMap.get(response.value.toString()) as Options[0]
+        return optionMap.get(getComparisonValue(response.value)) as Options[0]
       },
     }
   }
