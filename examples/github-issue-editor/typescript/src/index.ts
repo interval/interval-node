@@ -61,7 +61,11 @@ const interval = new Interval({
       const operation = await io.select.single(
         'How do you want to edit the issues?',
         {
-          options: ['Close', 'Set assignees', 'Set labels'],
+          options: [
+            'Close' as const,
+            'Set assignees' as const,
+            'Set labels' as const,
+          ],
         }
       );
 
@@ -98,8 +102,6 @@ const interval = new Interval({
             }
           );
           body['labels'] = selectedLabels.map(label => label);
-          break;
-        default:
           break;
       }
 

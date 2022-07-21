@@ -66,6 +66,7 @@ const interval = new Interval({
         }),
       ]);
 
+      let confirmed = false;
       if (resetPassword || user.email !== email) {
         const messages = [];
         const helpTexts = [];
@@ -77,7 +78,7 @@ const interval = new Interval({
           messages.push('change their email');
           helpTexts.push('send an email to verifiy the new email address');
         }
-        await io.confirm(
+        confirmed = await io.confirm(
           `Are you sure you want to ${messages.join(' and ')}?`,
           {
             helpText: `This will ${helpTexts.join(' and ')}.`,
@@ -93,8 +94,8 @@ const interval = new Interval({
       };
       users[users.indexOf(user)] = updatedUser;
 
-      if (resetPassword) resetUserPassword(updatedUser);
-      if (user.email !== email) sendVerificationEmail(updatedUser);
+      if (confirmed && resetPassword) resetUserPassword(updatedUser);
+      if (confirmed && user.email !== email) sendVerificationEmail(updatedUser);
 
       return updatedUser;
     },

@@ -33,7 +33,9 @@ const interval = new Interval({
         helpText: 'Press Continue to run the import.',
       });
 
-      await io.confirm(`Import ${videos.length} videos?`);
+      const confirmed = await io.confirm(`Import ${videos.length} videos?`);
+      if (!confirmed) return 'Action canceled, no videos imported';
+
       ctx.loading.start({
         title: 'Uploading videos...',
         itemsInQueue: videos.length,
