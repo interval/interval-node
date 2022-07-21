@@ -9,7 +9,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@interval/sdk": "^0.21.0",
+    "@interval/sdk": "^0.23.0",
     "@prisma/client": "3.15.2",
     "dotenv": "^16.0.1"
   },
