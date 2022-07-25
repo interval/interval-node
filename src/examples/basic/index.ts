@@ -736,6 +736,14 @@ const interval = new Interval({
         error: new Error(),
       })
     },
+    url: async () => {
+      const url = await io.input.url('Enter a URL', {
+        helpText: 'This is help text',
+        placeholder: 'https://google.com',
+      })
+
+      return url
+    },
   },
 })
 

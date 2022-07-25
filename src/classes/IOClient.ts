@@ -417,6 +417,7 @@ export class IOClient {
         number: this.createIOMethod('INPUT_NUMBER'),
         email: this.createIOMethod('INPUT_EMAIL'),
         richText: this.createIOMethod('INPUT_RICH_TEXT'),
+        url: this.createIOMethod('INPUT_URL'),
       },
       select: {
         single: this.createIOMethod('SELECT_SINGLE', {
