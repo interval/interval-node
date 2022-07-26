@@ -282,6 +282,7 @@ export const ioSchema = {
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
       defaultValue: z.optional(z.string()),
+      requireHttps: z.boolean().default(false),
     }),
     state: z.null(),
     returns: z.string(),

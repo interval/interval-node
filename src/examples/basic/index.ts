@@ -740,6 +740,7 @@ const interval = new Interval({
       const url = await io.input.url('Enter a URL', {
         helpText: 'This is help text',
         placeholder: 'https://google.com',
+        requireHttps: true,
       })
 
       return url
