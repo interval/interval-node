@@ -337,8 +337,14 @@ export const ioSchema = {
     props: z.object({
       helpText: z.string().optional(),
       allowedExtensions: z.array(z.string()).optional(),
+      uploadUrl: z.string().nullish(),
+      downloadUrl: z.string().nullish(),
+      isProvidingUrls: z.boolean(),
     }),
-    state: z.null(),
+    state: z.object({
+      name: z.string(),
+      type: z.string(),
+    }),
     returns: z.object({
       name: z.string(),
       type: z.string(),

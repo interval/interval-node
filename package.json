@@ -30,6 +30,8 @@
     "zod": "^3.13.3"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.135.0",
+    "@aws-sdk/s3-request-presigner": "^3.135.0",
     "@faker-js/faker": "^7.3.0",
     "@interval/envoy": "^1.0.1",
     "@types/dedent": "^0.7.0",

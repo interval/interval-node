@@ -12,6 +12,7 @@ import {
 } from './selectFromTable'
 import unauthorized from './unauthorized'
 import './ghostHost'
+import { generateDownloadUrl, generateUploadUrl } from '../utils/upload'
 
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
@@ -676,10 +677,20 @@ const interval = new Interval({
 
       return { message: 'OK, notified!' }
     },
-    upload: async io => {
+    upload: async (io, ctx) => {
       const file = await io.experimental.input.file('Upload an image!', {
-        helpText: 'Can be any image, or a CSV (?).',
-        allowedExtensions: ['.gif', '.jpg', '.jpeg', 'csv'],
+        helpText: 'Can be any image.',
+        allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
+        generatePreSignedUrl: async ({ name }) => {
+          const path = encodeURIComponent(
+            `custom-url/${ctx.action.slug}/${name}`
+          )
+
+          const uploadUrl = await generateUploadUrl(path)
+          const downloadUrl = generateDownloadUrl(path)
+
+          return { uploadUrl, downloadUrl }
+        },
       })
 
       console.log(file)
