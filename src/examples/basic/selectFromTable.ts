@@ -47,20 +47,17 @@ function formatCurrency(amount: number) {
 export const table_basic: IntervalActionHandler = async io => {
   const simpleCharges = charges.map(ch => ({
     name: ch.name,
-    longText: faker.lorem.paragraph(),
     email: faker.internet.email(),
-    'short text longer label': faker.lorem.word(),
     amount: ch.amount,
   }))
 
   const [name, phone, selections] = await io.group([
     io.input.text('Full name'),
     io.input.text('Phone number'),
-    io.display.table('Select a person', {
+    io.select.table('Select a person', {
       data: [...simpleCharges, ...simpleCharges],
-      orientation: 'vertical',
-      // minSelections: 1,
-      // maxSelections: 3,
+      minSelections: 1,
+      maxSelections: 3,
     }),
   ])
 
