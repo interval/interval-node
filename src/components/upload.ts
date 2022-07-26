@@ -4,13 +4,13 @@ import { IntervalError } from '..'
 import { T_IO_PROPS, T_IO_RETURNS, T_IO_STATE } from '../ioSchema'
 
 type UploaderProps = T_IO_PROPS<'UPLOAD_FILE'> & {
-  generatePreSignedUrl?: (
+  generatePresignedUrl?: (
     state: T_IO_STATE<'UPLOAD_FILE'>
   ) => Promise<{ uploadUrl: string; downloadUrl: string }>
 }
 
-export function file({ generatePreSignedUrl, ...props }: UploaderProps) {
-  const isProvidingUrls = !!generatePreSignedUrl
+export function file({ generatePresignedUrl, ...props }: UploaderProps) {
+  const isProvidingUrls = !!generatePresignedUrl
 
   return {
     props: {
@@ -42,11 +42,11 @@ export function file({ generatePreSignedUrl, ...props }: UploaderProps) {
       }
     },
     async onStateChange(newState: T_IO_STATE<'UPLOAD_FILE'>) {
-      if (!generatePreSignedUrl) {
+      if (!generatePresignedUrl) {
         return { uploadUrl: undefined, downloadUrl: undefined }
       }
 
-      const urls = await generatePreSignedUrl(newState)
+      const urls = await generatePresignedUrl(newState)
 
       return urls
     },
