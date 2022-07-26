@@ -683,10 +683,10 @@ const interval = new Interval({
         {
           helpText: 'Can be any image.',
           allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
-            const path = encodeURIComponent(
-              `custom-url/${ctx.action.slug}/${name}`
-            )
           generatePresignedUrl: async ({ name }) => {
+            const path = `custom-endpoint/${
+              ctx.action.slug
+            }/${new Date().getTime()}-${encodeURIComponent(name)}`
 
             const uploadUrl = await generateUploadUrl(path)
             const downloadUrl = generateDownloadUrl(path)
