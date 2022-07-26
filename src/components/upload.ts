@@ -3,7 +3,7 @@ import fetch, { Response } from 'node-fetch'
 import { IntervalError } from '..'
 import { T_IO_PROPS, T_IO_RETURNS, T_IO_STATE } from '../ioSchema'
 
-type UploaderProps = Omit<T_IO_PROPS<'UPLOAD_FILE'>, 'isProvidingUrls'> & {
+type UploaderProps = T_IO_PROPS<'UPLOAD_FILE'> & {
   generatePreSignedUrl?: (
     state: T_IO_STATE<'UPLOAD_FILE'>
   ) => Promise<{ uploadUrl: string; downloadUrl: string }>
@@ -13,7 +13,11 @@ export function file({ generatePreSignedUrl, ...props }: UploaderProps) {
   const isProvidingUrls = !!generatePreSignedUrl
 
   return {
-    props: { ...props, isProvidingUrls },
+    props: {
+      ...props,
+      uploadUrl: isProvidingUrls ? null : undefined,
+      downloadUrl: isProvidingUrls ? null : undefined,
+    },
     getValue({ url, ...response }: T_IO_RETURNS<'UPLOAD_FILE'>) {
       return {
         ...response,
@@ -39,12 +43,12 @@ export function file({ generatePreSignedUrl, ...props }: UploaderProps) {
     },
     async onStateChange(newState: T_IO_STATE<'UPLOAD_FILE'>) {
       if (!generatePreSignedUrl) {
-        return { isProvidingUrls }
+        return { uploadUrl: undefined, downloadUrl: undefined }
       }
 
       const urls = await generatePreSignedUrl(newState)
 
-      return { ...urls, isProvidingUrls }
+      return urls
     },
   }
 }
