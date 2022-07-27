@@ -26,6 +26,7 @@ import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
 import displayLink from '../components/displayLink'
+import urlInput from '../components/url'
 import { date, datetime } from '../components/inputDate'
 import { file } from '../components/upload'
 import {
@@ -417,7 +418,9 @@ export class IOClient {
         number: this.createIOMethod('INPUT_NUMBER'),
         email: this.createIOMethod('INPUT_EMAIL'),
         richText: this.createIOMethod('INPUT_RICH_TEXT'),
-        url: this.createIOMethod('INPUT_URL'),
+        url: this.createIOMethod('INPUT_URL', {
+          componentDef: urlInput,
+        }),
       },
       select: {
         single: this.createIOMethod('SELECT_SINGLE', {

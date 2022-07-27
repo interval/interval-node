@@ -743,7 +743,7 @@ const interval = new Interval({
         requireHttps: true,
       })
 
-      return url
+      return { url: url.href }
     },
   },
 })
