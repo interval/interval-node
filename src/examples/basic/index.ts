@@ -12,7 +12,7 @@ import {
 } from './selectFromTable'
 import unauthorized from './unauthorized'
 import './ghostHost'
-import { generateDownloadUrl, generateUploadUrl } from '../utils/upload'
+import { generateS3Urls } from '../utils/upload'
 
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
@@ -681,18 +681,13 @@ const interval = new Interval({
       const customDestinationFile = await io.experimental.input.file(
         'Upload an image!',
         {
-          helpText: 'Can be any image.',
+          helpText: 'Will be uploaded to the custom destination.',
           allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
-          generatePresignedUrl: async ({ name }) => {
-            // TODO: S3 double-encodes the filename, converting % into %25. the resulting URL doesn't work
-            const path = `custom-endpoint/${new Date().getTime()}-${encodeURIComponent(
-              name
-            )}`
+          generatePresignedUrls: async ({ name }) => {
+            const urlSafeName = name.replace(/ /g, '-')
+            const path = `custom-endpoint/${new Date().getTime()}-${urlSafeName}`
 
-            const uploadUrl = await generateUploadUrl(path)
-            const downloadUrl = generateDownloadUrl(path)
-
-            return { uploadUrl, downloadUrl }
+            return generateS3Urls(path)
           },
         }
       )
@@ -700,7 +695,8 @@ const interval = new Interval({
       console.log(await customDestinationFile.url())
 
       const file = await io.experimental.input.file('Upload an image!', {
-        helpText: 'Can be any image.',
+        helpText:
+          'Will be uploaded to Interval and expire after the action finishes running.',
         allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
       })
 

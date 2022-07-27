@@ -4,10 +4,15 @@ import {
   AWS_KEY_SECRET,
   AWS_S3_IO_BUCKET,
 } from '../../env'
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import * as urlParser from '@aws-sdk/url-parser'
 
-export async function generateUploadUrl(key: string) {
+export async function generateS3Urls(key: string) {
   if (!AWS_KEY_ID || !AWS_KEY_SECRET || !AWS_S3_IO_BUCKET) {
     throw new Error('Missing AWS credentials')
   }
@@ -25,17 +30,12 @@ export async function generateUploadUrl(key: string) {
     Key: key,
   })
 
-  const signedUrl = await getSignedUrl(s3Client, command, {
+  const uploadUrl = await getSignedUrl(s3Client, command, {
     expiresIn: 3600, // 1 hour
   })
 
-  return signedUrl
-}
+  const url = new URL(uploadUrl)
+  const downloadUrl = url.origin + url.pathname
 
-export function generateDownloadUrl(path: string) {
-  if (!AWS_S3_IO_BUCKET || !AWS_REGION) {
-    throw new Error('Missing AWS credentials')
-  }
-
-  return `https://${AWS_S3_IO_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${path}`
+  return { uploadUrl, downloadUrl }
 }
