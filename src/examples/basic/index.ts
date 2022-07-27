@@ -684,9 +684,10 @@ const interval = new Interval({
           helpText: 'Can be any image.',
           allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
           generatePresignedUrl: async ({ name }) => {
-            const path = `custom-endpoint/${
-              ctx.action.slug
-            }/${new Date().getTime()}-${encodeURIComponent(name)}`
+            // TODO: S3 double-encodes the filename, converting % into %25. the resulting URL doesn't work
+            const path = `custom-endpoint/${new Date().getTime()}-${encodeURIComponent(
+              name
+            )}`
 
             const uploadUrl = await generateUploadUrl(path)
             const downloadUrl = generateDownloadUrl(path)

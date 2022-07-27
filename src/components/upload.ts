@@ -46,9 +46,12 @@ export function file({ generatePresignedUrl, ...props }: UploaderProps) {
         return { uploadUrl: undefined, downloadUrl: undefined }
       }
 
-      const urls = await generatePresignedUrl(newState)
-
-      return urls
+      try {
+        const urls = await generatePresignedUrl(newState)
+        return urls
+      } catch (error) {
+        return { uploadUrl: 'error', downloadUrl: 'error' }
+      }
     },
   }
 }
