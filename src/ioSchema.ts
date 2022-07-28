@@ -11,6 +11,7 @@ export const IO_RENDER = z.object({
       propsMeta: z.any().optional(),
       isStateful: z.boolean().optional().default(false),
       isOptional: z.boolean().optional().default(false),
+      isDisabled: z.boolean().optional().default(false),
       validationErrorMessage: z.string().optional(),
     })
   ),

@@ -16,6 +16,7 @@ export interface ComponentInstance<MN extends keyof IoSchema> {
   state: z.infer<IoSchema[MN]['state']>
   isStateful?: boolean
   isOptional?: boolean
+  isDisabled?: boolean
   validationErrorMessage?: string | undefined
 }
 
@@ -74,6 +75,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       incomingState: z.infer<IoSchema[MethodName]['state']>
     ) => Promise<Partial<z.input<IoSchema[MethodName]['props']>>>,
     isOptional: boolean = false,
+    isDisabled: boolean = false,
     validator?: IOPromiseValidator<ComponentReturnValue<MethodName> | undefined>
   ) {
     this.handleStateChange = handleStateChange
@@ -95,6 +97,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       state: null,
       isStateful: !!handleStateChange,
       isOptional: isOptional,
+      isDisabled: isDisabled,
     }
 
     this.returnValue = new Promise<
@@ -185,6 +188,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     return this.instance
   }
 
+  // this isn't called anywhere, can we delete?
   setOptional(optional: boolean) {
     this.instance.isOptional = optional
   }
@@ -204,6 +208,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       props: this.instance.props,
       isStateful: this.instance.isStateful,
       isOptional: this.instance.isOptional,
+      isDisabled: this.instance.isDisabled,
       validationErrorMessage: this.instance.validationErrorMessage,
     }
   }

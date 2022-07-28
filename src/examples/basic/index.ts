@@ -127,6 +127,10 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   actions: {
+    disabled_inputs: async io => {
+      await io.input.text('Text you can’t edit').disabled(true)
+      return 'Done!'
+    },
     'long-return-string': async io => {
       return {
         date: new Date(),

@@ -94,6 +94,7 @@ export class IOPromise<
       this.label,
       this.props,
       this.onStateChange,
+      false,
       false
     )
   }
@@ -120,6 +121,7 @@ export class InputIOPromise<
       this.label,
       this.props,
       this.onStateChange,
+      false,
       false,
       this.validator ? this.#handleValidation.bind(this) : undefined
     )
@@ -158,6 +160,30 @@ export class InputIOPromise<
     | IOPromise<MethodName, Props, Output> {
     return isOptional
       ? new OptionalIOPromise({
+          renderer: this.renderer,
+          methodName: this.methodName,
+          label: this.label,
+          props: this.props,
+          valueGetter: this.valueGetter,
+          onStateChange: this.onStateChange,
+        })
+      : this
+  }
+
+  disabled(isDisabled?: true): DisabledIOPromise<MethodName, Props, Output>
+  disabled(isDisabled?: false): IOPromise<MethodName, Props, Output>
+  disabled(
+    isDisabled?: boolean
+  ):
+    | DisabledIOPromise<MethodName, Props, Output>
+    | IOPromise<MethodName, Props, Output>
+  disabled(
+    isDisabled = true
+  ):
+    | DisabledIOPromise<MethodName, Props, Output>
+    | IOPromise<MethodName, Props, Output> {
+    return isDisabled
+      ? new DisabledIOPromise({
           renderer: this.renderer,
           methodName: this.methodName,
           label: this.label,
@@ -210,6 +236,7 @@ export class OptionalIOPromise<
       this.props,
       this.onStateChange,
       true,
+      false,
       this.validator ? this.#handleValidation.bind(this) : undefined
     )
   }
@@ -230,6 +257,56 @@ export class OptionalIOPromise<
     if (this.valueGetter) return this.valueGetter(result)
 
     return result as unknown as Output
+  }
+}
+
+/**
+ * A subclass of IOPromise that marks its inner component as disabled
+ */
+export class DisabledIOPromise<
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
+  Props = T_IO_PROPS<MethodName>,
+  Output = ComponentReturnValue<MethodName>
+> extends InputIOPromise<MethodName, Props, Output> {
+  then(resolve: (output: Output) => void, reject?: (err: IOError) => void) {
+    this.renderer([this.component])
+      .then(([result]) => {
+        resolve(this.getValue(result))
+      })
+      .catch(err => {
+        if (reject) reject(err)
+      })
+  }
+
+  get component() {
+    return new IOComponent(
+      this.methodName,
+      this.label,
+      this.props,
+      this.onStateChange,
+      false,
+      true,
+      this.validator ? this.#handleValidation.bind(this) : undefined
+    )
+  }
+
+  async #handleValidation(
+    returnValue: ComponentReturnValue<MethodName> | undefined
+  ): Promise<string | undefined> {
+    if (returnValue === undefined) {
+      // This should be caught already, primarily here for types
+      return 'This field is required.'
+    }
+
+    if (this.validator) {
+      return this.validator(this.getValue(returnValue))
+    }
+  }
+
+  validate(validator: IOPromiseValidator<Output>): this {
+    this.validator = validator
+
+    return this
   }
 }
 
