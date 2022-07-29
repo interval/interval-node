@@ -421,6 +421,11 @@ export class IOClient {
         url: this.createIOMethod('INPUT_URL', {
           componentDef: urlInput,
         }),
+        date: this.createIOMethod('INPUT_DATE', { componentDef: date }),
+        time: this.createIOMethod('INPUT_TIME'),
+        datetime: this.createIOMethod('INPUT_DATETIME', {
+          componentDef: datetime,
+        }),
       },
       select: {
         single: this.createIOMethod('SELECT_SINGLE', {
@@ -453,13 +458,10 @@ export class IOClient {
           propsRequired: true,
           componentDef: spreadsheet,
         }),
-        date: this.createIOMethod('INPUT_DATE', { componentDef: date }),
-        time: this.createIOMethod('INPUT_TIME'),
-        datetime: this.createIOMethod('INPUT_DATETIME', {
-          componentDef: datetime,
-        }),
         input: {
-          file: this.createIOMethod('UPLOAD_FILE', { componentDef: file }),
+          file: this.createIOMethod('UPLOAD_FILE', {
+            componentDef: file(this.logger),
+          }),
         },
       },
     }

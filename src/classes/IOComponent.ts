@@ -185,10 +185,6 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     return this.instance
   }
 
-  setOptional(optional: boolean) {
-    this.instance.isOptional = optional
-  }
-
   get label() {
     return this.instance.label
   }

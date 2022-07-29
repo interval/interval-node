@@ -18,10 +18,12 @@ export default function search<Result = any>({
   onSearch,
   initialResults = [],
   renderResult,
+  disabled = false,
   ...rest
 }: {
   placeholder?: string
   helpText?: string
+  disabled?: boolean
   initialResults?: Result[]
   renderResult: (result: Result) => RenderResultDef
   onSearch: (query: string) => Promise<Result[]>
@@ -58,6 +60,7 @@ export default function search<Result = any>({
   const props: T_IO_PROPS<'SEARCH'> = {
     ...rest,
     results: renderResults(initialResults),
+    disabled,
   }
 
   return {
