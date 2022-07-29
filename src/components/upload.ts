@@ -3,6 +3,24 @@ import fetch, { Response } from 'node-fetch'
 import { IntervalError } from '..'
 import { T_IO_PROPS, T_IO_RETURNS, T_IO_STATE } from '../ioSchema'
 
+const MAX_RETRIES = 3
+
+async function retryFetch(url: string): Promise<Response> {
+  for (let i = 1; i <= MAX_RETRIES; i++) {
+    try {
+      const r = await fetch(url)
+      return r
+    } catch (err) {
+      if (i === MAX_RETRIES) {
+        throw err
+      }
+    }
+  }
+
+  // This should never happen, final failing response err would be thrown above
+  throw new IntervalError('Failed to fetch file.')
+}
+
 type UploaderProps = T_IO_PROPS<'UPLOAD_FILE'> & {
   generatePresignedUrls?: (
     state: T_IO_STATE<'UPLOAD_FILE'>
@@ -54,22 +72,4 @@ export function file({ generatePresignedUrls, ...props }: UploaderProps) {
       }
     },
   }
-}
-
-const MAX_RETRIES = 3
-
-async function retryFetch(url: string): Promise<Response> {
-  for (let i = 1; i <= MAX_RETRIES; i++) {
-    try {
-      const r = await fetch(url)
-      return r
-    } catch (err) {
-      if (i === MAX_RETRIES) {
-        throw err
-      }
-    }
-  }
-
-  // This should never happen, final failing response err would be thrown above
-  throw new IntervalError('Failed to fetch file.')
 }
