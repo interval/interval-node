@@ -135,7 +135,7 @@ const interval = new Interval({
           disabled: true,
           placeholder: 'Text goes here',
         }),
-        io.experimental.datetime('Date & time', { disabled: true }),
+        io.input.datetime('Date & time', { disabled: true }),
         io.input.boolean('Boolean input', { disabled: true }),
         io.select.single('Select something', {
           options: [1, 2, 3],
@@ -185,8 +185,8 @@ const interval = new Interval({
           ],
           disabled: true,
         }),
-        io.experimental.date('Date input', { disabled: true }),
-        io.experimental.time('Time input', { disabled: true }),
+        io.input.date('Date input', { disabled: true }),
+        io.input.time('Time input', { disabled: true }),
         io.experimental.input.file('File input', { disabled: true }),
       ])
 
