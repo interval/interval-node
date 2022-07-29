@@ -128,6 +128,70 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   actions: {
+    disabled_inputs: async io => {
+      await io.group([
+        io.display.heading('Here are a bunch of disabled inputs'),
+        io.input.text('Text input', {
+          disabled: true,
+          placeholder: 'Text goes here',
+        }),
+        io.experimental.datetime('Date & time', { disabled: true }),
+        io.input.boolean('Boolean input', { disabled: true }),
+        io.select.single('Select something', {
+          options: [1, 2, 3],
+          disabled: true,
+        }),
+        io.input.number('Number input', {
+          disabled: true,
+        }),
+        io.input.email('Email input', { disabled: true }),
+        io.input.richText('Rich text input', { disabled: true }),
+        io.search('Search for a user', {
+          disabled: true,
+          renderResult: user => ({
+            label: user.name,
+            description: user.email,
+          }),
+          onSearch: async query => {
+            return [
+              {
+                name: 'John Doe',
+                email: 'johndoe@example.com',
+              },
+            ]
+          },
+        }),
+        io.select.multiple('Select multiple of something', {
+          options: [1, 2, 3],
+          disabled: true,
+        }),
+        io.select.table('Select from table', {
+          data: [
+            {
+              album: 'Exile on Main Street',
+              artist: 'The Rolling Stones',
+              year: 1972,
+            },
+            {
+              artist: 'Michael Jackson',
+              album: 'Thriller',
+              year: 1982,
+            },
+            {
+              album: 'Enter the Wu-Tang (36 Chambers)',
+              artist: 'Wu-Tang Clan',
+              year: 1993,
+            },
+          ],
+          disabled: true,
+        }),
+        io.experimental.date('Date input', { disabled: true }),
+        io.experimental.time('Time input', { disabled: true }),
+        io.experimental.input.file('File input', { disabled: true }),
+      ])
+
+      return 'Done!'
+    },
     'long-return-string': async io => {
       return {
         date: new Date(),
@@ -313,7 +377,7 @@ const interval = new Interval({
     },
     dates: async io => {
       const [date, time, datetime] = await io.group([
-        io.experimental.date('Enter a date', {
+        io.input.date('Enter a date', {
           min: {
             year: 2020,
             month: 1,
@@ -325,7 +389,7 @@ const interval = new Interval({
             day: 30,
           },
         }),
-        io.experimental.time('Enter a time', {
+        io.input.time('Enter a time', {
           min: {
             hour: 8,
             minute: 30,
@@ -335,7 +399,7 @@ const interval = new Interval({
             minute: 0,
           },
         }),
-        io.experimental.datetime('Enter a datetime', {
+        io.input.datetime('Enter a datetime', {
           defaultValue: new Date(),
           min: new Date(),
         }),

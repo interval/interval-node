@@ -417,6 +417,11 @@ export class IOClient {
         number: this.createIOMethod('INPUT_NUMBER'),
         email: this.createIOMethod('INPUT_EMAIL'),
         richText: this.createIOMethod('INPUT_RICH_TEXT'),
+        date: this.createIOMethod('INPUT_DATE', { componentDef: date }),
+        time: this.createIOMethod('INPUT_TIME'),
+        datetime: this.createIOMethod('INPUT_DATETIME', {
+          componentDef: datetime,
+        }),
       },
       select: {
         single: this.createIOMethod('SELECT_SINGLE', {
@@ -448,11 +453,6 @@ export class IOClient {
         spreadsheet: this.createIOMethod('INPUT_SPREADSHEET', {
           propsRequired: true,
           componentDef: spreadsheet,
-        }),
-        date: this.createIOMethod('INPUT_DATE', { componentDef: date }),
-        time: this.createIOMethod('INPUT_TIME'),
-        datetime: this.createIOMethod('INPUT_DATETIME', {
-          componentDef: datetime,
         }),
         input: {
           file: this.createIOMethod('UPLOAD_FILE', {
