@@ -128,10 +128,6 @@ const interval = new Interval({
   endpoint: 'ws://localhost:3000/websocket',
   actions: {
     disabled_inputs: async io => {
-      // TODO
-      // should we make this work?
-      // await io.confirm("Can't edit this").disabled(true)
-
       await io.group([
         io.display.heading('Here are a bunch of disabled inputs'),
         io.input.text('Text input', {
