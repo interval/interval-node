@@ -283,6 +283,7 @@ export const ioSchema = {
       placeholder: z.optional(z.string()),
       defaultValue: z.optional(z.string()),
       allowedProtocols: z.array(z.string()).default(['http', 'https']),
+      disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.null(),
     returns: z.string(),
