@@ -455,7 +455,9 @@ export class IOClient {
           componentDef: datetime,
         }),
         input: {
-          file: this.createIOMethod('UPLOAD_FILE', { componentDef: file }),
+          file: this.createIOMethod('UPLOAD_FILE', {
+            componentDef: file(this.logger),
+          }),
         },
       },
     }

@@ -2,6 +2,7 @@ import path from 'path'
 import fetch, { Response } from 'node-fetch'
 import { IntervalError } from '..'
 import { T_IO_PROPS, T_IO_RETURNS, T_IO_STATE } from '../ioSchema'
+import Logger from '../classes/Logger'
 
 const MAX_RETRIES = 3
 
@@ -27,49 +28,54 @@ type UploaderProps = T_IO_PROPS<'UPLOAD_FILE'> & {
   ) => Promise<{ uploadUrl: string; downloadUrl: string }>
 }
 
-export function file({ generatePresignedUrls, ...props }: UploaderProps) {
-  const isProvidingUrls = !!generatePresignedUrls
+export function file(logger: Logger) {
+  return function ({ generatePresignedUrls, ...props }: UploaderProps) {
+    const isProvidingUrls = !!generatePresignedUrls
+    return {
+      props: {
+        ...props,
+        uploadUrl: isProvidingUrls ? null : undefined,
+        downloadUrl: isProvidingUrls ? null : undefined,
+      },
+      getValue({ url, ...response }: T_IO_RETURNS<'UPLOAD_FILE'>) {
+        return {
+          ...response,
+          lastModified: new Date(response.lastModified),
+          get extension(): string {
+            return path.extname(response.name)
+          },
+          async url(): Promise<string> {
+            return url
+          },
+          async text(): Promise<string> {
+            return retryFetch(url).then(r => r.text())
+          },
+          async json(): Promise<any> {
+            return retryFetch(url).then(r => r.json())
+          },
+          async buffer(): Promise<Buffer> {
+            return retryFetch(url)
+              .then(r => r.arrayBuffer())
+              .then(arrayBuffer => Buffer.from(arrayBuffer))
+          },
+        }
+      },
+      async onStateChange(newState: T_IO_STATE<'UPLOAD_FILE'>) {
+        if (!generatePresignedUrls) {
+          return { uploadUrl: undefined, downloadUrl: undefined }
+        }
 
-  return {
-    props: {
-      ...props,
-      uploadUrl: isProvidingUrls ? null : undefined,
-      downloadUrl: isProvidingUrls ? null : undefined,
-    },
-    getValue({ url, ...response }: T_IO_RETURNS<'UPLOAD_FILE'>) {
-      return {
-        ...response,
-        lastModified: new Date(response.lastModified),
-        get extension(): string {
-          return path.extname(response.name)
-        },
-        async url(): Promise<string> {
-          return url
-        },
-        async text(): Promise<string> {
-          return retryFetch(url).then(r => r.text())
-        },
-        async json(): Promise<any> {
-          return retryFetch(url).then(r => r.json())
-        },
-        async buffer(): Promise<Buffer> {
-          return retryFetch(url)
-            .then(r => r.arrayBuffer())
-            .then(arrayBuffer => Buffer.from(arrayBuffer))
-        },
-      }
-    },
-    async onStateChange(newState: T_IO_STATE<'UPLOAD_FILE'>) {
-      if (!generatePresignedUrls) {
-        return { uploadUrl: undefined, downloadUrl: undefined }
-      }
-
-      try {
-        const urls = await generatePresignedUrls(newState)
-        return urls
-      } catch (error) {
-        return { uploadUrl: 'error', downloadUrl: 'error' }
-      }
-    },
+        try {
+          const urls = await generatePresignedUrls(newState)
+          return urls
+        } catch (error) {
+          logger.error(
+            'An error was unexpectedly thrown from the `generatePresignedUrls` function:'
+          )
+          logger.error(error)
+          return { uploadUrl: 'error', downloadUrl: 'error' }
+        }
+      },
+    }
   }
 }
