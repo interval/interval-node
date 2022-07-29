@@ -376,7 +376,7 @@ const interval = new Interval({
     },
     dates: async io => {
       const [date, time, datetime] = await io.group([
-        io.experimental.date('Enter a date', {
+        io.input.date('Enter a date', {
           min: {
             year: 2020,
             month: 1,
@@ -388,7 +388,7 @@ const interval = new Interval({
             day: 30,
           },
         }),
-        io.experimental.time('Enter a time', {
+        io.input.time('Enter a time', {
           min: {
             hour: 8,
             minute: 30,
@@ -398,7 +398,7 @@ const interval = new Interval({
             minute: 0,
           },
         }),
-        io.experimental.datetime('Enter a datetime', {
+        io.input.datetime('Enter a datetime', {
           defaultValue: new Date(),
           min: new Date(),
         }),
