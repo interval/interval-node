@@ -1,4 +1,5 @@
 import Interval, { IOError, io, ctx } from '../../index'
+import IntervalClient from '../../classes/IntervalClient'
 import {
   IntervalActionHandler,
   NotificationDeliveryInstruction,
@@ -363,7 +364,7 @@ const interval = new Interval({
     helloCurrentUser: {
       name: 'Hello, current user!',
       description: '👋',
-      handler: async (io, ctx) => {
+      handler: async () => {
         console.log(ctx.params)
 
         let heading = `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`
@@ -372,7 +373,7 @@ const interval = new Interval({
           heading += ` (Message: ${ctx.params.message})`
         }
 
-        io.display.heading(heading).then(() => {})
+        return heading
       },
     },
     dates: async io => {
@@ -812,8 +813,13 @@ const interval = new Interval({
       })
     },
     badMessage: async () => {
+      const client = new IntervalClient(interval, interval.config)
+
+      // @ts-expect-error: Intentionally using private method
+      await client.initializeConnection()
+
       // @ts-expect-error: Intentionally using protected method
-      await interval.__dangerousInternalSend('NONEXISTANT', {
+      await client.__dangerousInternalSend('NONEXISTANT', {
         gibberish: '1234',
         error: new Error(),
       })

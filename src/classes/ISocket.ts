@@ -208,6 +208,10 @@ export default class ISocket {
     return 'ping' in this.ws
   }
 
+  get readyState() {
+    return this.ws.readyState
+  }
+
   /** Both **/
   /**
    * Ping the connected counterpart, throwing a TimeoutError if a

@@ -154,6 +154,7 @@ export const wsServerSchema = {
     inputs: z.object({
       transactionId: z.string(),
       instanceId: z.string(),
+      params: serializableRecord.optional(),
     }),
     returns: z.boolean(),
   },
@@ -215,6 +216,10 @@ export const wsServerSchema = {
     }),
     returns: z.boolean(),
   },
+  INITIALIZE_CLIENT: {
+    inputs: z.undefined(),
+    returns: z.boolean(),
+  },
   INITIALIZE_HOST: {
     inputs: z.intersection(
       z.object({
@@ -262,35 +267,48 @@ export type WSServerSchema = typeof wsServerSchema
 
 export const clientSchema = {
   CLIENT_USURPED: {
-    inputs: z.undefined(),
+    inputs: z.object({
+      transactionId: z.string(),
+    }),
     returns: z.void().nullable(),
   },
   TRANSACTION_COMPLETED: {
     inputs: z.object({
+      transactionId: z.string(),
       resultStatus: z.enum(['SUCCESS', 'FAILURE', 'CANCELED']),
     }),
     returns: z.void().nullable(),
   },
   HOST_CLOSED_UNEXPECTEDLY: {
-    inputs: z.undefined(),
+    inputs: z.object({
+      transactionId: z.string(),
+    }),
     returns: z.void().nullable(),
   },
   HOST_RECONNECTED: {
-    inputs: z.undefined(),
+    inputs: z.object({
+      transactionId: z.string(),
+    }),
     returns: z.void().nullable(),
   },
   RENDER: {
     inputs: z.object({
+      transactionId: z.string(),
       toRender: z.string(),
     }),
     returns: z.boolean(),
   },
   LOADING_STATE: {
-    inputs: LOADING_STATE,
+    inputs: z
+      .object({
+        transactionId: z.string(),
+      })
+      .merge(LOADING_STATE),
     returns: z.boolean(),
   },
   LOG: {
     inputs: z.object({
+      transactionId: z.string(),
       data: z.string().nullable(),
       index: z.number(),
       timestamp: z.number(),
@@ -299,6 +317,7 @@ export const clientSchema = {
   },
   NOTIFY: {
     inputs: z.object({
+      transactionId: z.string(),
       deliveries: z.array(
         z.object({
           to: z.string(),
