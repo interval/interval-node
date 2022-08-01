@@ -36,7 +36,6 @@ import {
   ExclusiveIOComponentFunction,
   ComponentRenderer,
   IOComponentDefinition,
-  RequiredPropsExclusiveIOComponentFunction,
   DisplayIOComponentFunction,
   RequiredPropsDisplayIOComponentFunction,
   InputIOComponentFunction,
@@ -271,6 +270,45 @@ export class IOClient {
     })
   }
 
+  getPromiseProps<
+    MethodName extends T_IO_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    inputProps?: Props,
+    componentDef?: IOComponentDefinition<MethodName, Props, Output>
+  ) {
+    let props = inputProps ? (inputProps as T_IO_PROPS<MethodName>) : {}
+    let getValue = (r: T_IO_RETURNS<MethodName>) => r as unknown as Output
+    let onStateChange: ReturnType<
+      IOComponentDefinition<MethodName, Props, Output>
+    >['onStateChange'] = undefined
+
+    if (componentDef) {
+      const componentGetters = componentDef(inputProps ?? ({} as Props))
+
+      if (componentGetters.props) {
+        props = componentGetters.props
+      }
+
+      if (componentGetters.getValue) {
+        getValue = componentGetters.getValue
+      }
+
+      if (componentGetters.onStateChange) {
+        onStateChange = componentGetters.onStateChange
+      }
+    }
+
+    return {
+      methodName,
+      props,
+      valueGetter: getValue,
+      onStateChange,
+    }
+  }
+
   createIOMethod<
     MethodName extends T_IO_DISPLAY_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
@@ -329,72 +367,51 @@ export class IOClient {
     } = {}
   ) {
     return (label: string, props?: Props) => {
-      let internalProps = props ? (props as T_IO_PROPS<MethodName>) : {}
-      let getValue = (r: T_IO_RETURNS<MethodName>) => r as unknown as Output
-      let onStateChange: ReturnType<
-        IOComponentDefinition<MethodName, Props, Output>
-      >['onStateChange'] = undefined
-
-      if (componentDef) {
-        const componentGetters = componentDef(props ?? ({} as Props))
-
-        if (componentGetters.props) {
-          internalProps = componentGetters.props
-        }
-
-        if (componentGetters.getValue) {
-          getValue = componentGetters.getValue
-        }
-
-        if (componentGetters.onStateChange) {
-          onStateChange = componentGetters.onStateChange
-        }
-      }
-
       const isDisplay = methodName.startsWith('DISPLAY_')
+      const promiseProps = this.getPromiseProps(methodName, props, componentDef)
 
       return isDisplay
         ? new DisplayIOPromise({
+            ...promiseProps,
             methodName: methodName as T_IO_DISPLAY_METHOD_NAMES,
             renderer: this.renderComponents.bind(
               this
             ) as ComponentRenderer<T_IO_DISPLAY_METHOD_NAMES>,
             label,
-            props: internalProps,
-            valueGetter: getValue,
-            onStateChange,
           })
         : new InputIOPromise({
+            ...promiseProps,
             methodName: methodName as T_IO_INPUT_METHOD_NAMES,
             renderer: this.renderComponents.bind(
               this
             ) as ComponentRenderer<T_IO_INPUT_METHOD_NAMES>,
             label,
-            props: internalProps,
-            valueGetter: getValue,
-            onStateChange,
           })
     }
   }
 
-  /**
-   * A very thin wrapper function that converts an IOPromise to an
-   * ExclusiveIOPromise, which cannot be rendered in a group.
-   */
-  makeExclusive<MethodName extends T_IO_INPUT_METHOD_NAMES, Props, Output>(
-    inner: InputIOComponentFunction<MethodName, Props, Output>,
-    propsRequired?: false
-  ): ExclusiveIOComponentFunction<MethodName, Props, Output>
-  makeExclusive<MethodName extends T_IO_INPUT_METHOD_NAMES, Props, Output>(
-    inner: InputIOComponentFunction<MethodName, Props, Output>,
-    propsRequired?: true
-  ): RequiredPropsExclusiveIOComponentFunction<MethodName, Props, Output>
-  makeExclusive<MethodName extends T_IO_INPUT_METHOD_NAMES, Props, Output>(
-    inner: InputIOComponentFunction<MethodName, Props, Output>,
-    _propsRequired = false
+  createExclusiveIOMethod<
+    MethodName extends T_IO_INPUT_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    {
+      componentDef,
+    }: {
+      componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    } = {}
   ): ExclusiveIOComponentFunction<MethodName, Props, Output> {
     return (label: string, props?: Props) => {
-      return inner(label, props).exclusive()
+      const promiseProps = this.getPromiseProps(methodName, props, componentDef)
+      return new ExclusiveIOPromise({
+        ...promiseProps,
+        methodName,
+        renderer: this.renderComponents.bind(
+          this
+        ) as ComponentRenderer<MethodName>,
+        label,
+      })
     }
   }
 
@@ -405,7 +422,7 @@ export class IOClient {
     return {
       group: this.group.bind(this),
 
-      confirm: this.makeExclusive(this.createIOMethod('CONFIRM')),
+      confirm: this.createExclusiveIOMethod('CONFIRM'),
 
       search: this.createIOMethod('SEARCH', {
         propsRequired: true,

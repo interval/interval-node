@@ -167,18 +167,6 @@ export class InputIOPromise<
         })
       : this
   }
-
-  exclusive(): ExclusiveIOPromise<MethodName, Props, Output> {
-    return new ExclusiveIOPromise({
-      renderer: this.renderer,
-      methodName: this.methodName,
-      label: this.label,
-      props: this.props,
-      valueGetter: this.valueGetter,
-      onStateChange: this.onStateChange,
-      validator: this.validator,
-    })
-  }
 }
 
 /**
@@ -236,12 +224,43 @@ export class OptionalIOPromise<
 /**
  * A thin subclass of IOPromise that does nothing but mark the component
  * as "exclusive" for components that cannot be rendered in a group.
+ * Also cannot be optional at this time.
  */
 export class ExclusiveIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
-> extends InputIOPromise<MethodName, Props, Output> {}
+> extends IOPromise<MethodName, Props, Output> {
+  get component() {
+    return new IOComponent(
+      this.methodName,
+      this.label,
+      this.props,
+      this.onStateChange,
+      false,
+      this.validator ? this.#handleValidation.bind(this) : undefined
+    )
+  }
+
+  async #handleValidation(
+    returnValue: ComponentReturnValue<MethodName> | undefined
+  ): Promise<string | undefined> {
+    if (returnValue === undefined) {
+      // This should be caught already, primarily here for types
+      return 'This field is required.'
+    }
+
+    if (this.validator) {
+      return this.validator(this.getValue(returnValue))
+    }
+  }
+
+  validate(validator: IOPromiseValidator<Output>): this {
+    this.validator = validator
+
+    return this
+  }
+}
 
 export type IOGroupReturnValues<
   IOPromises extends [
