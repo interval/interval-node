@@ -69,12 +69,13 @@ export default class IntervalClient {
   #retryIntervalMs: number = 3000
   #pingIntervalMs: number = 30_000
   #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
+  #reinitializeBatchTimeoutMs: number = 200
   #pingIntervalHandle: NodeJS.Timeout | undefined
   #intentionallyClosed = false
 
-  #actionDefinitions: ActionDefinition[]
-  #groupDefinitions: GroupDefinition[]
-  #actionHandlers: Record<string, IntervalActionHandler>
+  #actionDefinitions: ActionDefinition[] = []
+  #groupDefinitions: GroupDefinition[] = []
+  #actionHandlers: Record<string, IntervalActionHandler> = {}
 
   organization:
     | {
@@ -93,6 +94,35 @@ export default class IntervalClient {
       this.#endpoint = config.endpoint
     }
 
+    this.#walkActions(config)
+
+    if (config.retryIntervalMs && config.retryIntervalMs > 0) {
+      this.#retryIntervalMs = config.retryIntervalMs
+    }
+
+    if (config.pingIntervalMs && config.pingIntervalMs > 0) {
+      this.#pingIntervalMs = config.pingIntervalMs
+    }
+
+    if (
+      config.closeUnresponsiveConnectionTimeoutMs &&
+      config.closeUnresponsiveConnectionTimeoutMs > 0
+    ) {
+      this.#closeUnresponsiveConnectionTimeoutMs =
+        config.closeUnresponsiveConnectionTimeoutMs
+    }
+
+    if (
+      config.reinitializeBatchTimeoutMs &&
+      config.reinitializeBatchTimeoutMs > 0
+    ) {
+      this.#reinitializeBatchTimeoutMs = config.reinitializeBatchTimeoutMs
+    }
+
+    this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
+  }
+
+  #walkActions(config: InternalConfig) {
     const groupDefinitions: GroupDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
     const actionHandlers: Record<string, IntervalActionHandler> = {}
@@ -140,24 +170,6 @@ export default class IntervalClient {
     this.#groupDefinitions = groupDefinitions
     this.#actionDefinitions = actionDefinitions
     this.#actionHandlers = actionHandlers
-
-    if (config.retryIntervalMs && config.retryIntervalMs > 0) {
-      this.#retryIntervalMs = config.retryIntervalMs
-    }
-
-    if (config.pingIntervalMs && config.pingIntervalMs > 0) {
-      this.#pingIntervalMs = config.pingIntervalMs
-    }
-
-    if (
-      config.closeUnresponsiveConnectionTimeoutMs &&
-      config.closeUnresponsiveConnectionTimeoutMs > 0
-    ) {
-      this.#closeUnresponsiveConnectionTimeoutMs =
-        config.closeUnresponsiveConnectionTimeoutMs
-    }
-
-    this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
   }
 
   get #log() {
@@ -176,9 +188,22 @@ export default class IntervalClient {
     | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
     | undefined = undefined
   #isConnected = false
+  #isInitialized = false
 
   get isConnected() {
     return this.#isConnected
+  }
+
+  #reinitializeTimeout: NodeJS.Timeout | null = null
+
+  handleActionsChange(config: InternalConfig) {
+    if (this.#isInitialized && !this.#reinitializeTimeout) {
+      this.#reinitializeTimeout = setTimeout(async () => {
+        this.#walkActions(config)
+        await this.#initializeHost()
+        this.#reinitializeTimeout = null
+      }, this.#reinitializeBatchTimeoutMs)
+    }
   }
 
   async listen() {
@@ -828,11 +853,16 @@ export default class IntervalClient {
       this.organization = response.organization
       this.environment = response.environment
 
-      this.#log.prod(
-        `🔗 Connected! Access your actions at: ${response.dashboardUrl}`
-      )
-      this.#log.debug('Host ID:', this.#ws.id)
+      if (!this.#isInitialized) {
+        this.#log.prod(
+          `🔗 Connected! Access your actions at: ${response.dashboardUrl}`
+        )
+        this.#log.debug('Host ID:', this.#ws.id)
+        this.#isInitialized = true
+      }
     }
+
+    return response
   }
 
   async #send<MethodName extends keyof typeof wsServerSchema>(

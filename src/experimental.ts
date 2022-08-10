@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { Evt } from 'evt'
 import fetch from 'node-fetch'
 import type { IncomingMessage, ServerResponse } from 'http'
-import Interval, { io, ctx, IntervalError } from '.'
+import Interval, { io, ctx, InternalConfig, IntervalError } from '.'
 import IntervalClient from './classes/IntervalClient'
 import ActionGroup from './classes/ActionGroup'
 import * as pkg from '../package.json'
@@ -12,8 +13,29 @@ import {
   LambdaRequestPayload,
   LambdaResponse,
 } from './utils/http'
+import Actions from './classes/Actions'
+import { IntervalActionDefinition } from './types'
 
 class ExperimentalInterval extends Interval {
+  #groupChangeCtx = Evt.newCtx()
+
+  constructor(config: InternalConfig) {
+    super(config)
+    this.actions = new ExperimentalActions(
+      this,
+      this.httpEndpoint,
+      this.log,
+      this.apiKey
+    )
+
+    if (this.config.groups) {
+      for (const group of Object.values(this.config.groups)) {
+        group.onChange.attach(this.#groupChangeCtx, () => {
+          this.client?.handleActionsChange(this.config)
+        })
+      }
+    }
+  }
   /*
    * Add an ActionGroup and its child actions to this deployment.
    */
@@ -22,7 +44,23 @@ class ExperimentalInterval extends Interval {
       this.config.groups = {}
     }
 
+    group.onChange.attach(this.#groupChangeCtx, () => {
+      this.client?.handleActionsChange(this.config)
+    })
+
     this.config.groups[prefix] = group
+
+    this.client?.handleActionsChange(this.config)
+  }
+
+  unuse(prefix: string) {
+    if (!this.config.groups) return
+
+    const group = this.config.groups[prefix]
+    if (!group) return
+
+    group.onChange.detach(this.#groupChangeCtx)
+    delete this.config.groups[prefix]
   }
 
   /*
@@ -208,6 +246,29 @@ class ExperimentalInterval extends Interval {
         throw new IntervalError('No valid slugs provided')
       }
     }
+  }
+}
+
+export class ExperimentalActions extends Actions {
+  add(slug: string, action: IntervalActionDefinition) {
+    if (!this.interval.config.actions) {
+      this.interval.config.actions = {}
+    }
+
+    this.interval.config.actions[slug] = action
+    this.interval.client?.handleActionsChange(this.interval.config)
+  }
+
+  remove(slug: string) {
+    const { actions } = this.interval.config
+
+    if (!actions) return
+    const action = actions[slug]
+    if (!action) return
+
+    delete actions[slug]
+
+    this.interval.client?.handleActionsChange(this.interval.config)
   }
 }
 
