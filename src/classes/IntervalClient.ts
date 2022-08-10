@@ -110,12 +110,12 @@ export default class IntervalClient {
 
     if (config.groups) {
       function walkActionGroup(groupSlug: string, group: ActionGroup) {
-        for (const [slug, def] of Object.entries(group.actions)) {
-          groupDefinitions.push({
-            slug: groupSlug,
-            name: group.name,
-          })
+        groupDefinitions.push({
+          slug: groupSlug,
+          name: group.name,
+        })
 
+        for (const [slug, def] of Object.entries(group.actions)) {
           actionDefinitions.push({
             groupSlug,
             slug,
