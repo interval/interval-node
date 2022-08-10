@@ -43,6 +43,12 @@ function packageCall({ id, methodName, data }: Omit<DuplexMessage, 'kind'>) {
   return JSON.stringify(callerData)
 }
 
+export type DuplexRPCHandlers<ResponderSchema extends MethodDef> = {
+  [Property in keyof ResponderSchema]: (
+    inputs: z.infer<ResponderSchema[Property]['inputs']>
+  ) => Promise<z.infer<ResponderSchema[Property]['returns']>>
+}
+
 interface CreateDuplexRPCClientProps<
   CallerSchema extends MethodDef,
   ResponderSchema extends MethodDef
@@ -50,11 +56,7 @@ interface CreateDuplexRPCClientProps<
   communicator: ISocket
   canCall: CallerSchema
   canRespondTo: ResponderSchema
-  handlers: {
-    [Property in keyof ResponderSchema]: (
-      inputs: z.infer<ResponderSchema[Property]['inputs']>
-    ) => Promise<z.infer<ResponderSchema[Property]['returns']>>
-  }
+  handlers: DuplexRPCHandlers<ResponderSchema>
 }
 
 /**
