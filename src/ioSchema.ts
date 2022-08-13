@@ -146,15 +146,19 @@ export const tableRow = z
 export const tableRowAction = z.intersection(
   z.object({
     label: z.string(),
-    disabled: z.boolean().optional(),
   }),
   z.union([
     z.object({
       action: z.string(),
       params: serializableRecord.optional(),
+      disabled: z.boolean().optional(),
     }),
     z.object({
       url: z.string(),
+      disabled: z.boolean().optional(),
+    }),
+    z.object({
+      disabled: z.literal(true),
     }),
   ])
 )
