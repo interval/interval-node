@@ -143,6 +143,24 @@ export const tableRow = z
   // If no columns specified, we'll just serialize any nested objects.
   .or(z.object({}).passthrough())
 
+export const tableRowAction = z.intersection(
+  z.object({
+    label: z.string(),
+    disabled: z.boolean().optional(),
+  }),
+  z.union([
+    z.object({
+      action: z.string(),
+      params: serializableRecord.optional(),
+    }),
+    z.object({
+      url: z.string(),
+    }),
+  ])
+)
+
+export type TableRowAction = z.infer<typeof tableRowAction>
+
 export const newInternalTableRow = z.object({
   key: z.string(),
   data: tableRow,
