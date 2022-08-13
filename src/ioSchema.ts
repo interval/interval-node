@@ -164,6 +164,7 @@ export type TableRowAction = z.infer<typeof tableRowAction>
 export const newInternalTableRow = z.object({
   key: z.string(),
   data: tableRow,
+  actions: z.array(tableRowAction).optional(),
 })
 
 export const internalTableRow = z.union([newInternalTableRow, tableRow])

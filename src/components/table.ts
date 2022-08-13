@@ -6,6 +6,7 @@ import {
   newInternalTableRow,
   T_IO_RETURNS,
   serializableRecord,
+  tableRowAction,
 } from '../ioSchema'
 import { columnsBuilder, tableRowSerializer } from '../utils/table'
 import Logger from '../classes/Logger'
@@ -38,6 +39,7 @@ export function selectTable(logger: Logger) {
     props: Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
       data: Row[]
       columns?: (Column<Row> | string)[]
+      actions?: (row: Row) => z.infer<typeof tableRowAction>[]
     }
   ) {
     type DataList = typeof props['data']
@@ -47,7 +49,7 @@ export function selectTable(logger: Logger) {
     )
 
     const data = props.data.map((row, idx) =>
-      tableRowSerializer(idx, row, columns)
+      tableRowSerializer(idx, row, columns, props.actions)
     )
 
     return {
@@ -66,10 +68,11 @@ export function selectTable(logger: Logger) {
 }
 
 export function displayTable(logger: Logger) {
-  return function displayTable<Row = any>(
+  return function displayTable<Row extends z.input<typeof tableRow> = any>(
     props: Omit<T_IO_PROPS<'DISPLAY_TABLE'>, 'data' | 'columns'> & {
       data: Row[]
       columns?: (Column<Row> | string)[]
+      actions?: (row: Row) => z.infer<typeof tableRowAction>[]
     }
   ) {
     const columns = columnsBuilder(props, column =>
@@ -77,7 +80,7 @@ export function displayTable(logger: Logger) {
     )
 
     const data = props.data.map((row, idx) =>
-      tableRowSerializer(idx, row, columns)
+      tableRowSerializer(idx, row, columns, props.actions)
     )
 
     return {
