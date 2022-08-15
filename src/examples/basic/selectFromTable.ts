@@ -70,6 +70,11 @@ export const table_actions: IntervalActionHandler = async io => {
     name: ch.name,
     email: faker.internet.email(),
     amount: ch.amount,
+    address1: faker.address.streetAddress(),
+    address2: faker.address.secondaryAddress(),
+    city: faker.address.city(),
+    state: faker.address.state(),
+    zip: faker.address.zipCode(),
   }))
 
   const selections = await io.display.table('Charges', {
