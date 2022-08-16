@@ -7,7 +7,7 @@ Contains example starter code for our [account migration tutorial](#). Uses a SQ
 Initialize this project using npx:
 
 ```bash
-npx create-interval-app --language typescript --template account-migration-tutorial
+npx create-interval-app --language typescript --template account-migration
 ```
 
 After the project is created, `cd` into its directory and run `yarn setup` to install dependencies and initialize the Prisma database.

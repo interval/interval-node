@@ -1,6 +1,6 @@
-import { faker } from "@faker-js/faker";
-import { Prisma, PrismaClient } from "@prisma/client";
-import { generateSlug } from "../src/util";
+const { faker } = require('@faker-js/faker');
+const { PrismaClient } = require('@prisma/client');
+const { generateSlug } = require('../src/util');
 
 const prisma = new PrismaClient();
 
@@ -14,14 +14,14 @@ async function main() {
         firstName,
         lastName,
         email: faker.internet.email(firstName, lastName),
-        username: generateSlug([firstName, lastName].join(" ")),
+        username: generateSlug([firstName, lastName].join(' ')),
       },
     });
   }
 }
 
 main()
-  .catch((e) => {
+  .catch(e => {
     console.error(e);
     process.exit(1);
   })

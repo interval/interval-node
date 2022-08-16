@@ -1,21 +1,25 @@
-import { PrismaClient } from '@prisma/client';
+const { PrismaClient } = require('@prisma/client');
 
-export const prisma = new PrismaClient();
+const prisma = new PrismaClient();
+
+module.exports.prisma = prisma;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function generateThumbnail(url) {
+module.exports.generateThumbnail = async function generateThumbnail(url) {
   await sleep(500);
   return '';
-}
+};
 
-export function generateSlug(input) {
+module.exports.generateSlug = function generateSlug(input) {
   return input.toLowerCase().replace(/[^-_.a-zA-Z\d]+/, '-');
-}
+};
 
-export async function getCollisionSafeSlug(desiredSlug) {
+module.exports.getCollisionSafeSlug = async function getCollisionSafeSlug(
+  desiredSlug
+) {
   const existingSlugs = (
     await prisma.video.findMany({
       where: {
@@ -42,9 +46,9 @@ export async function getCollisionSafeSlug(desiredSlug) {
   }
 
   return slug;
-}
+};
 
-export async function findUsers(query) {
+module.exports.findUsers = async function findUsers(query) {
   return prisma.user.findMany({
     where: {
       OR: [
@@ -55,4 +59,4 @@ export async function findUsers(query) {
       ],
     },
   });
-}
+};
