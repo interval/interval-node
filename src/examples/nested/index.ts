@@ -38,7 +38,7 @@ const nested = new ActionGroup({
   },
 })
 
-nested.use(
+nested.addGroup(
   'more',
   new ActionGroup({
     name: 'More nested',
@@ -48,9 +48,9 @@ nested.use(
   })
 )
 
-interval.use('nested', nested)
+interval.addGroup('nested', nested)
 
-nested.use(
+nested.addGroup(
   'other',
   new ActionGroup({
     name: 'Other',
@@ -62,7 +62,7 @@ nested.use(
 )
 
 interval.listen().then(() => {
-  interval.use(
+  interval.addGroup(
     'new',
     new ActionGroup({
       name: 'New Group',
@@ -72,7 +72,7 @@ interval.listen().then(() => {
     })
   )
 
-  interval.unuse('toRemove')
+  interval.removeGroup('toRemove')
 
   devOnly.add('self_destructing', async () => {
     devOnly.remove('self_destructing')
@@ -85,7 +85,7 @@ const anon = new ExperimentalInterval({
   endpoint: 'ws://localhost:3000/websocket',
 })
 
-anon.use('nested', nested)
+anon.addGroup('nested', nested)
 
 anon.listen()
 
@@ -95,6 +95,6 @@ const prod = new ExperimentalInterval({
   endpoint: 'ws://localhost:3000/websocket',
 })
 
-prod.use('test', nested)
+prod.addGroup('test', nested)
 
 prod.listen()

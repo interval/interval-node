@@ -26,13 +26,13 @@ export default class ActionGroup {
     }
   }
 
-  use(groupSlug: string, group: ActionGroup) {
+  addGroup(groupSlug: string, group: ActionGroup) {
     group.onChange.attach(this.#groupChangeCtx, this.onChange.post)
     this.groups[groupSlug] = group
     this.onChange.post()
   }
 
-  unuse(groupSlug: string) {
+  removeGroup(groupSlug: string) {
     const group = this.groups[groupSlug]
     if (!group) return
 

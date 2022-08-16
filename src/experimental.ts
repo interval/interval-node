@@ -39,7 +39,7 @@ class ExperimentalInterval extends Interval {
   /*
    * Add an ActionGroup and its child actions to this deployment.
    */
-  use(prefix: string, group: ActionGroup) {
+  addGroup(prefix: string, group: ActionGroup) {
     if (!this.config.groups) {
       this.config.groups = {}
     }
@@ -53,7 +53,7 @@ class ExperimentalInterval extends Interval {
     this.client?.handleActionsChange(this.config)
   }
 
-  unuse(prefix: string) {
+  removeGroup(prefix: string) {
     if (!this.config.groups) return
 
     const group = this.config.groups[prefix]
