@@ -4,7 +4,6 @@ import { getCharges, refundCharge } from './payments';
 
 const interval = new Interval({
   apiKey: process.env.INTERVAL_KEY,
-  endpoint: 'ws://localhost:3000/websocket',
   actions: {
     refund_user: async () => {
       const customerEmail = await io.input.email(
