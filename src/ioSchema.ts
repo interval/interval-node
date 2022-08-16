@@ -146,6 +146,7 @@ export const tableRow = z
 export const tableRowAction = z.intersection(
   z.object({
     label: z.string(),
+    theme: z.enum(['default', 'danger']).default('default'),
   }),
   z.union([
     z.object({
@@ -159,6 +160,12 @@ export const tableRowAction = z.intersection(
     }),
     z.object({
       disabled: z.literal(true),
+    }),
+    // TODO: we Omit this in the component type, but it's included here so the imported type
+    // works well on the frontend. is there a better way to do this?
+    z.object({
+      onClick: z.function().returns(z.void()),
+      disabled: z.boolean().optional(),
     }),
   ])
 )
