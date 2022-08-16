@@ -161,16 +161,8 @@ export const tableRowMenuItem = z.intersection(
     z.object({
       disabled: z.literal(true),
     }),
-    // TODO: we Omit this in the component type, but it's included here so the imported type
-    // works well on the frontend. is there a better way to do this?
-    z.object({
-      onClick: z.function().returns(z.void()),
-      disabled: z.boolean().optional(),
-    }),
   ])
 )
-
-export type TableRowMenuItem = z.infer<typeof tableRowMenuItem>
 
 export const newInternalTableRow = z.object({
   key: z.string(),

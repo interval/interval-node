@@ -39,7 +39,7 @@ export function selectTable(logger: Logger) {
     props: Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
       data: Row[]
       columns?: (Column<Row> | string)[]
-      menus?: (row: Row) => z.infer<Omit<typeof tableRowMenuItem, 'onClick'>>[]
+      menus?: (row: Row) => z.infer<typeof tableRowMenuItem>[]
     }
   ) {
     type DataList = typeof props['data']
@@ -72,7 +72,7 @@ export function displayTable(logger: Logger) {
     props: Omit<T_IO_PROPS<'DISPLAY_TABLE'>, 'data' | 'columns'> & {
       data: Row[]
       columns?: (Column<Row> | string)[]
-      menus?: (row: Row) => z.infer<Omit<typeof tableRowMenuItem, 'onClick'>>[]
+      menus?: (row: Row) => z.infer<typeof tableRowMenuItem>[]
     }
   ) {
     const columns = columnsBuilder(props, column =>
