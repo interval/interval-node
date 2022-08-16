@@ -3,7 +3,7 @@ import { IntervalActionDefinition, IntervalActionDefinitions } from '../types'
 
 export interface ActionGroupConfig {
   name: string
-  actions: IntervalActionDefinitions
+  actions?: IntervalActionDefinitions
   groups?: Record<string, ActionGroup>
 }
 
@@ -17,7 +17,7 @@ export default class ActionGroup {
 
   constructor(config: ActionGroupConfig) {
     this.name = config.name
-    this.actions = config.actions
+    this.actions = config.actions ?? {}
     this.groups = config.groups ?? {}
     this.onChange = new Evt()
 
