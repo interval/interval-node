@@ -79,25 +79,11 @@ export const table_actions: IntervalActionHandler = async io => {
 
   const selections = await io.display.table('Charges', {
     data: simpleCharges,
-    actions: row => [
+    menus: row => [
       {
         label: 'Edit',
         action: 'edit_user',
         params: { email: row.email },
-      },
-      {
-        label: 'View in CRM',
-        url: 'https://interval.com/',
-        // disabled: true,
-      },
-      {
-        label: 'Disabled item',
-        disabled: true,
-      },
-      {
-        label: 'Delete',
-        action: 'delete',
-        params: { id: row.id },
       },
     ],
   })

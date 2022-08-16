@@ -6,7 +6,7 @@ import {
   newInternalTableRow,
   T_IO_RETURNS,
   serializableRecord,
-  tableRowAction,
+  tableRowMenuItem,
 } from '../ioSchema'
 import { columnsBuilder, tableRowSerializer } from '../utils/table'
 import Logger from '../classes/Logger'
@@ -39,7 +39,7 @@ export function selectTable(logger: Logger) {
     props: Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
       data: Row[]
       columns?: (Column<Row> | string)[]
-      actions?: (row: Row) => z.infer<Omit<typeof tableRowAction, 'onClick'>>[]
+      menus?: (row: Row) => z.infer<Omit<typeof tableRowMenuItem, 'onClick'>>[]
     }
   ) {
     type DataList = typeof props['data']
@@ -49,7 +49,7 @@ export function selectTable(logger: Logger) {
     )
 
     const data = props.data.map((row, idx) =>
-      tableRowSerializer(idx, row, columns, props.actions)
+      tableRowSerializer(idx, row, columns, props.menus)
     )
 
     return {
@@ -72,7 +72,7 @@ export function displayTable(logger: Logger) {
     props: Omit<T_IO_PROPS<'DISPLAY_TABLE'>, 'data' | 'columns'> & {
       data: Row[]
       columns?: (Column<Row> | string)[]
-      actions?: (row: Row) => z.infer<Omit<typeof tableRowAction, 'onClick'>>[]
+      menus?: (row: Row) => z.infer<Omit<typeof tableRowMenuItem, 'onClick'>>[]
     }
   ) {
     const columns = columnsBuilder(props, column =>
@@ -80,7 +80,7 @@ export function displayTable(logger: Logger) {
     )
 
     const data = props.data.map((row, idx) =>
-      tableRowSerializer(idx, row, columns, props.actions)
+      tableRowSerializer(idx, row, columns, props.menus)
     )
 
     return {
