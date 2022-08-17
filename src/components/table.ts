@@ -6,7 +6,7 @@ import {
   newInternalTableRow,
   T_IO_RETURNS,
   serializableRecord,
-  tableRowMenuItem,
+  dropdownMenuItem,
 } from '../ioSchema'
 import { columnsBuilder, tableRowSerializer } from '../utils/table'
 import Logger from '../classes/Logger'
@@ -39,7 +39,7 @@ export function selectTable(logger: Logger) {
     props: Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
       data: Row[]
       columns?: (Column<Row> | string)[]
-      menus?: (row: Row) => z.infer<typeof tableRowMenuItem>[]
+      menus?: (row: Row) => z.infer<typeof dropdownMenuItem>[]
     }
   ) {
     type DataList = typeof props['data']
@@ -72,7 +72,7 @@ export function displayTable(logger: Logger) {
     props: Omit<T_IO_PROPS<'DISPLAY_TABLE'>, 'data' | 'columns'> & {
       data: Row[]
       columns?: (Column<Row> | string)[]
-      menus?: (row: Row) => z.infer<typeof tableRowMenuItem>[]
+      menus?: (row: Row) => z.infer<typeof dropdownMenuItem>[]
     }
   ) {
     const columns = columnsBuilder(props, column =>

@@ -3,7 +3,7 @@ import {
   internalTableColumn,
   tableRow,
   internalTableRow,
-  tableRowMenuItem,
+  dropdownMenuItem,
 } from '../ioSchema'
 import { z } from 'zod'
 import Logger from '../classes/Logger'
@@ -60,7 +60,7 @@ export function tableRowSerializer<T extends z.infer<typeof tableRow>>(
   idx: number,
   row: T,
   columns: z.infer<typeof tableColumn>[],
-  menus?: (row: T) => z.infer<typeof tableRowMenuItem>[]
+  menus?: (row: T) => z.infer<typeof dropdownMenuItem>[]
 ): z.infer<typeof internalTableRow> {
   const key = idx.toString()
 
