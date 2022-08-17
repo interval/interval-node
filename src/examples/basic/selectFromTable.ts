@@ -79,7 +79,7 @@ export const table_actions: IntervalActionHandler = async io => {
 
   const selections = await io.display.table('Charges', {
     data: simpleCharges,
-    menus: row => [
+    rowMenuItems: row => [
       {
         label: 'Edit',
         action: 'edit_user',
