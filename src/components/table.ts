@@ -3,7 +3,7 @@ import {
   T_IO_PROPS,
   tableColumn,
   tableRow,
-  newInternalTableRow,
+  internalTableRow,
   T_IO_RETURNS,
   serializableRecord,
   menuItem,
@@ -56,7 +56,7 @@ export function selectTable(logger: Logger) {
       props: { ...props, data, columns },
       getValue(response: T_IO_RETURNS<'SELECT_TABLE'>) {
         const indices = response.map(row =>
-          Number((row as z.infer<typeof newInternalTableRow>).key)
+          Number((row as z.infer<typeof internalTableRow>).key)
         )
 
         const rows = props.data.filter((_, idx) => indices.includes(idx))

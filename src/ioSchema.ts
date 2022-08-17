@@ -164,13 +164,11 @@ export const menuItem = z.intersection(
   ])
 )
 
-export const newInternalTableRow = z.object({
+export const internalTableRow = z.object({
   key: z.string(),
   data: tableRow,
   menu: z.array(menuItem).optional(),
 })
-
-export const internalTableRow = z.union([newInternalTableRow, tableRow])
 
 export const tableColumn = z.object({
   label: z.string(),
