@@ -143,12 +143,32 @@ export const tableRow = z
   // If no columns specified, we'll just serialize any nested objects.
   .or(z.object({}).passthrough())
 
-export const newInternalTableRow = z.object({
+export const menuItem = z.intersection(
+  z.object({
+    label: z.string(),
+    theme: z.enum(['default', 'danger']).default('default').optional(),
+  }),
+  z.union([
+    z.object({
+      action: z.string(),
+      params: serializableRecord.optional(),
+      disabled: z.boolean().optional(),
+    }),
+    z.object({
+      url: z.string(),
+      disabled: z.boolean().optional(),
+    }),
+    z.object({
+      disabled: z.literal(true),
+    }),
+  ])
+)
+
+export const internalTableRow = z.object({
   key: z.string(),
   data: tableRow,
+  menu: z.array(menuItem).optional(),
 })
-
-export const internalTableRow = z.union([newInternalTableRow, tableRow])
 
 export const tableColumn = z.object({
   label: z.string(),

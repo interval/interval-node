@@ -64,6 +64,33 @@ export const table_basic: IntervalActionHandler = async io => {
   await io.display.object('Selected', { data: selections })
 }
 
+export const table_actions: IntervalActionHandler = async io => {
+  const simpleCharges = charges.map((ch, idx) => ({
+    id: idx,
+    name: ch.name,
+    email: faker.internet.email(),
+    amount: ch.amount,
+    address1: faker.address.streetAddress(),
+    address2: faker.address.secondaryAddress(),
+    city: faker.address.city(),
+    state: faker.address.state(),
+    zip: faker.address.zipCode(),
+  }))
+
+  const selections = await io.display.table('Charges', {
+    data: simpleCharges,
+    rowMenuItems: row => [
+      {
+        label: 'Edit',
+        action: 'edit_user',
+        params: { email: row.email },
+      },
+    ],
+  })
+
+  await io.display.object('Selected', { data: selections })
+}
+
 export const table_custom: IntervalActionHandler = async io => {
   const options = [
     'id',
