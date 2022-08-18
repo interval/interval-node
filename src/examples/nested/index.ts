@@ -1,17 +1,33 @@
 import { IntervalActionHandler } from '../..'
 import ExperimentalInterval, { ActionGroup, io } from '../../experimental'
 
-const interval = new ExperimentalInterval({
-  apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
-  logLevel: 'debug',
-  endpoint: 'ws://localhost:3000/websocket',
-})
-
 const action: IntervalActionHandler = async () => {
   const message = await io.input.text('Hello?')
 
   return message
 }
+
+const devOnly = new ActionGroup({
+  name: 'Dev-only',
+  actions: {
+    action,
+  },
+})
+
+const interval = new ExperimentalInterval({
+  apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
+  logLevel: 'debug',
+  endpoint: 'ws://localhost:3000/websocket',
+  groups: {
+    devOnly,
+    toRemove: new ActionGroup({
+      name: 'To remove',
+      actions: {
+        action,
+      },
+    }),
+  },
+})
 
 const nested = new ActionGroup({
   name: 'Nested',
@@ -22,7 +38,7 @@ const nested = new ActionGroup({
   },
 })
 
-nested.use(
+nested.addGroup(
   'more',
   new ActionGroup({
     name: 'More nested',
@@ -32,9 +48,9 @@ nested.use(
   })
 )
 
-interval.use('nested', nested)
+interval.addGroup('nested', nested)
 
-nested.use(
+nested.addGroup(
   'other',
   new ActionGroup({
     name: 'Other',
@@ -45,14 +61,31 @@ nested.use(
   })
 )
 
-interval.listen()
+interval.listen().then(() => {
+  interval.addGroup(
+    'new',
+    new ActionGroup({
+      name: 'New Group',
+      actions: {
+        action,
+      },
+    })
+  )
+
+  interval.removeGroup('toRemove')
+
+  devOnly.add('self_destructing', async () => {
+    devOnly.remove('self_destructing')
+    return 'Bye!'
+  })
+})
 
 const anon = new ExperimentalInterval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
 })
 
-anon.use('nested', nested)
+anon.addGroup('nested', nested)
 
 anon.listen()
 
@@ -62,6 +95,6 @@ const prod = new ExperimentalInterval({
   endpoint: 'ws://localhost:3000/websocket',
 })
 
-prod.use('test', nested)
+prod.addGroup('test', nested)
 
 prod.listen()

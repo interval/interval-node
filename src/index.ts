@@ -1,14 +1,9 @@
 import { z } from 'zod'
 import fetch from 'node-fetch'
-import * as superjson from 'superjson'
+import Actions from './classes/Actions'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
-import {
-  ENQUEUE_ACTION,
-  DEQUEUE_ACTION,
-  NOTIFY,
-  ActionEnvironment,
-} from './internalRpcSchema'
+import { NOTIFY, ActionEnvironment } from './internalRpcSchema'
 import { SerializableRecord } from './ioSchema'
 import type {
   ActionCtx,
@@ -43,6 +38,7 @@ export interface InternalConfig {
   retryIntervalMs?: number
   pingIntervalMs?: number
   closeUnresponsiveConnectionTimeoutMs?: number
+  reinitializeBatchTimeoutMs?: number
 }
 
 export interface QueuedAction {
@@ -97,7 +93,7 @@ export default class Interval {
   #client: IntervalClient | undefined
   #apiKey: string | undefined
   #httpEndpoint: string
-  actions: Actions
+  #actions: Actions
 
   organization:
     | {
@@ -107,7 +103,7 @@ export default class Interval {
     | undefined
   environment: ActionEnvironment | undefined
 
-  constructor(config: Omit<InternalConfig, 'groups'>) {
+  constructor(config: InternalConfig) {
     this.config = config
     this.#apiKey = config.apiKey
     this.#logger = new Logger(config.logLevel)
@@ -115,7 +111,20 @@ export default class Interval {
     this.#httpEndpoint = getHttpEndpoint(
       config.endpoint ?? DEFAULT_WEBSOCKET_ENDPOINT
     )
-    this.actions = new Actions(this.#httpEndpoint, this.#logger, this.#apiKey)
+    this.#actions = new Actions(
+      this,
+      this.#httpEndpoint,
+      this.#logger,
+      this.#apiKey
+    )
+  }
+
+  get actions(): Actions {
+    return this.#actions
+  }
+
+  /* @internal */ set actions(actions: Actions) {
+    this.#actions = actions
   }
 
   protected get apiKey(): string | undefined {
@@ -147,6 +156,10 @@ export default class Interval {
 
   close() {
     return this.#client?.close()
+  }
+
+  /* @internal */ get client() {
+    return this.#client
   }
 
   async notify(config: NotifyConfig): Promise<void> {
@@ -187,121 +200,6 @@ export default class Interval {
       throw new IntervalError(
         `There was a problem sending the notification: ${response.message}`
       )
-    }
-  }
-}
-
-/**
- * This is effectively a namespace inside of Interval with a little bit of its own state.
- */
-class Actions {
-  #logger: Logger
-  #apiKey?: string
-  #endpoint: string
-
-  constructor(endpoint: string, logger: Logger, apiKey?: string) {
-    this.#apiKey = apiKey
-    this.#logger = logger
-    this.#endpoint = endpoint + '/api/actions'
-  }
-
-  #getAddress(path: string): string {
-    if (path.startsWith('/')) {
-      path = path.substring(1)
-    }
-
-    return `${this.#endpoint}/${path}`
-  }
-
-  async enqueue(
-    slug: string,
-    { assignee, params }: Pick<QueuedAction, 'assignee' | 'params'> = {}
-  ): Promise<QueuedAction> {
-    let body: z.infer<typeof ENQUEUE_ACTION['inputs']>
-    try {
-      const { json, meta } = params
-        ? superjson.serialize(params)
-        : { json: undefined, meta: undefined }
-      body = ENQUEUE_ACTION.inputs.parse({
-        assignee,
-        slug,
-        params: json,
-        paramsMeta: meta,
-      })
-    } catch (err) {
-      this.#logger.debug(err)
-      throw new IntervalError('Invalid input.')
-    }
-
-    const response = await fetch(this.#getAddress('enqueue'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.#apiKey}`,
-      },
-      body: JSON.stringify(body),
-    })
-      .then(r => r.json())
-      .then(r => ENQUEUE_ACTION.returns.parseAsync(r))
-      .catch(err => {
-        this.#logger.debug(err)
-        throw new IntervalError('Received invalid API response.')
-      })
-
-    if (response.type === 'error') {
-      throw new IntervalError(
-        `There was a problem enqueuing the action: ${response.message}`
-      )
-    }
-
-    return {
-      id: response.id,
-      assignee,
-      params,
-    }
-  }
-
-  async dequeue(id: string): Promise<QueuedAction> {
-    let body: z.infer<typeof DEQUEUE_ACTION['inputs']>
-    try {
-      body = DEQUEUE_ACTION.inputs.parse({
-        id,
-      })
-    } catch (err) {
-      this.#logger.debug(err)
-      throw new IntervalError('Invalid input.')
-    }
-
-    const response = await fetch(this.#getAddress('dequeue'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.#apiKey}`,
-      },
-      body: JSON.stringify(body),
-    })
-      .then(r => r.json())
-      .then(r => DEQUEUE_ACTION.returns.parseAsync(r))
-      .catch(err => {
-        this.#logger.debug(err)
-        throw new IntervalError('Received invalid API response.')
-      })
-
-    if (response.type === 'error') {
-      throw new IntervalError(
-        `There was a problem enqueuing the action: ${response.message}`
-      )
-    }
-
-    let { type, params, paramsMeta, ...rest } = response
-
-    if (paramsMeta && params) {
-      params = superjson.deserialize({ json: params, meta: paramsMeta })
-    }
-
-    return {
-      ...rest,
-      params,
     }
   }
 }
