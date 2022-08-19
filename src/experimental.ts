@@ -18,6 +18,7 @@ import { IntervalActionDefinition } from './types'
 
 class ExperimentalInterval extends Interval {
   #groupChangeCtx = Evt.newCtx()
+  actions: ExperimentalActions
 
   constructor(config: InternalConfig) {
     super(config)
@@ -36,6 +37,7 @@ class ExperimentalInterval extends Interval {
       }
     }
   }
+
   /*
    * Add an ActionGroup and its child actions to this deployment.
    */

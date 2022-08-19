@@ -93,7 +93,7 @@ export default class Interval {
   #client: IntervalClient | undefined
   #apiKey: string | undefined
   #httpEndpoint: string
-  #actions: Actions
+  actions: Actions
 
   organization:
     | {
@@ -111,20 +111,12 @@ export default class Interval {
     this.#httpEndpoint = getHttpEndpoint(
       config.endpoint ?? DEFAULT_WEBSOCKET_ENDPOINT
     )
-    this.#actions = new Actions(
+    this.actions = new Actions(
       this,
       this.#httpEndpoint,
       this.#logger,
       this.#apiKey
     )
-  }
-
-  get actions(): Actions {
-    return this.#actions
-  }
-
-  /* @internal */ set actions(actions: Actions) {
-    this.#actions = actions
   }
 
   protected get apiKey(): string | undefined {

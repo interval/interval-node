@@ -29,6 +29,10 @@ const interval = new ExperimentalInterval({
   },
 })
 
+interval.actions.add('new_action', async () => {
+  'Hello, dynamism!'
+})
+
 const nested = new ActionGroup({
   name: 'Nested',
   actions: {
