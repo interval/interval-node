@@ -224,13 +224,6 @@ export default class IntervalClient {
       throw new Error('Missing request ID')
     }
 
-    if (Object.keys(this.#actionHandlers).length === 0) {
-      this.#log.prod(
-        'Calling respondToRequest() with no defined actions is a no-op, skipping'
-      )
-      return
-    }
-
     if (!this.#ws) {
       await this.#createSocketConnection()
     }
@@ -243,7 +236,7 @@ export default class IntervalClient {
       this.#transactionCompleteCallbacks.set(requestId, [resolve, reject])
     })
 
-    if (!this.organization) {
+    if (!this.#isInitialized) {
       await this.#initializeHost(requestId)
     }
 
@@ -266,10 +259,7 @@ export default class IntervalClient {
   }
 
   async declareHost(httpHostId: string) {
-    if (this.#actionDefinitions.length === 0) {
-      this.#log.prod('No actions defined, skipping host declaration')
-      return
-    }
+    this.#walkActions()
 
     const body: z.infer<typeof DECLARE_HOST['inputs']> = {
       httpHostId,
