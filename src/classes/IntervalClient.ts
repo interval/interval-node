@@ -72,6 +72,7 @@ export default class IntervalClient {
   #reinitializeBatchTimeoutMs: number = 200
   #pingIntervalHandle: NodeJS.Timeout | undefined
   #intentionallyClosed = false
+  #config: InternalConfig
 
   #actionDefinitions: ActionDefinition[] = []
   #groupDefinitions: GroupDefinition[] = []
@@ -89,12 +90,11 @@ export default class IntervalClient {
     this.#interval = interval
     this.#apiKey = config.apiKey
     this.#logger = new Logger(config.logLevel)
+    this.#config = config
 
     if (config.endpoint) {
       this.#endpoint = config.endpoint
     }
-
-    this.#walkActions(config)
 
     if (config.retryIntervalMs && config.retryIntervalMs > 0) {
       this.#retryIntervalMs = config.retryIntervalMs
@@ -122,13 +122,13 @@ export default class IntervalClient {
     this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
   }
 
-  #walkActions(config: InternalConfig) {
+  #walkActions() {
     const groupDefinitions: GroupDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
     const actionHandlers: Record<string, IntervalActionHandler> = {}
 
-    if (config.actions) {
-      for (const [slug, def] of Object.entries(config.actions)) {
+    if (this.#config.actions) {
+      for (const [slug, def] of Object.entries(this.#config.actions)) {
         actionDefinitions.push({
           slug,
           ...('handler' in def ? def : {}),
@@ -138,7 +138,7 @@ export default class IntervalClient {
       }
     }
 
-    if (config.groups) {
+    if (this.#config.groups) {
       function walkActionGroup(groupSlug: string, group: ActionGroup) {
         groupDefinitions.push({
           slug: groupSlug,
@@ -162,7 +162,7 @@ export default class IntervalClient {
         }
       }
 
-      for (const [groupSlug, group] of Object.entries(config.groups)) {
+      for (const [groupSlug, group] of Object.entries(this.#config.groups)) {
         walkActionGroup(groupSlug, group)
       }
     }
@@ -196,10 +196,13 @@ export default class IntervalClient {
 
   #reinitializeTimeout: NodeJS.Timeout | null = null
 
-  handleActionsChange(config: InternalConfig) {
+  handleActionsChange(config?: InternalConfig) {
+    if (config !== undefined) {
+      this.#config = config
+    }
+
     if (this.#isInitialized && !this.#reinitializeTimeout) {
       this.#reinitializeTimeout = setTimeout(async () => {
-        this.#walkActions(config)
         await this.#initializeHost()
         this.#reinitializeTimeout = null
       }, this.#reinitializeBatchTimeoutMs)
@@ -207,13 +210,6 @@ export default class IntervalClient {
   }
 
   async listen() {
-    if (this.#actionDefinitions.length === 0) {
-      this.#log.prod(
-        'Calling listen() with no defined actions is a no-op, skipping'
-      )
-      return
-    }
-
     await this.initializeConnection()
     await this.#initializeHost()
   }
@@ -807,16 +803,14 @@ export default class IntervalClient {
       throw new IntervalError('serverRpc not initialized')
     }
 
-    const actions = this.#actionDefinitions
+    const isInitialInitialization = !this.#isInitialized
+    this.#isInitialized = true
 
-    if (actions.length === 0) {
-      this.#log.prod('No actions defined, skipping host initialization')
-      return
-    }
+    this.#walkActions()
 
     const response = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
-      actions,
+      actions: this.#actionDefinitions,
       groups: this.#groupDefinitions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
@@ -844,21 +838,16 @@ export default class IntervalClient {
         this.#log.warn(
           '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
         )
-
-        if (response.invalidSlugs.length === actions.length) {
-          throw new IntervalError('No valid slugs provided')
-        }
       }
 
       this.organization = response.organization
       this.environment = response.environment
 
-      if (!this.#isInitialized) {
+      if (isInitialInitialization) {
         this.#log.prod(
           `🔗 Connected! Access your actions at: ${response.dashboardUrl}`
         )
         this.#log.debug('Host ID:', this.#ws.id)
-        this.#isInitialized = true
       }
     }
 
