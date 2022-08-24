@@ -120,6 +120,35 @@ const prod = new Interval({
       })
       return ctx.params
     },
+    perform_redirect_flow: async () => {
+      let startedWork = false
+      const { workDone = false } = ctx.params
+      if (!workDone) {
+        await ctx.redirect({
+          action: 'perform_common_work',
+        })
+        startedWork = true
+      }
+
+      console.log({ startedWork, workDone })
+
+      return {
+        startedWork,
+        workDone,
+      }
+    },
+    perform_common_work: async () => {
+      ctx.loading.start(
+        'Performing some work, will redirect back when complete'
+      )
+      await sleep(2000)
+      await ctx.redirect({
+        action: 'perform_redirect_flow',
+        params: {
+          workDone: true,
+        },
+      })
+    },
   },
 })
 
@@ -834,6 +863,47 @@ const interval = new Interval({
       })
 
       return { url: url.href }
+    },
+    redirect: async () => {
+      const [url, , action, paramsStr] = await io.group([
+        io.input.url('Enter a URL').optional(),
+        io.display.markdown('--- or ---'),
+        io.input.text('Enter an action slug').optional(),
+        io.input
+          .text('With optional params', {
+            multiline: true,
+          })
+          .optional(),
+      ])
+
+      let params = undefined
+      if (url) {
+        await ctx.redirect({ url: url.toString() })
+      } else if (action) {
+        if (paramsStr) {
+          try {
+            params = JSON.parse(paramsStr)
+          } catch (err) {
+            ctx.log('Invalid params object', paramsStr)
+          }
+        }
+
+        await ctx.redirect({ action, params })
+      } else {
+        throw new Error('Must enter either a URL or an action slug')
+      }
+
+      console.log({
+        url,
+        action,
+        params,
+      })
+
+      return {
+        url: url?.toString(),
+        action,
+        paramsStr,
+      }
     },
   },
 })

@@ -24,6 +24,7 @@ import {
   ActionResultSchema,
   IOFunctionReturnType,
   IO_RESPONSE,
+  LinkProps,
   T_IO_RESPONSE,
 } from '../ioSchema'
 import { IOClient } from './IOClient'
@@ -652,6 +653,8 @@ export default class IntervalClient {
                 })
               },
             }),
+            redirect: (props: LinkProps) =>
+              this.#sendRedirect(transactionId, props),
           }
 
           const { io } = client
@@ -903,5 +906,16 @@ export default class IntervalClient {
       index,
       timestamp: new Date().valueOf(),
     })
+  }
+
+  async #sendRedirect(transactionId: string, props: LinkProps) {
+    const response = await this.#send('SEND_REDIRECT', {
+      transactionId,
+      ...props,
+    })
+
+    if (!response) {
+      throw new IntervalError('Failed sending redirect')
+    }
   }
 }

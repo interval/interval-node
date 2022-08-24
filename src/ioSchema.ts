@@ -164,6 +164,18 @@ export const menuItem = z.intersection(
   ])
 )
 
+export const linkSchema = z.union([
+  z.object({
+    url: z.string(),
+  }),
+  z.object({
+    action: z.string(),
+    params: serializableRecord.optional(),
+  }),
+])
+
+export type LinkProps = z.infer<typeof linkSchema>
+
 export const internalTableRow = z.object({
   key: z.string(),
   data: tableRow,
@@ -207,7 +219,7 @@ export const tableColumn = z.object({
             }),
             z.object({
               action: z.string(),
-              params: serializableRecord,
+              params: serializableRecord.optional(),
             }),
             z.object({}),
           ])
@@ -471,15 +483,9 @@ export const ioSchema = {
       }),
       z.union([
         z.object({
-          url: z.string().url(),
+          href: z.string(),
         }),
-        z.object({
-          href: z.string().url(),
-        }),
-        z.object({
-          action: z.string(),
-          params: serializableRecord.optional(),
-        }),
+        linkSchema,
       ])
     ),
     state: z.null(),

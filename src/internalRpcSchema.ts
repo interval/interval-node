@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { deserializableRecord, serializableRecord } from './ioSchema'
+import {
+  deserializableRecord,
+  linkSchema,
+  serializableRecord,
+} from './ioSchema'
 
 export const DUPLEX_MESSAGE_SCHEMA = z.object({
   id: z.string(),
@@ -209,6 +213,15 @@ export const wsServerSchema = {
     }),
     returns: z.boolean(),
   },
+  SEND_REDIRECT: {
+    inputs: z.intersection(
+      z.object({
+        transactionId: z.string(),
+      }),
+      linkSchema
+    ),
+    returns: z.boolean(),
+  },
   MARK_TRANSACTION_COMPLETE: {
     inputs: z.object({
       transactionId: z.string(),
@@ -328,6 +341,15 @@ export const clientSchema = {
       title: z.string().optional(),
       idempotencyKey: z.string().optional(),
     }),
+    returns: z.boolean(),
+  },
+  REDIRECT: {
+    inputs: z.intersection(
+      z.object({
+        transactionId: z.string(),
+      }),
+      linkSchema
+    ),
     returns: z.boolean(),
   },
 }
