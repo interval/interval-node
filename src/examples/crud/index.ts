@@ -37,6 +37,14 @@ const usersGroup = new ActionGroup({
       handler: editAction,
     },
   },
+  groups: {
+    billing: new ActionGroup({
+      name: 'Billing',
+      actions: {
+        view_unpaid_invoices: action,
+      },
+    }),
+  },
 })
 
 const classesGroup = new ActionGroup({
