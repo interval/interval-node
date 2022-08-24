@@ -106,29 +106,35 @@ export const table_custom: IntervalActionHandler = async io => {
     'zip',
   ].map(f => ({ label: f, value: f }))
 
-  const [rowsCount, fields, tableType, orientation] = await io.group([
-    io.input.number('Number of rows', { defaultValue: 50 }),
-    io.select.multiple('Fields', {
-      options: options,
-      defaultValue: options,
-    }),
-    io.select.single('Table type', {
-      options: [
-        { label: 'Display', value: 'display' },
-        { label: 'Select', value: 'select' },
-      ],
-      defaultValue: { label: 'Select', value: 'select' },
-    }),
-    io.select.single('Orientation', {
-      options: [
-        { label: 'Horizontal', value: 'horizontal' },
-        { label: 'Vertical', value: 'vertical' },
-      ],
-      defaultValue: { label: 'Select', value: 'select' },
-      helpText:
-        'Warning: Vertical orientation is not supported for select tables; it will be ignored',
-    }),
-  ])
+  const [rowsCount, fields, tableType, orientation, defaultPageSize] =
+    await io.group([
+      io.input.number('Number of rows', { defaultValue: 50 }),
+      io.select.multiple('Fields', {
+        options: options,
+        defaultValue: options,
+      }),
+      io.select.single('Table type', {
+        options: [
+          { label: 'Display', value: 'display' },
+          { label: 'Select', value: 'select' },
+        ],
+        defaultValue: { label: 'Select', value: 'select' },
+      }),
+      io.select.single('Orientation', {
+        options: [
+          { label: 'Horizontal', value: 'horizontal' },
+          { label: 'Vertical', value: 'vertical' },
+        ],
+        defaultValue: { label: 'Horizontal', value: 'horizontal' },
+        helpText:
+          'Warning: Vertical orientation is not supported for select tables; it will be ignored',
+      }),
+      io.input
+        .number('Default page size', {
+          defaultValue: 20,
+        })
+        .optional(),
+    ])
 
   const rows: { [key: string]: any }[] = []
   for (let i = 0; i < rowsCount; i++) {
@@ -179,12 +185,14 @@ export const table_custom: IntervalActionHandler = async io => {
     await io.display.table('Table', {
       data: rows,
       orientation: orientation.value as 'horizontal' | 'vertical',
+      defaultPageSize,
     })
   } else {
     const [selections] = await io.select.table('Select a person', {
       data: rows,
       minSelections: 1,
       maxSelections: 3,
+      defaultPageSize,
     })
     await io.display.object('Selected', { data: selections })
   }
@@ -258,6 +266,7 @@ export const table_custom_columns: IntervalActionHandler = async io => {
       ],
       minSelections: 1,
       maxSelections: 2,
+      defaultPageSize: Infinity,
     })
     .optional()
 
