@@ -288,7 +288,7 @@ export const clientSchema = {
   TRANSACTION_COMPLETED: {
     inputs: z.object({
       transactionId: z.string(),
-      resultStatus: z.enum(['SUCCESS', 'FAILURE', 'CANCELED']),
+      resultStatus: z.enum(['SUCCESS', 'FAILURE', 'CANCELED', 'REDIRECTED']),
     }),
     returns: z.void().nullable(),
   },
