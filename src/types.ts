@@ -10,6 +10,7 @@ import type {
   IOFunctionReturnType,
   T_IO_DISPLAY_METHOD_NAMES,
   T_IO_INPUT_METHOD_NAMES,
+  LinkProps,
 } from './ioSchema'
 import type { HostSchema } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
@@ -35,6 +36,7 @@ export type ActionCtx = Pick<
   loading: TransactionLoadingState
   log: ActionLogFn
   notify: NotifyFn
+  redirect: RedirectFn
   organization: {
     name: string
     slug: string
@@ -183,6 +185,8 @@ export type NotifyConfig = {
 }
 
 export type NotifyFn = (config: NotifyConfig) => Promise<void>
+
+export type RedirectFn = (props: LinkProps) => Promise<void>
 
 export type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
 

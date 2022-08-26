@@ -85,6 +85,7 @@ export const ctx: ActionCtx = {
   get organization() { return getActionStore().ctx.organization },
   get action() { return getActionStore().ctx.action },
   get notify() { return getActionStore().ctx.notify },
+  get redirect() { return getActionStore().ctx.redirect },
 }
 
 export default class Interval {
