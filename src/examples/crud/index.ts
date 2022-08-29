@@ -36,8 +36,6 @@ const usersGroup = new ActionGroup({
       name: 'Edit user',
       handler: editAction,
     },
-  },
-  groups: {
     billing: new ActionGroup({
       name: 'Billing',
       actions: {
@@ -73,8 +71,8 @@ const prod = new ExperimentalInterval({
   },
 })
 
-prod.addGroup('classes', classesGroup)
-prod.addGroup('users', usersGroup)
+prod.actions.add('classes', classesGroup)
+prod.actions.add('users', usersGroup)
 prod.listen()
 
 /**
@@ -88,6 +86,6 @@ const dev = new ExperimentalInterval({
   },
 })
 
-dev.addGroup('classes', classesGroup)
-dev.addGroup('users', usersGroup)
+dev.actions.add('classes', classesGroup)
+dev.actions.add('users', usersGroup)
 dev.listen()

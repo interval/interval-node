@@ -1,19 +1,38 @@
 import { z } from 'zod'
 
+export const DISPLAY_COMPONENT_TO_RENDER = z.object({
+  methodName: z.string(),
+  label: z.string(),
+  props: z.any(),
+  propsMeta: z.any().optional(),
+  isStateful: z.boolean().optional().default(false),
+})
+
+export type DisplayComponentToRender = z.infer<
+  typeof DISPLAY_COMPONENT_TO_RENDER
+>
+
+export const INPUT_COMPONENT_TO_RENDER = DISPLAY_COMPONENT_TO_RENDER.merge(
+  z.object({
+    isOptional: z.boolean().optional().default(false),
+    validationErrorMessage: z.string().optional(),
+  })
+)
+
+export const COMPONENT_TO_RENDER = INPUT_COMPONENT_TO_RENDER
+export type ComponentToRender = z.infer<typeof COMPONENT_TO_RENDER>
+
+export const DISPLAY_RENDER = z.object({
+  id: z.string(),
+  inputGroupKey: z.string(),
+  toRender: z.array(DISPLAY_COMPONENT_TO_RENDER),
+  kind: z.literal('RENDER'),
+})
+
 export const IO_RENDER = z.object({
   id: z.string(),
   inputGroupKey: z.string(),
-  toRender: z.array(
-    z.object({
-      methodName: z.string(),
-      label: z.string(),
-      props: z.any(),
-      propsMeta: z.any().optional(),
-      isStateful: z.boolean().optional().default(false),
-      isOptional: z.boolean().optional().default(false),
-      validationErrorMessage: z.string().optional(),
-    })
-  ),
+  toRender: z.array(COMPONENT_TO_RENDER),
   validationErrorMessage: z.string().optional(),
   kind: z.literal('RENDER'),
 })
@@ -33,6 +52,9 @@ export const IO_RESPONSE = z.object({
 
 export type T_IO_RENDER = z.infer<typeof IO_RENDER>
 export type T_IO_RENDER_INPUT = z.input<typeof IO_RENDER>
+export type T_DISPLAY_RENDER = z.infer<typeof DISPLAY_RENDER>
+export type T_DISPLAY_RENDER_INPUT = z.input<typeof DISPLAY_RENDER>
+
 export type T_IO_RESPONSE = z.infer<typeof IO_RESPONSE>
 export type T_IO_RESPONSE_KIND = T_IO_RESPONSE['kind']
 
@@ -55,7 +77,7 @@ export const primitiveValue = z.union([
 
 const objectLiteralSchema = primitiveValue.nullish()
 
-type Literal = boolean | null | number | string | Date | undefined
+export type Literal = boolean | null | number | string | Date | undefined
 // `object` is workaround for https://github.com/microsoft/TypeScript/issues/15300
 type KeyValue = Literal | { [key: string]: KeyValue } | KeyValue[] | object
 

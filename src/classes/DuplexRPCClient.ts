@@ -193,7 +193,7 @@ export class DuplexRPCClient<
 
   public send<MethodName extends keyof CallerSchema>(
     methodName: MethodName,
-    inputs: z.infer<CallerSchema[MethodName]['inputs']>
+    inputs: z.input<CallerSchema[MethodName]['inputs']>
   ) {
     const id = generateId()
 

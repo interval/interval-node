@@ -57,6 +57,8 @@ export type ActionDefinition = z.infer<typeof ACTION_DEFINITION>
 export const GROUP_DEFINITION = z.object({
   slug: z.string(),
   name: z.string(),
+  description: z.string().optional(),
+  hasRenderer: z.boolean().default(false),
 })
 
 export type GroupDefinition = z.infer<typeof GROUP_DEFINITION>
@@ -162,6 +164,25 @@ export const wsServerSchema = {
     }),
     returns: z.boolean(),
   },
+  REQUEST_APP: {
+    inputs: z.object({
+      pageKey: z.string().optional(),
+      appSlug: z.string(),
+      actionEnvironment,
+      organizationEnvironmentId: z.string().optional(),
+      params: serializableRecord.optional(),
+    }),
+    returns: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('SUCCESS'),
+        pageKey: z.string(),
+      }),
+      z.object({
+        type: z.literal('ERROR'),
+        message: z.string().optional(),
+      }),
+    ]),
+  },
   RESPOND_TO_IO_CALL: {
     inputs: z.object({
       transactionId: z.string(),
@@ -173,6 +194,14 @@ export const wsServerSchema = {
     inputs: z.object({
       transactionId: z.string(),
       ioCall: z.string(),
+    }),
+    returns: z.boolean(),
+  },
+  SEND_PAGE: {
+    inputs: z.object({
+      pageKey: z.string(),
+      // stringified PAGE_SCHEMA
+      page: z.string(),
     }),
     returns: z.boolean(),
   },
@@ -304,6 +333,14 @@ export const clientSchema = {
     }),
     returns: z.void().nullable(),
   },
+  RENDER_PAGE: {
+    inputs: z.object({
+      pageKey: z.string(),
+      // stringified PAGE_SCHEMA
+      page: z.string(),
+    }),
+    returns: z.boolean(),
+  },
   RENDER: {
     inputs: z.object({
       transactionId: z.string(),
@@ -363,6 +400,32 @@ export const hostSchema = {
       transactionId: z.string(),
     }),
     returns: z.void().nullable(),
+  },
+  START_APP: {
+    inputs: z.object({
+      pageKey: z.string(),
+      app: z.object({
+        slug: z.string(),
+      }),
+      environment: actionEnvironment,
+      user: z.object({
+        email: z.string(),
+        firstName: z.string().nullable(),
+        lastName: z.string().nullable(),
+      }),
+      params: serializableRecord,
+      paramsMeta: z.any().optional(),
+    }),
+    returns: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('SUCCESS'),
+        pageKey: z.string(),
+      }),
+      z.object({
+        type: z.literal('ERROR'),
+        message: z.string().optional(),
+      }),
+    ]),
   },
   START_TRANSACTION: {
     inputs: z.object({

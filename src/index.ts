@@ -13,13 +13,15 @@ import type {
   IntervalActionStore,
   NotifyConfig,
   IntervalActionDefinitions,
+  IntervalAppStore,
+  AppCtx,
 } from './types'
 import IntervalClient, {
   DEFAULT_WEBSOCKET_ENDPOINT,
   getHttpEndpoint,
   actionLocalStorage,
+  appLocalStorage,
 } from './classes/IntervalClient'
-import ActionGroup from './classes/ActionGroup'
 
 export type {
   ActionCtx,
@@ -32,7 +34,6 @@ export type {
 export interface InternalConfig {
   apiKey?: string
   actions?: IntervalActionDefinitions
-  groups?: Record<string, ActionGroup>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
@@ -64,6 +65,25 @@ export function getActionStore(): IntervalActionStore {
   return store
 }
 
+export function getAppStore(): IntervalAppStore {
+  const store = appLocalStorage.getStore()
+  if (!store) {
+    throw new IntervalError(
+      'Global io and ctx objects can only be used inside an App'
+    )
+  }
+
+  return store
+}
+
+export function getSomeStore(): IntervalActionStore | IntervalAppStore {
+  try {
+    return getAppStore()
+  } catch (err) {
+    return getActionStore()
+  }
+}
+
 // prettier-ignore
 export const io: IO = {
   get group() { return getActionStore().io.group },
@@ -71,19 +91,26 @@ export const io: IO = {
   get search() { return getActionStore().io.search },
   get input() { return getActionStore().io.input },
   get select() { return getActionStore().io.select },
-  get display() { return getActionStore().io.display },
+  get display() {
+    try {
+      return getAppStore().display
+    } catch (err) {
+      return getActionStore().io.display
+    }
+  },
   get experimental() { return getActionStore().io.experimental },
 }
 
 // prettier-ignore
-export const ctx: ActionCtx = {
-  get user() { return getActionStore().ctx.user },
-  get params() { return getActionStore().ctx.params },
-  get environment() { return getActionStore().ctx.environment },
+export const ctx: ActionCtx & AppCtx = {
+  get user() { return getSomeStore().ctx.user },
+  get params() { return getSomeStore().ctx.params },
+  get environment() { return getSomeStore().ctx.environment },
   get loading() { return getActionStore().ctx.loading },
   get log() { return getActionStore().ctx.log },
-  get organization() { return getActionStore().ctx.organization },
+  get organization() { return getSomeStore().ctx.organization },
   get action() { return getActionStore().ctx.action },
+  get app() { return getAppStore().ctx.app },
   get notify() { return getActionStore().ctx.notify },
   get redirect() { return getActionStore().ctx.redirect },
 }

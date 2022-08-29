@@ -1,53 +1,60 @@
 import { Evt } from 'evt'
-import { IntervalActionDefinition, IntervalActionDefinitions } from '../types'
+import {
+  AppCtx,
+  IO,
+  IntervalActionDefinition,
+  IntervalActionDefinitions,
+} from '../types'
+import { Page } from './Page'
 
 export interface ActionGroupConfig {
   name: string
+  description?: string
   actions?: IntervalActionDefinitions
   groups?: Record<string, ActionGroup>
+  render?: (display: IO['display'], ctx: AppCtx) => Promise<Page>
 }
 
 export default class ActionGroup {
   name: string
+  description?: string
   actions: IntervalActionDefinitions
-  groups: Record<string, ActionGroup> = {}
+  render?: (display: IO['display'], ctx: AppCtx) => Promise<Page>
 
   onChange: Evt<void>
   #groupChangeCtx = Evt.newCtx()
 
   constructor(config: ActionGroupConfig) {
     this.name = config.name
+    this.description = config.description
     this.actions = config.actions ?? {}
-    this.groups = config.groups ?? {}
+    this.render = config.render
     this.onChange = new Evt()
 
-    for (const group of Object.values(this.groups)) {
-      group.onChange.attach(this.#groupChangeCtx, this.onChange.post)
+    for (const actionOrGroup of Object.values(this.actions)) {
+      if (actionOrGroup instanceof ActionGroup) {
+        actionOrGroup.onChange.attach(this.#groupChangeCtx, this.onChange.post)
+      }
     }
   }
 
-  addGroup(groupSlug: string, group: ActionGroup) {
-    group.onChange.attach(this.#groupChangeCtx, this.onChange.post)
-    this.groups[groupSlug] = group
-    this.onChange.post()
-  }
+  add(slug: string, actionOrGroup: IntervalActionDefinition | ActionGroup) {
+    this.actions[slug] = actionOrGroup
 
-  removeGroup(groupSlug: string) {
-    const group = this.groups[groupSlug]
-    if (!group) return
-
-    group.onChange.detach(this.#groupChangeCtx)
-    delete this.groups[groupSlug]
-  }
-
-  add(slug: string, action: IntervalActionDefinition) {
-    this.actions[slug] = action
+    if (actionOrGroup instanceof ActionGroup) {
+      actionOrGroup.onChange.attach(this.#groupChangeCtx, this.onChange.post)
+    }
 
     this.onChange.post()
   }
 
   remove(slug: string) {
-    if (this.actions[slug]) {
+    const actionOrGroup = this.actions[slug]
+    if (actionOrGroup) {
+      if (actionOrGroup instanceof ActionGroup) {
+        actionOrGroup.onChange.detach(this.#groupChangeCtx)
+      }
+
       delete this.actions[slug]
       this.onChange.post()
     }

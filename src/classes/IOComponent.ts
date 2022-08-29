@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   ioSchema,
   resolvesImmediately,
+  T_IO_DISPLAY_METHOD_NAMES,
   T_IO_METHOD_NAMES,
   T_IO_RETURNS,
 } from '../ioSchema'
@@ -31,6 +32,12 @@ export type IOComponentMap = {
 }
 
 export type AnyIOComponent = IOComponentMap[keyof IoSchema]
+
+export type DisplayComponentMap = {
+  [MethodName in T_IO_DISPLAY_METHOD_NAMES]: IOComponent<MethodName>
+}
+
+export type AnyDisplayComponent = DisplayComponentMap[T_IO_DISPLAY_METHOD_NAMES]
 
 /**
  * The internal model underlying each IOPromise, responsible for constructing

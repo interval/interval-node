@@ -28,6 +28,7 @@ import type {
 } from './classes/IOPromise'
 import type IOError from './classes/IOError'
 import type TransactionLoadingState from './classes/TransactionLoadingState'
+import { ActionGroup } from './experimental'
 
 export type ActionCtx = Pick<
   z.infer<HostSchema['START_TRANSACTION']['inputs']>,
@@ -47,6 +48,15 @@ export type ActionCtx = Pick<
   }
 }
 
+export type AppCtx = Pick<
+  ActionCtx,
+  'user' | 'params' | 'environment' | 'organization'
+> & {
+  app: {
+    slug: string
+  }
+}
+
 export type ActionLogFn = (...args: any[]) => void
 
 export type IO = IOClient['io']
@@ -61,6 +71,11 @@ export interface IntervalActionStore {
   ctx: ActionCtx
 }
 
+export interface IntervalAppStore {
+  display: IO['display']
+  ctx: AppCtx
+}
+
 export interface ExplicitIntervalActionDefinition {
   prefix?: string
   handler: IntervalActionHandler
@@ -73,7 +88,10 @@ export type IntervalActionDefinition =
   | IntervalActionHandler
   | ExplicitIntervalActionDefinition
 
-export type IntervalActionDefinitions = Record<string, IntervalActionDefinition>
+export type IntervalActionDefinitions = Record<
+  string,
+  IntervalActionDefinition | ActionGroup
+>
 
 export type RequiredPropsIOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
@@ -211,6 +229,15 @@ export type IOPromiseMap = {
   >
 }
 export type AnyIOPromise = IOPromiseMap[T_IO_METHOD_NAMES]
+
+export type DisplayIOPromiseMap = {
+  [MethodName in T_IO_DISPLAY_METHOD_NAMES]: DisplayIOPromise<
+    MethodName,
+    T_IO_PROPS<MethodName>,
+    any
+  >
+}
+export type AnyDisplayIOPromise = DisplayIOPromiseMap[T_IO_DISPLAY_METHOD_NAMES]
 
 /**
  * Map of IOPromises that can be rendered in a group.

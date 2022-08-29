@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Evt } from 'evt'
+import { Evt, VoidCtx } from 'evt'
 import fetch from 'node-fetch'
 import type { IncomingMessage, ServerResponse } from 'http'
 import Interval, { io, ctx, InternalConfig, IntervalError } from '.'
@@ -14,6 +14,7 @@ import {
   LambdaResponse,
 } from './utils/http'
 import Actions from './classes/Actions'
+import Logger from './classes/Logger'
 import { IntervalActionDefinition } from './types'
 
 class ExperimentalInterval extends Interval {
@@ -23,46 +24,22 @@ class ExperimentalInterval extends Interval {
   constructor(config: InternalConfig) {
     super(config)
     this.actions = new ExperimentalActions(
+      this.#groupChangeCtx,
       this,
       this.httpEndpoint,
       this.log,
       this.apiKey
     )
 
-    if (this.config.groups) {
-      for (const group of Object.values(this.config.groups)) {
-        group.onChange.attach(this.#groupChangeCtx, () => {
-          this.client?.handleActionsChange(this.config)
-        })
+    if (this.config.actions) {
+      for (const group of Object.values(this.config.actions)) {
+        if (group instanceof ActionGroup) {
+          group.onChange.attach(this.#groupChangeCtx, () => {
+            this.client?.handleActionsChange(this.config)
+          })
+        }
       }
     }
-  }
-
-  /*
-   * Add an ActionGroup and its child actions to this deployment.
-   */
-  addGroup(prefix: string, group: ActionGroup) {
-    if (!this.config.groups) {
-      this.config.groups = {}
-    }
-
-    group.onChange.attach(this.#groupChangeCtx, () => {
-      this.client?.handleActionsChange(this.config)
-    })
-
-    this.config.groups[prefix] = group
-
-    this.client?.handleActionsChange(this.config)
-  }
-
-  removeGroup(prefix: string) {
-    if (!this.config.groups) return
-
-    const group = this.config.groups[prefix]
-    if (!group) return
-
-    group.onChange.detach(this.#groupChangeCtx)
-    delete this.config.groups[prefix]
   }
 
   /*
@@ -252,12 +229,31 @@ class ExperimentalInterval extends Interval {
 }
 
 export class ExperimentalActions extends Actions {
-  add(slug: string, action: IntervalActionDefinition) {
+  #groupChangeCtx: VoidCtx
+
+  constructor(
+    ctx: VoidCtx,
+    interval: Interval,
+    endpoint: string,
+    logger: Logger,
+    apiKey?: string
+  ) {
+    super(interval, endpoint, logger, apiKey)
+    this.#groupChangeCtx = ctx
+  }
+
+  add(slug: string, actionOrGroup: IntervalActionDefinition | ActionGroup) {
     if (!this.interval.config.actions) {
       this.interval.config.actions = {}
     }
 
-    this.interval.config.actions[slug] = action
+    if (actionOrGroup instanceof ActionGroup) {
+      actionOrGroup.onChange.attach(this.#groupChangeCtx, () => {
+        this.interval.client?.handleActionsChange(this.interval.config)
+      })
+    }
+
+    this.interval.config.actions[slug] = actionOrGroup
     this.interval.client?.handleActionsChange(this.interval.config)
   }
 
@@ -265,8 +261,12 @@ export class ExperimentalActions extends Actions {
     const { actions } = this.interval.config
 
     if (!actions) return
-    const action = actions[slug]
-    if (!action) return
+    const actionOrGroup = actions[slug]
+    if (!actionOrGroup) return
+
+    if (actionOrGroup instanceof ActionGroup) {
+      actionOrGroup.onChange.detach(this.#groupChangeCtx)
+    }
 
     delete actions[slug]
 

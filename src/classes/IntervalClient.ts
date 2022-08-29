@@ -25,6 +25,7 @@ import {
   IOFunctionReturnType,
   IO_RESPONSE,
   LinkProps,
+  T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
 } from '../ioSchema'
 import { IOClient } from './IOClient'
@@ -32,13 +33,22 @@ import * as pkg from '../../package.json'
 import { deserializeDates } from '../utils/deserialize'
 import type {
   ActionCtx,
+  AppCtx,
   IntervalActionHandler,
   IntervalActionStore,
+  IntervalAppStore,
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
 import localConfig from '../localConfig'
 import { Interval, InternalConfig, IntervalError } from '..'
 import ActionGroup from './ActionGroup'
+import {
+  Page,
+  Resource,
+  PageSchemaInput,
+  MetaItemSchema,
+  MetaItemsSchema,
+} from './Page'
 
 export const DEFAULT_WEBSOCKET_ENDPOINT = 'wss://interval.com/websocket'
 
@@ -60,6 +70,8 @@ interface SetupConfig {
 
 export const actionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
 
+export const appLocalStorage = new AsyncLocalStorage<IntervalAppStore>()
+
 export default class IntervalClient {
   #interval: Interval
   #ghostOrgId: string | undefined
@@ -78,6 +90,7 @@ export default class IntervalClient {
   #actionDefinitions: ActionDefinition[] = []
   #groupDefinitions: GroupDefinition[] = []
   #actionHandlers: Record<string, IntervalActionHandler> = {}
+  #appHandlers: Record<string, NonNullable<ActionGroup['render']>> = {}
 
   organization:
     | {
@@ -127,26 +140,24 @@ export default class IntervalClient {
     const groupDefinitions: GroupDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
     const actionHandlers: Record<string, IntervalActionHandler> = {}
+    const appHandlers: Record<string, NonNullable<ActionGroup['render']>> = {}
 
-    if (this.#config.actions) {
-      for (const [slug, def] of Object.entries(this.#config.actions)) {
-        actionDefinitions.push({
-          slug,
-          ...('handler' in def ? def : {}),
-          handler: undefined,
-        })
-        actionHandlers[slug] = 'handler' in def ? def.handler : def
+    function walkActionGroup(groupSlug: string, group: ActionGroup) {
+      groupDefinitions.push({
+        slug: groupSlug,
+        name: group.name,
+        description: group.description,
+        hasRenderer: !!group.render,
+      })
+
+      if (group.render) {
+        appHandlers[groupSlug] = group.render
       }
-    }
 
-    if (this.#config.groups) {
-      function walkActionGroup(groupSlug: string, group: ActionGroup) {
-        groupDefinitions.push({
-          slug: groupSlug,
-          name: group.name,
-        })
-
-        for (const [slug, def] of Object.entries(group.actions)) {
+      for (const [slug, def] of Object.entries(group.actions)) {
+        if (def instanceof ActionGroup) {
+          walkActionGroup(`${groupSlug}/${slug}`, def)
+        } else {
           actionDefinitions.push({
             groupSlug,
             slug,
@@ -157,20 +168,28 @@ export default class IntervalClient {
           actionHandlers[`${groupSlug}/${slug}`] =
             'handler' in def ? def.handler : def
         }
-
-        for (const [subGroupSlug, subGroup] of Object.entries(group.groups)) {
-          walkActionGroup(`${groupSlug}/${subGroupSlug}`, subGroup)
-        }
       }
+    }
 
-      for (const [groupSlug, group] of Object.entries(this.#config.groups)) {
-        walkActionGroup(groupSlug, group)
+    if (this.#config.actions) {
+      for (const [slug, def] of Object.entries(this.#config.actions)) {
+        if (def instanceof ActionGroup) {
+          walkActionGroup(slug, def)
+        } else {
+          actionDefinitions.push({
+            slug,
+            ...('handler' in def ? def : {}),
+            handler: undefined,
+          })
+          actionHandlers[slug] = 'handler' in def ? def.handler : def
+        }
       }
     }
 
     this.#groupDefinitions = groupDefinitions
     this.#actionDefinitions = actionDefinitions
     this.#actionHandlers = actionHandlers
+    this.#appHandlers = appHandlers
   }
 
   get #log() {
@@ -582,6 +601,171 @@ export default class IntervalClient {
       canCall: wsServerSchema,
       canRespondTo: hostSchema,
       handlers: {
+        START_APP: async inputs => {
+          if (!this.organization) {
+            this.#log.error('No organization defined')
+            return { type: 'ERROR' as const }
+          }
+
+          const { app, pageKey } = inputs
+          const appHandler = this.#appHandlers[app.slug]
+
+          this.#log.debug(appHandler)
+
+          if (!appHandler) {
+            this.#log.debug('No app handler called', app.slug)
+            return { type: 'ERROR' as const }
+          }
+
+          let { params, paramsMeta } = inputs
+
+          if (params && paramsMeta) {
+            params = superjson.deserialize({
+              json: params as JSONValue,
+              meta: paramsMeta,
+            })
+          }
+          const ctx: AppCtx = {
+            user: inputs.user,
+            params: deserializeDates(params),
+            environment: inputs.environment,
+            organization: this.organization,
+            app,
+          }
+
+          let page: Page
+          let renderInstruction: T_IO_RENDER_INPUT | undefined = undefined
+
+          let pageAttempts = 0
+          const sendPage = async () => {
+            if (pageAttempts++ > 5) return
+
+            if (page instanceof Resource) {
+              const pageRender: PageSchemaInput = {
+                kind: 'RESOURCE',
+                title: typeof page.title === 'string' ? page.title : null,
+                description:
+                  page.description === undefined
+                    ? undefined
+                    : typeof page.description === 'string'
+                    ? page.description
+                    : null,
+                children: renderInstruction,
+              }
+
+              if (page.meta) {
+                const items: MetaItemSchema[] = []
+                for (const pageItem of page.meta) {
+                  let { label, value } = pageItem
+                  if (typeof value === 'function' || value instanceof Promise) {
+                    items.push({ label })
+                  } else {
+                    items.push({ label, value })
+                  }
+                }
+
+                const { json, meta } = superjson.serialize(items)
+
+                if (json) {
+                  pageRender.meta = {
+                    json: json as MetaItemSchema[],
+                    meta,
+                  } as MetaItemsSchema
+                }
+              }
+
+              try {
+                this.#send('SEND_PAGE', {
+                  pageKey,
+                  page: JSON.stringify(pageRender),
+                })
+                pageAttempts = 0
+              } catch (err) {
+                this.#logger.debug(
+                  `Failed sending page, retrying in ${this.#retryIntervalMs}`
+                )
+                setTimeout(sendPage, this.#retryIntervalMs)
+              }
+            }
+          }
+
+          const client = new IOClient({
+            logger: this.#logger,
+            send: async instruction => {
+              renderInstruction = instruction
+              sendPage()
+            },
+          })
+
+          const {
+            io: { group, display },
+          } = client
+
+          this.#ioResponseHandlers.set(pageKey, client.onResponse.bind(client))
+
+          appLocalStorage.run({ display, ctx }, () => {
+            appHandler(display, ctx).then(res => {
+              page = res
+
+              if (typeof page.title === 'function') {
+                page.title = page.title()
+              }
+
+              if (page.title instanceof Promise) {
+                page.title.then(title => {
+                  page.title = title
+                  sendPage()
+                })
+              }
+
+              if (page.description) {
+                if (typeof page.description === 'function') {
+                  page.description = page.description()
+                }
+
+                if (page.description instanceof Promise) {
+                  page.description.then(description => {
+                    page.description = description
+                    sendPage()
+                  })
+                }
+              }
+
+              if (page instanceof Resource) {
+                const { meta } = page
+                if (meta) {
+                  for (let i = 0; i < meta.length; i++) {
+                    let { value } = meta[i]
+                    if (typeof value === 'function') {
+                      value = value()
+                      meta[i].value = value
+                    }
+
+                    if (value instanceof Promise) {
+                      value.then(resolved => {
+                        meta[i].value = resolved
+                        sendPage()
+                      })
+                    }
+                  }
+                }
+              }
+
+              sendPage()
+              group(page.children).then(() => {
+                this.#logger.debug(
+                  'Initial children render complete for pageKey',
+                  pageKey
+                )
+              })
+            })
+          })
+
+          return {
+            type: 'SUCCESS' as const,
+            pageKey,
+          }
+        },
         START_TRANSACTION: async inputs => {
           if (!this.organization) {
             this.#log.error('No organization defined')

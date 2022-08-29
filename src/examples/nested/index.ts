@@ -18,7 +18,7 @@ const interval = new ExperimentalInterval({
   apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
-  groups: {
+  actions: {
     devOnly,
     toRemove: new ActionGroup({
       name: 'To remove',
@@ -42,7 +42,7 @@ const nested = new ActionGroup({
   },
 })
 
-nested.addGroup(
+nested.add(
   'more',
   new ActionGroup({
     name: 'More nested',
@@ -52,9 +52,9 @@ nested.addGroup(
   })
 )
 
-interval.addGroup('nested', nested)
+interval.actions.add('nested', nested)
 
-nested.addGroup(
+nested.add(
   'other',
   new ActionGroup({
     name: 'Other',
@@ -66,7 +66,7 @@ nested.addGroup(
 )
 
 interval.listen().then(() => {
-  interval.addGroup(
+  interval.actions.add(
     'new',
     new ActionGroup({
       name: 'New Group',
@@ -76,7 +76,7 @@ interval.listen().then(() => {
     })
   )
 
-  interval.removeGroup('toRemove')
+  interval.actions.remove('toRemove')
 
   devOnly.add('self_destructing', async () => {
     devOnly.remove('self_destructing')
@@ -89,7 +89,7 @@ const anon = new ExperimentalInterval({
   endpoint: 'ws://localhost:3000/websocket',
 })
 
-anon.addGroup('nested', nested)
+anon.actions.add('nested', nested)
 
 anon.listen()
 
@@ -99,6 +99,6 @@ const prod = new ExperimentalInterval({
   endpoint: 'ws://localhost:3000/websocket',
 })
 
-prod.addGroup('test', nested)
+prod.actions.add('test', nested)
 
 prod.listen()
