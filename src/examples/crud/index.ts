@@ -81,7 +81,7 @@ prod.listen()
  * Dev mode
  */
 const dev = new ExperimentalInterval({
-  apiKey: 'jovany_dev_JpBOS3mk6ZbNcEP5zNyVLEIM25K3oZgU8qEyGcJgbVtgaJtm',
+  apiKey: 'alex_dev_Bku6kYZlyhyvkCO36W5HnpwtXACI1khse8SnZ9PuwsmqdRfe',
   endpoint: 'ws://localhost:3000/websocket',
   actions: {
     hello_world: action,
