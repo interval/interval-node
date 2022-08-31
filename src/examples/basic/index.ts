@@ -905,6 +905,14 @@ const interval = new Interval({
         paramsStr,
       }
     },
+    continue_button: async () => {
+      const url = await io.group([io.input.text('Important data')], {
+        continueButtonLabel: 'Delete the data',
+        continueButtonTheme: 'danger',
+      })
+
+      return 'All done!'
+    },
   },
 })
 

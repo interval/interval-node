@@ -2,6 +2,7 @@ import { v4 } from 'uuid'
 import { z } from 'zod'
 import * as superjson from 'superjson'
 import type {
+  ButtonTheme,
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
   T_IO_PROPS,
@@ -40,6 +41,7 @@ import {
   RequiredPropsDisplayIOComponentFunction,
   InputIOComponentFunction,
   RequiredPropsInputIOComponentFunction,
+  GroupConfig,
 } from '../types'
 import { stripUndefined } from '../utils/deserialize'
 import { IntervalError } from '..'
@@ -93,7 +95,9 @@ export class IOClient {
     Components extends [AnyIOComponent, ...AnyIOComponent[]]
   >(
     components: Components,
-    groupValidator?: IOClientRenderValidator<Components>
+    groupValidator?: IOClientRenderValidator<Components>,
+    continueButtonLabel?: string,
+    continueButtonTheme?: ButtonTheme
   ) {
     if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
@@ -125,6 +129,8 @@ export class IOClient {
               }),
             validationErrorMessage,
             kind: 'RENDER',
+            continueButtonLabel,
+            continueButtonTheme,
           }
 
           await this.send(packed)
@@ -242,16 +248,17 @@ export class IOClient {
       MaybeOptionalGroupIOPromise,
       ...MaybeOptionalGroupIOPromise[]
     ]
-  >(ioPromises: IOPromises): IOGroupPromise<IOPromises>
+  >(ioPromises: IOPromises, props?: GroupConfig): IOGroupPromise<IOPromises>
   group(
-    ioPromises: MaybeOptionalGroupIOPromise[]
+    ioPromises: MaybeOptionalGroupIOPromise[],
+    props?: GroupConfig
   ): IOGroupPromise<MaybeOptionalGroupIOPromise[]>
   group<
     IOPromises extends [
       MaybeOptionalGroupIOPromise,
       ...MaybeOptionalGroupIOPromise[]
     ]
-  >(promises: IOPromises) {
+  >(promises: IOPromises, props?: GroupConfig) {
     const exclusivePromises = promises.filter(
       pi => pi instanceof ExclusiveIOPromise
     )
@@ -267,6 +274,8 @@ export class IOClient {
     return new IOGroupPromise({
       promises,
       renderer: this.renderComponents.bind(this),
+      continueButtonLabel: props?.continueButtonLabel,
+      continueButtonTheme: props?.continueButtonTheme,
     })
   }
 

@@ -11,6 +11,7 @@ import type {
   T_IO_DISPLAY_METHOD_NAMES,
   T_IO_INPUT_METHOD_NAMES,
   LinkProps,
+  ButtonTheme,
 } from './ioSchema'
 import type { HostSchema } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
@@ -160,7 +161,9 @@ export type ComponentsRenderer<
   ]
 > = (
   components: Components,
-  validator?: IOClientRenderValidator<Components>
+  validator?: IOClientRenderValidator<Components>,
+  continueButtonLabel?: string,
+  continueButtonTheme?: ButtonTheme
 ) => Promise<
   {
     [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
@@ -248,4 +251,9 @@ export type IOComponentDefinition<
   onStateChange?: (
     newState: T_IO_STATE<MethodName>
   ) => Promise<T_IO_PROPS<MethodName>>
+}
+
+export type GroupConfig = {
+  continueButtonLabel?: string
+  continueButtonTheme?: ButtonTheme
 }
