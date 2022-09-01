@@ -8,6 +8,8 @@ export default function displayImage(
     alt?: T_IO_PROPS<'DISPLAY_IMAGE'>['alt']
     width?: T_IO_PROPS<'DISPLAY_IMAGE'>['width']
     height?: T_IO_PROPS<'DISPLAY_IMAGE'>['height']
+    maxWidth?: T_IO_PROPS<'DISPLAY_IMAGE'>['maxWidth']
+    maxHeight?: T_IO_PROPS<'DISPLAY_IMAGE'>['maxHeight']
   } & (
     | {
         url: string

@@ -321,9 +321,8 @@ const interval = new Interval({
       await io.group([
         io.display.image('Image via url', {
           url: 'https://media.giphy.com/media/26ybw6AltpBRmyS76/giphy.gif',
-          width: 400,
-          height: 400,
           alt: "Man makes like he's going to jump on a skateboard but doesn't",
+          maxWidth: 'medium',
         }),
         io.display.image('Image via buffer', {
           buffer: fs.readFileSync('./examples/static/fail.gif'),
