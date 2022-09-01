@@ -1,4 +1,7 @@
 import { T_IO_PROPS } from '../ioSchema'
+import { IntervalError } from '..'
+
+const MAX_BUFFER_SIZE_MB = 50
 
 export default function displayImage(
   props: {
@@ -14,8 +17,12 @@ export default function displayImage(
       }
   )
 ) {
-  console.log('props')
   if ('buffer' in props) {
+    if (Buffer.byteLength(props.buffer) > MAX_BUFFER_SIZE_MB * 1000 * 1000) {
+      throw new IntervalError(
+        `Buffer for io.display.image is too big, must be under ${MAX_BUFFER_SIZE_MB} MB`
+      )
+    }
     return {
       props: {
         ...props,
