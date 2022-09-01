@@ -6,7 +6,6 @@ import {
   menuItem,
 } from '../ioSchema'
 import { z } from 'zod'
-import Logger from '../classes/Logger'
 
 /**
  * Generates column headers from rows if no columns are provided.
@@ -53,36 +52,163 @@ export function columnsWithoutRender(
   return columns.map(({ renderCell, ...column }) => column)
 }
 
+const dateFormatter = new Intl.DateTimeFormat('en-US')
+
+type RenderedTableRow = {
+  [key: string]: ReturnType<z.infer<typeof tableColumn>['renderCell']>
+}
+
 /**
  * Applies cell renderers to a row.
  */
-export function tableRowSerializer<T extends z.infer<typeof tableRow>>(
-  idx: number,
-  row: T,
-  columns: z.infer<typeof tableColumn>[],
+function renderTableRow<T extends z.infer<typeof tableRow>>({
+  index,
+  row,
+  columns,
+  menuBuilder,
+}: {
+  index: number
+  row: T
+  columns: z.infer<typeof tableColumn>[]
   menuBuilder?: (row: T) => z.infer<typeof menuItem>[]
-): z.infer<typeof internalTableRow> {
-  const key = idx.toString()
+}): z.infer<typeof internalTableRow> {
+  const key = index.toString()
 
-  const finalRow: { [key: string]: any } = {}
+  const renderedRow: RenderedTableRow = {}
+  const filterValues: string[] = []
 
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i]
     const val = col.renderCell(row) ?? null
-    if (
-      !!val &&
-      typeof val === 'object' &&
-      'label' in val &&
-      val.label === undefined
-    ) {
-      val.label = null
+
+    if (!!val && typeof val === 'object' && 'label' in val) {
+      if (val.label === undefined) {
+        val.label = null
+      } else if (val.label) {
+        filterValues.push(String(val.label))
+      }
+    } else if (val instanceof Date) {
+      filterValues.push(dateFormatter.format(val))
+    } else {
+      filterValues.push(String(val))
     }
-    finalRow[i.toString()] = val
+
+    renderedRow[i.toString()] = val
   }
 
   return {
     key,
-    data: finalRow,
+    data: renderedRow,
+    filterValue: filterValues.join(' ').toLowerCase(),
     menu: menuBuilder ? menuBuilder(row) : undefined,
   }
+}
+
+export function sortRows({
+  data,
+  column,
+  direction,
+}: {
+  data: z.infer<typeof internalTableRow>[]
+  column: string | null
+  direction: 'asc' | 'desc' | null
+}) {
+  if (column === null || direction === null) {
+    return data
+  }
+
+  return data.sort((a, b) => {
+    if (column === null) return 0
+
+    const sortA = getSortableValue(direction === 'desc' ? b : a, column) ?? null
+    const sortB = getSortableValue(direction === 'desc' ? a : b, column) ?? null
+
+    if (sortA === null) return 1
+    if (sortB === null) return -1
+
+    if (typeof sortA === 'string' && typeof sortB === 'string') {
+      return sortA.localeCompare(sortB, undefined, { numeric: true })
+    }
+    if (sortA < sortB) return -1
+    if (sortA > sortB) return 1
+
+    return 0
+  })
+}
+
+function getSortableValue(
+  row: z.infer<typeof internalTableRow>,
+  sortByColumn: string
+) {
+  let sortVal
+
+  if (row !== null && 'data' in row && row.data) {
+    if (sortByColumn in row.data) {
+      sortVal = (row.data as Record<string, any>)[sortByColumn] ?? null
+    }
+  }
+
+  if (sortVal && typeof sortVal === 'object') {
+    if ('value' in sortVal) {
+      return sortVal.value
+    }
+    if ('label' in sortVal) {
+      return sortVal.label
+    }
+  }
+
+  return sortVal
+}
+
+export function renderResults<T extends z.input<typeof tableRow>>(
+  results: T[],
+  columns: z.infer<typeof tableColumn>[]
+): z.infer<typeof internalTableRow>[] {
+  return results.map((row, index) => renderTableRow({ index, row, columns }))
+}
+
+export function filterRows({
+  queryTerm,
+  data,
+}: {
+  queryTerm: string
+  data: z.infer<typeof internalTableRow>[]
+}): z.infer<typeof internalTableRow>[] {
+  if (!queryTerm) return data
+
+  return (
+    data
+      .filter(row => {
+        if ('filterValue' in row && typeof row.filterValue === 'string') {
+          return row.filterValue?.includes(queryTerm.toLowerCase())
+        }
+        return true
+      })
+      // filterValue is unnecessary beyond this point
+      .map(({ filterValue, ...row }) => row)
+  )
+}
+
+export function paginateRows<T>({
+  data,
+  page,
+  pageSize,
+}: {
+  page: number
+  pageSize: number
+  data: T[]
+}): {
+  page: number
+  totalPages: number
+  totalRecords: number
+  data: T[]
+} {
+  const totalRecords = data.length
+
+  const start = page * pageSize
+
+  const totalPages = Math.ceil(totalRecords / pageSize)
+  const pagedResults = data.slice(start, start + pageSize)
+
+  return { totalPages, data: pagedResults, page, totalRecords }
 }

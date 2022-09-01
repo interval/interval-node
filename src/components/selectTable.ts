@@ -6,9 +6,16 @@ import {
   menuItem,
   internalTableRow,
   T_IO_RETURNS,
+  T_IO_STATE,
 } from '../ioSchema'
 import { TableColumn } from '../types'
-import { columnsBuilder, tableRowSerializer } from '../utils/table'
+import {
+  columnsBuilder,
+  filterRows,
+  paginateRows,
+  renderResults,
+  sortRows,
+} from '../utils/table'
 
 function missingColumnMessage(component: string) {
   return (column: string) =>
@@ -29,12 +36,23 @@ export default function selectTable(logger: Logger) {
       logger.error(missingColumnMessage('io.select.table')(column))
     )
 
-    const data = props.data.map((row, idx) =>
-      tableRowSerializer(idx, row, columns, props.rowMenuItems)
-    )
+    // Rendering all rows on initialization is necessary for filtering and sorting
+    const renderedData = renderResults<Row>(props.data, columns)
+
+    const pageSize = props.defaultPageSize ?? 20
+
+    const paginated = paginateRows({
+      page: 0,
+      pageSize,
+      data: renderedData,
+    })
 
     return {
-      props: { ...props, data, columns },
+      props: {
+        ...props,
+        ...paginated,
+        columns,
+      },
       getValue(response: T_IO_RETURNS<'SELECT_TABLE'>) {
         const indices = response.map(row =>
           Number((row as z.infer<typeof internalTableRow>).key)
@@ -43,6 +61,25 @@ export default function selectTable(logger: Logger) {
         const rows = props.data.filter((_, idx) => indices.includes(idx))
 
         return rows as DataList
+      },
+      async onStateChange(newState: T_IO_STATE<'SELECT_TABLE'>) {
+        const data = [...renderedData]
+
+        const filtered = filterRows({ queryTerm: newState.queryTerm, data })
+
+        const sorted = sortRows({
+          data: filtered,
+          column: newState.sortColumn ?? null,
+          direction: newState.sortDirection ?? null,
+        })
+
+        const paginated = paginateRows({
+          data: sorted,
+          page: newState.page,
+          pageSize: newState.pageSize ?? pageSize,
+        })
+
+        return paginated
       },
     }
   }

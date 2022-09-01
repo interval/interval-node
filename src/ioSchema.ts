@@ -189,6 +189,10 @@ export const internalTableRow = z.object({
   key: z.string(),
   data: tableRow,
   menu: z.array(menuItem).optional(),
+  // filterValue is a string we compile when we render each row, allowing us to quickly
+  // filter array items without having to search all object keys for the query term.
+  // It is not sent to the client.
+  filterValue: z.string().optional(),
 })
 
 export const tableColumn = z.object({
@@ -452,8 +456,19 @@ export const ioSchema = {
       minSelections: z.optional(z.number().int().min(0)),
       maxSelections: z.optional(z.number().positive().int()),
       disabled: z.optional(z.boolean().default(false)),
+      //== private props
+      // added in v0.27, optional until required by all active versions
+      totalPages: z.optional(z.number().int()),
+      // added in v0.27, optional until required by all active versions
+      totalRecords: z.optional(z.number().int()),
     }),
-    state: z.null(),
+    state: z.object({
+      queryTerm: z.string(),
+      page: z.number().int().default(0),
+      sortColumn: z.string().nullish(),
+      sortDirection: z.enum(['asc', 'desc']).nullish(),
+      pageSize: z.optional(z.number().int().max(100)),
+    }),
     returns: z.array(internalTableRow),
   },
   SELECT_SINGLE: {
@@ -530,8 +545,19 @@ export const ioSchema = {
       data: z.array(internalTableRow),
       orientation: z.enum(['vertical', 'horizontal']).default('horizontal'),
       defaultPageSize: z.number().optional(),
+      //== private props
+      // added in v0.27, optional until required by all active versions
+      totalPages: z.optional(z.number().int()),
+      // added in v0.27, optional until required by all active versions
+      totalRecords: z.optional(z.number().int()),
     }),
-    state: z.null(),
+    state: z.object({
+      queryTerm: z.string(),
+      page: z.number().int().default(0),
+      sortColumn: z.string().nullish(),
+      sortDirection: z.enum(['asc', 'desc']).nullish(),
+      pageSize: z.optional(z.number().int().max(100)),
+    }),
     returns: z.null(),
   },
   DISPLAY_PROGRESS_STEPS: {
