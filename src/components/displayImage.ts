@@ -1,4 +1,4 @@
-import { T_IO_PROPS } from '../ioSchema'
+import { T_IO_PROPS, ImageSize } from '../ioSchema'
 import { IntervalError } from '..'
 
 const MAX_BUFFER_SIZE_MB = 50
@@ -10,6 +10,7 @@ export default function displayImage(
     height?: T_IO_PROPS<'DISPLAY_IMAGE'>['height']
     maxWidth?: T_IO_PROPS<'DISPLAY_IMAGE'>['maxWidth']
     maxHeight?: T_IO_PROPS<'DISPLAY_IMAGE'>['maxHeight']
+    maxSize?: ImageSize
   } & (
     | {
         url: string
@@ -19,6 +20,11 @@ export default function displayImage(
       }
   )
 ) {
+  const maxSize = props.maxSize
+  delete props.maxSize
+  props.maxWidth = maxSize ? maxSize : props.maxWidth
+  props.maxHeight = maxSize ? maxSize : props.maxHeight
+
   if ('buffer' in props) {
     if (Buffer.byteLength(props.buffer) > MAX_BUFFER_SIZE_MB * 1000 * 1000) {
       throw new IntervalError(
