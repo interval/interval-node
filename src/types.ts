@@ -254,6 +254,8 @@ export type IOComponentDefinition<
 }
 
 export type GroupConfig = {
-  continueButtonLabel?: string
-  continueButtonTheme?: ButtonTheme
+  continueButton: {
+    label?: string
+    theme?: ButtonTheme
+  }
 }

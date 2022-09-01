@@ -274,8 +274,8 @@ export class IOClient {
     return new IOGroupPromise({
       promises,
       renderer: this.renderComponents.bind(this),
-      continueButtonLabel: props?.continueButtonLabel,
-      continueButtonTheme: props?.continueButtonTheme,
+      continueButtonLabel: props?.continueButton?.label,
+      continueButtonTheme: props?.continueButton?.theme,
     })
   }
 
