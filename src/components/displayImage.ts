@@ -20,13 +20,35 @@ export default function displayImage(
   if ('buffer' in props) {
     if (Buffer.byteLength(props.buffer) > MAX_BUFFER_SIZE_MB * 1000 * 1000) {
       throw new IntervalError(
-        `Buffer for io.display.image is too big, must be under ${MAX_BUFFER_SIZE_MB} MB`
+        `Buffer for io.display.image is too large, must be under ${MAX_BUFFER_SIZE_MB} MB`
       )
     }
+
+    const data = props.buffer.toString('base64')
+
+    let mime
+    switch (data[0]) {
+      case 'i':
+        mime = 'image/png'
+        break
+      case 'R':
+        mime = 'image/gif'
+        break
+      case '/':
+        mime = 'image/jpeg'
+        break
+      case 'U':
+        mime = 'image/webp'
+        break
+      default:
+        mime = 'image/unknown'
+        break
+    }
+
     return {
       props: {
         ...props,
-        buffer: props.buffer.toString('base64'),
+        url: `data:${mime};base64,${data}`,
       },
     }
   } else {

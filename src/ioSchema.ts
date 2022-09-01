@@ -478,23 +478,12 @@ export const ioSchema = {
     returns: z.null(),
   },
   DISPLAY_IMAGE: {
-    props: z.intersection(
-      z.object({
-        alt: z.string().optional(),
-        width: z.number().positive().int().optional(),
-        height: z.number().positive().int().optional(),
-      }),
-      z.union([
-        z.object({
-          url: z.string(),
-        }),
-        z.object({
-          buffer: z.any(),
-          // TODO we load ioSchema in the browser so would need to polyfill this?
-          // buffer: z.instanceof(Buffer),
-        }),
-      ])
-    ),
+    props: z.object({
+      alt: z.string().optional(),
+      width: z.number().positive().int().optional(),
+      height: z.number().positive().int().optional(),
+      url: z.string(),
+    }),
     state: z.null(),
     returns: z.null(),
   },
