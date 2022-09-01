@@ -15,6 +15,7 @@ import {
 import unauthorized from './unauthorized'
 import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
+import fs from 'fs'
 
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
@@ -315,6 +316,20 @@ const interval = new Interval({
       await io.display.object('Return', {
         data: { mySuperValue: data || 'No data' },
       })
+    },
+    images: async () => {
+      await io.group([
+        io.display.image('Image via url', {
+          url: 'https://media.giphy.com/media/26ybw6AltpBRmyS76/giphy.gif',
+          width: 400,
+          height: 400,
+          alt: "Man makes like he's going to jump on a skateboard but doesn't",
+        }),
+        io.display.image('Image via buffer', {
+          buffer: fs.readFileSync('./examples/static/fail.gif'),
+          alt: 'Wile E. Coyote pulls a rope to launch a boulder from a catapult but it topples backwards and crushes him',
+        }),
+      ])
     },
     enter_a_number: async io => {
       const num = await io.input.number('Enter a number')
