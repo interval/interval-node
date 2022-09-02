@@ -8,9 +8,7 @@ export default function displayImage(
     alt?: T_IO_PROPS<'DISPLAY_IMAGE'>['alt']
     width?: T_IO_PROPS<'DISPLAY_IMAGE'>['width']
     height?: T_IO_PROPS<'DISPLAY_IMAGE'>['height']
-    maxWidth?: T_IO_PROPS<'DISPLAY_IMAGE'>['maxWidth']
-    maxHeight?: T_IO_PROPS<'DISPLAY_IMAGE'>['maxHeight']
-    maxSize?: ImageSize
+    size?: ImageSize
   } & (
     | {
         url: string
@@ -20,10 +18,10 @@ export default function displayImage(
       }
   )
 ) {
-  const maxSize = props.maxSize
-  delete props.maxSize
-  props.maxWidth = maxSize ? maxSize : props.maxWidth
-  props.maxHeight = maxSize ? maxSize : props.maxHeight
+  const size = props.size
+  delete props.size
+  props.width = size ? size : props.width
+  props.height = size ? size : props.height
 
   if ('buffer' in props) {
     if (Buffer.byteLength(props.buffer) > MAX_BUFFER_SIZE_MB * 1000 * 1000) {
@@ -34,6 +32,10 @@ export default function displayImage(
 
     const data = props.buffer.toString('base64')
 
+    // using first character as a simple check for common image formats:
+    // https://stackoverflow.com/questions/27886677/javascript-get-extension-from-base64-image/50111377#50111377
+    // image/unknown actually seems to just work for all the types I've
+    // encountered, but we can expand this switch if we need to
     let mime
     switch (data[0]) {
       case 'i':

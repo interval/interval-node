@@ -485,10 +485,8 @@ export const ioSchema = {
   DISPLAY_IMAGE: {
     props: z.object({
       alt: z.string().optional(),
-      width: z.number().positive().int().optional(),
-      height: z.number().positive().int().optional(),
-      maxWidth: imageSize,
-      maxHeight: imageSize,
+      width: imageSize,
+      height: imageSize,
       url: z.string(),
     }),
     state: z.null(),
