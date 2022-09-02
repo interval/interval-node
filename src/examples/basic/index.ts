@@ -676,6 +676,18 @@ const interval = new Interval({
 
       await sleep(1000)
     },
+    loading_dos: async () => {
+      const itemsInQueue = 100_000
+      await ctx.loading.start({
+        title: 'Migrating users',
+        description: 'There are a lot, but they are very fast',
+        itemsInQueue,
+      })
+
+      for (let i = 0; i < itemsInQueue; i++) {
+        await ctx.loading.completeOne()
+      }
+    },
     echoParams: async (io, ctx) => {
       ctx.log(ctx.params)
       await io.display.object('Params', {
