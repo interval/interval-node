@@ -905,6 +905,8 @@ export default class IntervalClient {
       data,
       index,
       timestamp: new Date().valueOf(),
+    }).catch(err => {
+      this.#logger.error('Failed sending log to Interval', err)
     })
   }
 
