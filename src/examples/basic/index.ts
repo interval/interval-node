@@ -688,6 +688,11 @@ const interval = new Interval({
         await ctx.loading.completeOne()
       }
     },
+    log_dos: async () => {
+      for (let i = 0; i < 100_000; i++) {
+        await ctx.log(i)
+      }
+    },
     echoParams: async (io, ctx) => {
       ctx.log(ctx.params)
       await io.display.object('Params', {

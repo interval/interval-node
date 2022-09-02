@@ -47,8 +47,6 @@ export type ActionCtx = Pick<
   }
 }
 
-export type ActionLogFn = (...args: any[]) => void
-
 export type IO = IOClient['io']
 
 export type IntervalActionHandler = (
@@ -183,6 +181,8 @@ export type NotifyConfig = {
   transactionId?: string
   idempotencyKey?: string
 }
+
+export type ActionLogFn = (...args: any[]) => Promise<void>
 
 export type NotifyFn = (config: NotifyConfig) => Promise<void>
 
