@@ -10,8 +10,8 @@ export default class TransactionLoadingState {
   #logger: Logger
   #sender: TransactionLoadingStateConfig['send']
   #state: LoadingState | undefined
-  #completeOneTimeout: NodeJS.Timeout | null = null
-  #completeOneTimeoutMs = 100
+  #sendTimeout: NodeJS.Timeout | null = null
+  #sendTimeoutMs = 100
 
   constructor(config: TransactionLoadingStateConfig) {
     this.#sender = config.send
@@ -19,11 +19,16 @@ export default class TransactionLoadingState {
   }
 
   async #sendState() {
-    try {
-      await this.#sender(this.#state ?? {})
-    } catch (err) {
-      this.#logger.error('Failed sending loading state to Interval')
-      this.#logger.debug(err)
+    if (!this.#sendTimeout) {
+      // Buffer send calls for 100ms to prevent accidental DoSing with
+      // many loading calls
+      this.#sendTimeout = setTimeout(() => {
+        this.#sender(this.#state ?? {}).catch(err => {
+          this.#logger.error('Failed sending loading state to Interval')
+          this.#logger.debug(err)
+        })
+        this.#sendTimeout = null
+      }, this.#sendTimeoutMs)
     }
   }
 
@@ -80,16 +85,6 @@ export default class TransactionLoadingState {
     }
 
     this.#state.itemsCompleted++
-    if (!this.#completeOneTimeout) {
-      // Buffer send calls to prevent accidental DoSing with
-      // many `completeOne()` calls
-      this.#completeOneTimeout = setTimeout(() => {
-        this.#sendState().catch(err => {
-          this.#logger.error('Failed sending loading state to Interval')
-          this.#logger.debug(err)
-        })
-        this.#completeOneTimeout = null
-      }, this.#completeOneTimeoutMs)
-    }
+    return this.#sendState()
   }
 }
