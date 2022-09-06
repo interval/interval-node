@@ -22,6 +22,18 @@ const hello_app = new ActionGroup({
         },
         { label: 'Promise', value: sleep(2000).then(() => 2000) },
       ],
+      menuItems: [
+        {
+          label: 'Inline action',
+          action: async () => {
+            const name = await io.input.text('Your name')
+            await io.display.markdown(`Hello, ${name}`)
+            return {
+              name,
+            }
+          },
+        },
+      ],
       children: [
         io.display.markdown('Hello, resource!'),
         io.display.table('A table', {
@@ -29,6 +41,16 @@ const hello_app = new ActionGroup({
             { a: 1, b: 2, c: 3 },
             { a: 1, b: 2, c: 3 },
             { a: 1, b: 2, c: 3 },
+          ],
+          rowMenuItems: () => [
+            {
+              label: 'Edit',
+              action: 'hello_app/hello_world',
+            },
+            {
+              label: 'Inline',
+              action: async () => {},
+            },
           ],
         }),
       ],

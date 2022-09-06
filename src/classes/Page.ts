@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { primitiveValue, Literal, IO_RENDER } from '../ioSchema'
-import { AnyDisplayIOPromise } from '../types'
+import { primitiveValue, Literal, IO_RENDER, menuItem } from '../ioSchema'
+import { AnyDisplayIOPromise, MenuItem } from '../types'
 
 type EventualString =
   | string
@@ -12,6 +12,7 @@ interface PageConfig {
   title?: EventualString
   description?: EventualString
   children: AnyDisplayIOPromise[]
+  menuItems?: MenuItem[]
 }
 
 // Base class
@@ -19,11 +20,13 @@ export class Page {
   title?: EventualString
   description?: EventualString
   children: AnyDisplayIOPromise[]
+  menuItems?: MenuItem[]
 
-  constructor({ title, description, children }: PageConfig) {
-    this.title = title
-    this.description = description
-    this.children = children
+  constructor(config: PageConfig) {
+    this.title = config.title
+    this.description = config.description
+    this.children = config.children
+    this.menuItems = config.menuItems
   }
 }
 
@@ -66,6 +69,7 @@ export const RESOURCE_PAGE_SCHEMA = z.object({
   description: z.string().nullish(),
   children: IO_RENDER.optional(),
   metadata: META_ITEMS_SCHEMA.optional(),
+  menuItems: z.array(menuItem).optional(),
 })
 
 // To be extended with z.discriminatedUnion when adding different pages

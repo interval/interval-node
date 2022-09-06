@@ -11,6 +11,7 @@ import type {
   T_IO_DISPLAY_METHOD_NAMES,
   T_IO_INPUT_METHOD_NAMES,
   LinkProps,
+  menuItem,
 } from './ioSchema'
 import type { HostSchema } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
@@ -28,7 +29,7 @@ import type {
 } from './classes/IOPromise'
 import type IOError from './classes/IOError'
 import type TransactionLoadingState from './classes/TransactionLoadingState'
-import { ActionGroup } from './experimental'
+import type { ActionGroup } from './experimental'
 
 export type ActionCtx = Pick<
   z.infer<HostSchema['START_TRANSACTION']['inputs']>,
@@ -269,10 +270,23 @@ export type IOComponentDefinition<
   MethodName extends T_IO_METHOD_NAMES,
   Props,
   Output
-> = (props: Props) => {
+> = (
+  this: IOClient,
+  props: Props
+) => {
   props?: T_IO_PROPS<MethodName>
   getValue?: (response: T_IO_RETURNS<MethodName>) => Output
   onStateChange?: (
     newState: T_IO_STATE<MethodName>
   ) => Promise<T_IO_PROPS<MethodName>>
 }
+
+export type InternalMenuItem = z.input<typeof menuItem>
+export type MenuItem =
+  | Omit<InternalMenuItem, 'inlineAction'>
+  | {
+      label: InternalMenuItem['label']
+      theme?: InternalMenuItem['theme']
+      action: IntervalActionHandler
+      disabled?: boolean
+    }

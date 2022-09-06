@@ -1,4 +1,4 @@
-import { SdkAlert } from '../internalRpcSchema'
+import type { SdkAlert } from '../internalRpcSchema'
 import {
   detectPackageManager,
   getInstallCommand,

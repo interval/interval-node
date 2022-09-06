@@ -6,10 +6,11 @@ import {
   internalTableRow,
   T_IO_RETURNS,
   serializableRecord,
-  menuItem,
 } from '../ioSchema'
 import { columnsBuilder, tableRowSerializer } from '../utils/table'
 import Logger from '../classes/Logger'
+import { IOClient } from '../classes/IOClient'
+import { MenuItem } from '../types'
 
 export type CellValue = string | number | boolean | null | Date | undefined
 
@@ -36,12 +37,14 @@ function missingColumnMessage(component: string) {
 
 export function selectTable(logger: Logger) {
   return function <Row extends z.input<typeof tableRow> = any>(
+    this: IOClient,
     props: Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
       data: Row[]
       columns?: (Column<Row> | string)[]
-      rowMenuItems?: (row: Row) => z.infer<typeof menuItem>[]
+      rowMenuItems?: (row: Row) => MenuItem[]
     }
   ) {
+    const ioClient = this
     type DataList = typeof props['data']
 
     const columns = columnsBuilder(props, column =>
@@ -49,7 +52,7 @@ export function selectTable(logger: Logger) {
     )
 
     const data = props.data.map((row, idx) =>
-      tableRowSerializer(idx, row, columns, props.rowMenuItems)
+      tableRowSerializer(ioClient, idx, row, columns, props.rowMenuItems)
     )
 
     return {
@@ -69,18 +72,20 @@ export function selectTable(logger: Logger) {
 
 export function displayTable(logger: Logger) {
   return function displayTable<Row extends z.input<typeof tableRow> = any>(
+    this: IOClient,
     props: Omit<T_IO_PROPS<'DISPLAY_TABLE'>, 'data' | 'columns'> & {
       data: Row[]
       columns?: (Column<Row> | string)[]
-      rowMenuItems?: (row: Row) => z.infer<typeof menuItem>[]
+      rowMenuItems?: (row: Row) => MenuItem[]
     }
   ) {
+    const ioClient = this
     const columns = columnsBuilder(props, column =>
       logger.error(missingColumnMessage('io.display.table')(column))
     )
 
     const data = props.data.map((row, idx) =>
-      tableRowSerializer(idx, row, columns, props.rowMenuItems)
+      tableRowSerializer(ioClient, idx, row, columns, props.rowMenuItems)
     )
 
     return {

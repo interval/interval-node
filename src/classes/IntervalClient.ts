@@ -37,6 +37,7 @@ import type {
   IntervalActionHandler,
   IntervalActionStore,
   IntervalAppStore,
+  InternalMenuItem,
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
 import localConfig from '../localConfig'
@@ -89,8 +90,8 @@ export default class IntervalClient {
 
   #actionDefinitions: ActionDefinition[] = []
   #groupDefinitions: GroupDefinition[] = []
-  #actionHandlers: Record<string, IntervalActionHandler> = {}
-  #appHandlers: Record<string, NonNullable<ActionGroup['render']>> = {}
+  #actionHandlers: Map<string, IntervalActionHandler> = new Map()
+  #appHandlers: Map<string, NonNullable<ActionGroup['render']>> = new Map()
 
   organization:
     | {
@@ -139,8 +140,8 @@ export default class IntervalClient {
   #walkActions() {
     const groupDefinitions: GroupDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
-    const actionHandlers: Record<string, IntervalActionHandler> = {}
-    const appHandlers: Record<string, NonNullable<ActionGroup['render']>> = {}
+    const actionHandlers = new Map<string, IntervalActionHandler>()
+    const appHandlers = new Map<string, NonNullable<ActionGroup['render']>>()
 
     function walkActionGroup(groupSlug: string, group: ActionGroup) {
       groupDefinitions.push({
@@ -151,7 +152,7 @@ export default class IntervalClient {
       })
 
       if (group.render) {
-        appHandlers[groupSlug] = group.render
+        appHandlers.set(groupSlug, group.render)
       }
 
       for (const [slug, def] of Object.entries(group.actions)) {
@@ -165,8 +166,10 @@ export default class IntervalClient {
             handler: undefined,
           })
 
-          actionHandlers[`${groupSlug}/${slug}`] =
+          actionHandlers.set(
+            `${groupSlug}/${slug}`,
             'handler' in def ? def.handler : def
+          )
         }
       }
     }
@@ -181,7 +184,7 @@ export default class IntervalClient {
             ...('handler' in def ? def : {}),
             handler: undefined,
           })
-          actionHandlers[slug] = 'handler' in def ? def.handler : def
+          actionHandlers.set(slug, 'handler' in def ? def.handler : def)
         }
       }
     }
@@ -608,7 +611,7 @@ export default class IntervalClient {
           }
 
           const { app, pageKey } = inputs
-          const appHandler = this.#appHandlers[app.slug]
+          const appHandler = this.#appHandlers.get(app.slug)
 
           this.#log.debug(appHandler)
 
@@ -634,6 +637,7 @@ export default class IntervalClient {
           }
 
           let page: Page
+          let menuItems: InternalMenuItem[] | undefined = undefined
           let renderInstruction: T_IO_RENDER_INPUT | undefined = undefined
 
           let pageAttempts = 0
@@ -655,6 +659,7 @@ export default class IntervalClient {
                     : typeof page.description === 'string'
                     ? page.description
                     : null,
+                menuItems,
                 children: renderInstruction,
               }
 
@@ -680,7 +685,7 @@ export default class IntervalClient {
               }
 
               try {
-                this.#send('SEND_PAGE', {
+                await this.#send('SEND_PAGE', {
                   pageKey,
                   page: JSON.stringify(pageRender),
                 })
@@ -700,12 +705,20 @@ export default class IntervalClient {
               renderInstruction = instruction
               sendPage()
             },
+            onAddInlineAction: handler => {
+              const key = v4()
+              console.log('adding handler', key)
+              this.#actionHandlers.set(key, handler)
+              return key
+            },
           })
 
           const {
             io: { group, display },
           } = client
 
+          // FIXME: Need to clean these up, not sure when/how we can do that
+          // client.inlineActionKeys
           this.#ioResponseHandlers.set(pageKey, client.onResponse.bind(client))
 
           appLocalStorage.run({ display, ctx }, () => {
@@ -734,6 +747,23 @@ export default class IntervalClient {
                     sendPage()
                   })
                 }
+              }
+
+              if (page.menuItems) {
+                menuItems = page.menuItems.map(menuItem => {
+                  if (
+                    'action' in menuItem &&
+                    typeof menuItem['action'] === 'function'
+                  ) {
+                    const inlineAction = client.addInlineAction(menuItem.action)
+                    return {
+                      ...menuItem,
+                      inlineAction,
+                    }
+                  }
+
+                  return menuItem as InternalMenuItem
+                })
               }
 
               if (page instanceof Resource) {
@@ -778,7 +808,7 @@ export default class IntervalClient {
           }
 
           const { action, transactionId } = inputs
-          const actionHandler = this.#actionHandlers[action.slug]
+          const actionHandler = this.#actionHandlers.get(action.slug)
 
           this.#log.debug(actionHandler)
 
@@ -799,6 +829,11 @@ export default class IntervalClient {
               })
 
               this.#transactionLoadingStates.delete(transactionId)
+            },
+            onAddInlineAction: handler => {
+              const key = v4()
+              this.#actionHandlers.set(key, handler)
+              return key
             },
           })
 
@@ -937,6 +972,9 @@ export default class IntervalClient {
                 this.#pendingIOCalls.delete(transactionId)
                 this.#transactionLoadingStates.delete(transactionId)
                 this.#ioResponseHandlers.delete(transactionId)
+                for (const key of client.inlineActionKeys.values()) {
+                  this.#actionHandlers.delete(key)
+                }
               })
           })
 

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { IntervalActionHandler } from './types'
 
 export const DISPLAY_COMPONENT_TO_RENDER = z.object({
   methodName: z.string(),
@@ -178,6 +179,10 @@ export const menuItem = z.intersection(
     }),
     z.object({
       url: z.string(),
+      disabled: z.boolean().optional(),
+    }),
+    z.object({
+      inlineAction: z.string(),
       disabled: z.boolean().optional(),
     }),
     z.object({

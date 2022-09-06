@@ -40,6 +40,7 @@ import {
   RequiredPropsDisplayIOComponentFunction,
   InputIOComponentFunction,
   RequiredPropsInputIOComponentFunction,
+  IntervalActionHandler,
 } from '../types'
 import { stripUndefined } from '../utils/deserialize'
 import { IntervalError } from '..'
@@ -47,6 +48,7 @@ import { IntervalError } from '..'
 interface ClientConfig {
   logger: Logger
   send: IORenderSender
+  onAddInlineAction: (handler: IntervalActionHandler) => string
 }
 
 export type IOClientRenderReturnValues<
@@ -71,13 +73,22 @@ export type IOClientRenderValidator<
 export class IOClient {
   logger: Logger
   send: IORenderSender
+  onAddInlineAction: (handler: IntervalActionHandler) => string
 
   onResponseHandler: ResponseHandlerFn | undefined
+  inlineActionKeys = new Set<string>()
   isCanceled = false
 
-  constructor({ logger, send }: ClientConfig) {
-    this.logger = logger
-    this.send = send
+  constructor(config: ClientConfig) {
+    this.logger = config.logger
+    this.send = config.send
+    this.onAddInlineAction = config.onAddInlineAction
+  }
+
+  addInlineAction(handler: IntervalActionHandler): string {
+    const key = this.onAddInlineAction(handler)
+    this.inlineActionKeys.add(key)
+    return key
   }
 
   /**
@@ -286,7 +297,9 @@ export class IOClient {
     >['onStateChange'] = undefined
 
     if (componentDef) {
-      const componentGetters = componentDef(inputProps ?? ({} as Props))
+      const componentGetters = componentDef.bind(this)(
+        inputProps ?? ({} as Props)
+      )
 
       if (componentGetters.props) {
         props = componentGetters.props

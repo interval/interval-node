@@ -338,6 +338,7 @@ export const clientSchema = {
       pageKey: z.string(),
       // stringified PAGE_SCHEMA
       page: z.string(),
+      hostInstanceId: z.string(),
     }),
     returns: z.boolean(),
   },
