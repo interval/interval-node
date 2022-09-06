@@ -9,14 +9,14 @@ type EventualString =
   | (() => Promise<string>)
 
 interface PageConfig {
-  title: EventualString
+  title?: EventualString
   description?: EventualString
   children: AnyDisplayIOPromise[]
 }
 
 // Base class
 export class Page {
-  title: EventualString
+  title?: EventualString
   description?: EventualString
   children: AnyDisplayIOPromise[]
 
@@ -33,15 +33,15 @@ export interface MetaItem {
 }
 
 interface ResourceConfig extends PageConfig {
-  meta?: MetaItem[]
+  metadata?: MetaItem[]
 }
 
 export class Resource extends Page {
-  meta?: MetaItem[]
+  metadata?: MetaItem[]
 
   constructor(config: ResourceConfig) {
     super(config)
-    this.meta = config.meta
+    this.metadata = config.metadata
   }
 }
 
@@ -62,10 +62,10 @@ export type MetaItemsSchema = z.infer<typeof META_ITEMS_SCHEMA>
 
 export const RESOURCE_PAGE_SCHEMA = z.object({
   kind: z.literal('RESOURCE'),
-  title: z.string().nullable(),
+  title: z.string().nullish(),
   description: z.string().nullish(),
   children: IO_RENDER.optional(),
-  meta: META_ITEMS_SCHEMA.optional(),
+  metadata: META_ITEMS_SCHEMA.optional(),
 })
 
 // To be extended with z.discriminatedUnion when adding different pages

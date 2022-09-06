@@ -643,7 +643,12 @@ export default class IntervalClient {
             if (page instanceof Resource) {
               const pageRender: PageSchemaInput = {
                 kind: 'RESOURCE',
-                title: typeof page.title === 'string' ? page.title : null,
+                title:
+                  page.description === undefined
+                    ? undefined
+                    : typeof page.title === 'string'
+                    ? page.title
+                    : null,
                 description:
                   page.description === undefined
                     ? undefined
@@ -653,9 +658,9 @@ export default class IntervalClient {
                 children: renderInstruction,
               }
 
-              if (page.meta) {
+              if (page.metadata) {
                 const items: MetaItemSchema[] = []
-                for (const pageItem of page.meta) {
+                for (const pageItem of page.metadata) {
                   let { label, value } = pageItem
                   if (typeof value === 'function' || value instanceof Promise) {
                     items.push({ label })
@@ -667,7 +672,7 @@ export default class IntervalClient {
                 const { json, meta } = superjson.serialize(items)
 
                 if (json) {
-                  pageRender.meta = {
+                  pageRender.metadata = {
                     json: json as MetaItemSchema[],
                     meta,
                   } as MetaItemsSchema
@@ -732,18 +737,18 @@ export default class IntervalClient {
               }
 
               if (page instanceof Resource) {
-                const { meta } = page
-                if (meta) {
-                  for (let i = 0; i < meta.length; i++) {
-                    let { value } = meta[i]
+                const { metadata } = page
+                if (metadata) {
+                  for (let i = 0; i < metadata.length; i++) {
+                    let { value } = metadata[i]
                     if (typeof value === 'function') {
                       value = value()
-                      meta[i].value = value
+                      metadata[i].value = value
                     }
 
                     if (value instanceof Promise) {
                       value.then(resolved => {
-                        meta[i].value = resolved
+                        metadata[i].value = resolved
                         sendPage()
                       })
                     }

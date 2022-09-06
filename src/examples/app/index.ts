@@ -10,7 +10,7 @@ const hello_app = new ActionGroup({
       description: sleep(750).then(
         () => 'This is an asynchronous description!'
       ),
-      meta: [
+      metadata: [
         { label: 'Static', value: 3 },
         { label: 'Function', value: () => 'result' },
         {
