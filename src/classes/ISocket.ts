@@ -11,6 +11,8 @@ const MESSAGE_META = z.object({
 
 export class TimeoutError extends Error {}
 
+export class NotConnectedError extends Error {}
+
 interface PendingMessage {
   data: string
   onAckReceived: () => void
@@ -46,6 +48,7 @@ export default class ISocket {
   private pingTimeout: number
   private isAuthenticated: boolean
   private timeouts: Set<NodeJS.Timeout>
+  private isClosed = false
   onMessage: Evt<string>
   onOpen: Evt<void>
   onError: Evt<Error>
@@ -95,6 +98,8 @@ export default class ISocket {
    * throwing an error if `ACK` is not received within `sendTimeout`.
    */
   async send(data: string) {
+    if (this.isClosed) throw new NotConnectedError()
+
     return new Promise<void>((resolve, reject) => {
       const id = v4()
 
@@ -121,8 +126,10 @@ export default class ISocket {
    * Close the underlying WebSocket connection, and this ISocket
    * connection.
    */
-  close() {
-    return this.ws.close()
+  close(code?: number, reason?: string) {
+    this.isClosed = true
+    this.onMessage.detach()
+    return this.ws.close(code, reason)
   }
 
   constructor(ws: WebSocket | NodeWebSocket, config?: ISocketConfig) {
@@ -148,6 +155,7 @@ export default class ISocket {
     this.isAuthenticated = false
 
     this.onClose.attach(() => {
+      this.isClosed = true
       for (const timeout of this.timeouts) {
         clearTimeout(timeout)
       }
@@ -155,6 +163,7 @@ export default class ISocket {
     })
 
     this.ws.onopen = () => {
+      this.isClosed = false
       this.onOpen.post()
     }
 
@@ -172,6 +181,9 @@ export default class ISocket {
       if (evt.stopPropagation) {
         evt.stopPropagation()
       }
+
+      if (this.isClosed) return
+
       const data = JSON.parse(evt.data.toString())
       const meta = MESSAGE_META.parse(data)
 
@@ -218,6 +230,8 @@ export default class ISocket {
    * `pong` is not received within `pingTimeout`.
    */
   async ping() {
+    if (this.isClosed) throw new NotConnectedError()
+
     if (!('ping' in this.ws)) {
       // Not supported in web client WebSocket
       throw new Error(
