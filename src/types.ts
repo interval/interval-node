@@ -162,8 +162,7 @@ export type ComponentsRenderer<
 > = (
   components: Components,
   validator?: IOClientRenderValidator<Components>,
-  continueButtonLabel?: string,
-  continueButtonTheme?: ButtonTheme
+  continueButton?: ButtonConfig
 ) => Promise<
   {
     [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
@@ -253,9 +252,11 @@ export type IOComponentDefinition<
   ) => Promise<T_IO_PROPS<MethodName>>
 }
 
+export type ButtonConfig = {
+  label?: string
+  theme?: ButtonTheme
+}
+
 export type GroupConfig = {
-  continueButton: {
-    label?: string
-    theme?: ButtonTheme
-  }
+  continueButton: ButtonConfig
 }

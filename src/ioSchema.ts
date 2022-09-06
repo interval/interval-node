@@ -18,8 +18,12 @@ export const IO_RENDER = z.object({
     })
   ),
   validationErrorMessage: z.string().optional(),
-  continueButtonLabel: z.string().optional(),
-  continueButtonTheme: buttonTheme,
+  continueButton: z
+    .object({
+      label: z.string().optional(),
+      theme: buttonTheme,
+    })
+    .optional(),
   kind: z.literal('RENDER'),
 })
 

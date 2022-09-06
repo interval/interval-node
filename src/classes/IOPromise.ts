@@ -17,6 +17,7 @@ import {
   GroupIOPromise,
   MaybeOptionalGroupIOPromise,
   OptionalGroupIOPromise,
+  ButtonConfig,
 } from '../types'
 import { IOClientRenderReturnValues } from './IOClient'
 
@@ -306,19 +307,16 @@ export class IOGroupPromise<
   #renderer: ComponentsRenderer
   #validator: IOPromiseValidator<ReturnValues> | undefined
 
-  #continueButtonLabel: string | undefined
-  #continueButtonTheme: ButtonTheme
+  #continueButtonConfig: ButtonConfig | undefined
 
   constructor(config: {
     promises: IOPromises
     renderer: ComponentsRenderer
-    continueButtonLabel?: string
-    continueButtonTheme?: ButtonTheme
+    continueButton?: ButtonConfig
   }) {
     this.promises = config.promises
     this.#renderer = config.renderer
-    this.#continueButtonLabel = config.continueButtonLabel
-    this.#continueButtonTheme = config.continueButtonTheme
+    this.#continueButtonConfig = config.continueButton
   }
 
   then(
@@ -331,8 +329,7 @@ export class IOGroupPromise<
         ...AnyIOComponent[]
       ],
       this.#validator ? this.#handleValidation.bind(this) : undefined,
-      this.#continueButtonLabel,
-      this.#continueButtonTheme
+      this.#continueButtonConfig
     )
       .then(values => {
         resolve(

@@ -42,6 +42,7 @@ import {
   InputIOComponentFunction,
   RequiredPropsInputIOComponentFunction,
   GroupConfig,
+  ButtonConfig,
 } from '../types'
 import { stripUndefined } from '../utils/deserialize'
 import { IntervalError } from '..'
@@ -96,8 +97,7 @@ export class IOClient {
   >(
     components: Components,
     groupValidator?: IOClientRenderValidator<Components>,
-    continueButtonLabel?: string,
-    continueButtonTheme?: ButtonTheme
+    continueButton?: ButtonConfig
   ) {
     if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
@@ -129,8 +129,7 @@ export class IOClient {
               }),
             validationErrorMessage,
             kind: 'RENDER',
-            continueButtonLabel,
-            continueButtonTheme,
+            continueButton,
           }
 
           await this.send(packed)
@@ -274,8 +273,7 @@ export class IOClient {
     return new IOGroupPromise({
       promises,
       renderer: this.renderComponents.bind(this),
-      continueButtonLabel: props?.continueButton?.label,
-      continueButtonTheme: props?.continueButton?.theme,
+      continueButton: props?.continueButton,
     })
   }
 
