@@ -23,16 +23,16 @@ export default class Logger {
   }
 
   warn(...args: any[]) {
-    console.warn(...args)
+    console.warn('[Interval] ', ...args)
   }
 
   error(...args: any[]) {
-    console.error(...args)
+    console.error('[Interval] ', ...args)
   }
 
   debug(...args: any[]) {
     if (this.logLevel === 'debug') {
-      console.debug(...args)
+      console.debug('[Interval] ', ...args)
     }
   }
 
