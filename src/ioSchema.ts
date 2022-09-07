@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+const buttonTheme = z.enum(['default', 'danger']).default('default').optional()
+export type ButtonTheme = z.infer<typeof buttonTheme>
+
 export const IO_RENDER = z.object({
   id: z.string(),
   inputGroupKey: z.string(),
@@ -15,6 +18,12 @@ export const IO_RENDER = z.object({
     })
   ),
   validationErrorMessage: z.string().optional(),
+  continueButton: z
+    .object({
+      label: z.string().optional(),
+      theme: buttonTheme,
+    })
+    .optional(),
   kind: z.literal('RENDER'),
 })
 
@@ -146,7 +155,7 @@ export const tableRow = z
 export const menuItem = z.intersection(
   z.object({
     label: z.string(),
-    theme: z.enum(['default', 'danger']).default('default').optional(),
+    theme: buttonTheme,
   }),
   z.union([
     z.object({
@@ -495,7 +504,7 @@ export const ioSchema = {
   DISPLAY_LINK: {
     props: z.intersection(
       z.object({
-        theme: z.enum(['default', 'danger']).default('default'),
+        theme: buttonTheme,
       }),
       z.union([
         z.object({
