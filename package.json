@@ -1,6 +1,6 @@
 {
   "name": "@interval/sdk",
-  "version": "0.26.1",
+  "version": "0.27.0-dev",
   "homepage": "https://interval.com",
   "repository": {
     "type": "git",
