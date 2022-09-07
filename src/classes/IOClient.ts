@@ -26,6 +26,7 @@ import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
 import displayLink from '../components/displayLink'
+import displayImage from '../components/displayImage'
 import urlInput from '../components/url'
 import { date, datetime } from '../components/inputDate'
 import { file } from '../components/upload'
@@ -461,6 +462,9 @@ export class IOClient {
       display: {
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
+        image: this.createIOMethod('DISPLAY_IMAGE', {
+          componentDef: displayImage,
+        }),
         link: this.createIOMethod('DISPLAY_LINK', {
           componentDef: displayLink,
         }),

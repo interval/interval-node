@@ -250,6 +250,11 @@ export const CURRENCIES = [
 export const currencyCode = z.enum(CURRENCIES)
 export type CurrencyCode = z.infer<typeof currencyCode>
 
+export const imageSize = z
+  .enum(['thumbnail', 'small', 'medium', 'large'])
+  .optional()
+export type ImageSize = z.infer<typeof imageSize>
+
 export const dateObject = z.object({
   year: z.number(),
   month: z.number(),
@@ -474,6 +479,16 @@ export const ioSchema = {
   },
   DISPLAY_MARKDOWN: {
     props: z.object({}),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_IMAGE: {
+    props: z.object({
+      alt: z.string().optional(),
+      width: imageSize,
+      height: imageSize,
+      url: z.string(),
+    }),
     state: z.null(),
     returns: z.null(),
   },
