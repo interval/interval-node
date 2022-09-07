@@ -325,7 +325,7 @@ const interval = new Interval({
           width: 'medium',
         }),
         io.display.image('Image via buffer', {
-          buffer: fs.readFileSync('./examples/static/fail.gif'),
+          buffer: fs.readFileSync('./src/examples/static/fail.gif'),
           alt: 'Wile E. Coyote pulls a rope to launch a boulder from a catapult but it topples backwards and crushes him',
         }),
       ])
