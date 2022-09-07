@@ -566,6 +566,17 @@ export const ioSchema = {
     state: z.null(),
     returns: z.null(),
   },
+  DISPLAY_VIDEO: {
+    props: z.object({
+      width: imageSize,
+      height: imageSize,
+      url: z.string(),
+      loop: z.boolean().optional(),
+      muted: z.boolean().optional(),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
 }
 
 export type IoMethod = {

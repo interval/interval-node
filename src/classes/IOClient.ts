@@ -28,6 +28,7 @@ import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
 import displayLink from '../components/displayLink'
 import displayImage from '../components/displayImage'
+import displayVideo from '../components/displayVideo'
 import urlInput from '../components/url'
 import { date, datetime } from '../components/inputDate'
 import { file } from '../components/upload'
@@ -479,6 +480,9 @@ export class IOClient {
         table: this.createIOMethod('DISPLAY_TABLE', {
           propsRequired: true,
           componentDef: displayTable(this.logger),
+        }),
+        video: this.createIOMethod('DISPLAY_VIDEO', {
+          componentDef: displayVideo,
         }),
       },
       experimental: {

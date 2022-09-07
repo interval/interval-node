@@ -330,6 +330,20 @@ const interval = new Interval({
         }),
       ])
     },
+    videos: async () => {
+      await io.group([
+        io.display.video('Video via url', {
+          url: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/The_Kid_scenes.ogv',
+          size: 'medium',
+          muted: true,
+        }),
+        io.display.video('Video via buffer', {
+          loop: true,
+          buffer: fs.readFileSync('./src/examples/static/canyon.mp4'),
+          size: 'medium',
+        }),
+      ])
+    },
     enter_a_number: async io => {
       const num = await io.input.number('Enter a number')
 
