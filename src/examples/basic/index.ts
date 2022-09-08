@@ -334,13 +334,13 @@ const interval = new Interval({
       await io.group([
         io.display.video('Video via url', {
           url: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/The_Kid_scenes.ogv',
-          size: 'medium',
+          size: 'large',
           muted: true,
         }),
         io.display.video('Video via buffer', {
           loop: true,
           buffer: fs.readFileSync('./src/examples/static/canyon.mp4'),
-          size: 'medium',
+          size: 'large',
         }),
       ])
     },

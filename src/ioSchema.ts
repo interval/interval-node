@@ -259,9 +259,7 @@ export const CURRENCIES = [
 export const currencyCode = z.enum(CURRENCIES)
 export type CurrencyCode = z.infer<typeof currencyCode>
 
-export const imageSize = z
-  .enum(['thumbnail', 'small', 'medium', 'large'])
-  .optional()
+export const imageSize = z.enum(['thumbnail', 'small', 'medium', 'large'])
 export type ImageSize = z.infer<typeof imageSize>
 
 export const dateObject = z.object({
@@ -494,8 +492,8 @@ export const ioSchema = {
   DISPLAY_IMAGE: {
     props: z.object({
       alt: z.string().optional(),
-      width: imageSize,
-      height: imageSize,
+      width: imageSize.optional(),
+      height: imageSize.optional(),
       url: z.string(),
     }),
     state: z.null(),
@@ -568,8 +566,8 @@ export const ioSchema = {
   },
   DISPLAY_VIDEO: {
     props: z.object({
-      width: imageSize,
-      height: imageSize,
+      width: imageSize.optional(),
+      height: imageSize.optional(),
       url: z.string(),
       loop: z.boolean().optional(),
       muted: z.boolean().optional(),
