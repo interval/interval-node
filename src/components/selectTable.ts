@@ -4,7 +4,6 @@ import {
   tableRow,
   T_IO_PROPS,
   menuItem,
-  internalTableRow,
   T_IO_RETURNS,
   T_IO_STATE,
 } from '../ioSchema'
@@ -12,9 +11,9 @@ import { TableColumn } from '../types'
 import {
   columnsBuilder,
   filterRows,
-  paginateRows,
-  renderResults,
+  tableRowSerializer,
   sortRows,
+  TABLE_DATA_BUFFER_SIZE,
 } from '../utils/table'
 
 function missingColumnMessage(component: string) {
@@ -37,34 +36,28 @@ export default function selectTable(logger: Logger) {
     )
 
     // Rendering all rows on initialization is necessary for filtering and sorting
-    const renderedData = renderResults<Row>(props.data, columns)
-
-    const pageSize = props.defaultPageSize ?? 20
-
-    const paginated = paginateRows({
-      page: 0,
-      pageSize,
-      data: renderedData,
-    })
+    const data = props.data.map((row, index) =>
+      tableRowSerializer({
+        index,
+        row,
+        columns,
+        menuBuilder: props.rowMenuItems,
+      })
+    )
 
     return {
       props: {
         ...props,
-        ...paginated,
+        data: data.slice(0, TABLE_DATA_BUFFER_SIZE),
+        totalRecords: data.length,
         columns,
       },
       getValue(response: T_IO_RETURNS<'SELECT_TABLE'>) {
-        const indices = response.map(row =>
-          Number((row as z.infer<typeof internalTableRow>).key)
-        )
-
+        const indices = response.map(({ key }) => Number(key))
         const rows = props.data.filter((_, idx) => indices.includes(idx))
-
         return rows as DataList
       },
       async onStateChange(newState: T_IO_STATE<'SELECT_TABLE'>) {
-        const data = [...renderedData]
-
         const filtered = filterRows({ queryTerm: newState.queryTerm, data })
 
         const sorted = sortRows({
@@ -73,13 +66,22 @@ export default function selectTable(logger: Logger) {
           direction: newState.sortDirection ?? null,
         })
 
-        const paginated = paginateRows({
-          data: sorted,
-          page: newState.page,
-          pageSize: newState.pageSize ?? pageSize,
-        })
+        let selectedKeys: string[] = []
 
-        return paginated
+        if (newState.isSelectAll) {
+          selectedKeys = sorted.map(({ key }) => key)
+        }
+
+        return {
+          ...props,
+          data: sorted.slice(
+            newState.offset,
+            newState.offset + TABLE_DATA_BUFFER_SIZE
+          ),
+          totalRecords: sorted.length,
+          selectedKeys,
+          columns,
+        }
       },
     }
   }

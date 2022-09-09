@@ -450,26 +450,29 @@ export const ioSchema = {
   SELECT_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      columns: z.optional(z.array(internalTableColumn)),
+      columns: z.array(internalTableColumn),
       data: z.array(internalTableRow),
       defaultPageSize: z.number().optional(),
       minSelections: z.optional(z.number().int().min(0)),
       maxSelections: z.optional(z.number().positive().int()),
       disabled: z.optional(z.boolean().default(false)),
       //== private props
-      // added in v0.27, optional until required by all active versions
-      totalPages: z.optional(z.number().int()),
-      // added in v0.27, optional until required by all active versions
+      // added in v0.28, optional until required by all active versions
       totalRecords: z.optional(z.number().int()),
+      selectedKeys: z.array(z.string()).default([]),
     }),
     state: z.object({
       queryTerm: z.string(),
-      page: z.number().int().default(0),
       sortColumn: z.string().nullish(),
       sortDirection: z.enum(['asc', 'desc']).nullish(),
-      pageSize: z.optional(z.number().int().max(100)),
+      offset: z.number().int().default(20),
+      isSelectAll: z.boolean().default(false),
     }),
-    returns: z.array(internalTableRow),
+    // replaced full rows with just keys in v0.28
+    returns: z.union([
+      z.array(internalTableRow),
+      z.array(z.object({ key: z.string() })),
+    ]),
   },
   SELECT_SINGLE: {
     props: z.object({
@@ -541,22 +544,19 @@ export const ioSchema = {
   DISPLAY_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      columns: z.optional(z.array(internalTableColumn)),
+      columns: z.array(internalTableColumn),
       data: z.array(internalTableRow),
       orientation: z.enum(['vertical', 'horizontal']).default('horizontal'),
       defaultPageSize: z.number().optional(),
       //== private props
-      // added in v0.27, optional until required by all active versions
-      totalPages: z.optional(z.number().int()),
-      // added in v0.27, optional until required by all active versions
+      // added in v0.28, optional until required by all active versions
       totalRecords: z.optional(z.number().int()),
     }),
     state: z.object({
       queryTerm: z.string(),
-      page: z.number().int().default(0),
       sortColumn: z.string().nullish(),
       sortDirection: z.enum(['asc', 'desc']).nullish(),
-      pageSize: z.optional(z.number().int().max(100)),
+      offset: z.number().int().default(20),
     }),
     returns: z.null(),
   },

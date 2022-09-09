@@ -7,6 +7,8 @@ import {
 } from '../ioSchema'
 import { z } from 'zod'
 
+export const TABLE_DATA_BUFFER_SIZE = 200
+
 /**
  * Generates column headers from rows if no columns are provided.
  */
@@ -61,7 +63,7 @@ type RenderedTableRow = {
 /**
  * Applies cell renderers to a row.
  */
-function renderTableRow<T extends z.infer<typeof tableRow>>({
+export function tableRowSerializer<T extends z.infer<typeof tableRow>>({
   index,
   row,
   columns,
@@ -104,17 +106,23 @@ function renderTableRow<T extends z.infer<typeof tableRow>>({
   }
 }
 
-export function sortRows({
+type IsomorphicTableRow = {
+  data: Record<string, any>
+  key: string
+  filterValue?: string
+}
+
+export function sortRows<T extends IsomorphicTableRow>({
   data,
   column,
   direction,
 }: {
-  data: z.infer<typeof internalTableRow>[]
+  data: T[]
   column: string | null
   direction: 'asc' | 'desc' | null
-}) {
+}): T[] {
   if (column === null || direction === null) {
-    return data
+    return data.sort((a, b) => (Number(a.key) > Number(b.key) ? 1 : -1))
   }
 
   return data.sort((a, b) => {
@@ -136,10 +144,10 @@ export function sortRows({
   })
 }
 
-function getSortableValue(
-  row: z.infer<typeof internalTableRow>,
+function getSortableValue<T extends IsomorphicTableRow>(
+  row: T,
   sortByColumn: string
-) {
+): string | null {
   let sortVal
 
   if (row !== null && 'data' in row && row.data) {
@@ -160,55 +168,24 @@ function getSortableValue(
   return sortVal
 }
 
-export function renderResults<T extends z.input<typeof tableRow>>(
-  results: T[],
-  columns: z.infer<typeof tableColumn>[]
-): z.infer<typeof internalTableRow>[] {
-  return results.map((row, index) => renderTableRow({ index, row, columns }))
-}
-
-export function filterRows({
+export function filterRows<T extends IsomorphicTableRow>({
   queryTerm,
   data,
 }: {
   queryTerm: string
-  data: z.infer<typeof internalTableRow>[]
-}): z.infer<typeof internalTableRow>[] {
+  data: T[]
+}): Omit<T, 'filterValue'>[] {
   if (!queryTerm) return data
 
   return (
     data
       .filter(row => {
         if ('filterValue' in row && typeof row.filterValue === 'string') {
-          return row.filterValue?.includes(queryTerm.toLowerCase())
+          return row.filterValue.includes(queryTerm.toLowerCase())
         }
         return true
       })
       // filterValue is unnecessary beyond this point
       .map(({ filterValue, ...row }) => row)
   )
-}
-
-export function paginateRows<T>({
-  data,
-  page,
-  pageSize,
-}: {
-  page: number
-  pageSize: number
-  data: T[]
-}): {
-  page: number
-  totalPages: number
-  totalRecords: number
-  data: T[]
-} {
-  const totalRecords = data.length
-
-  const start = page * pageSize
-
-  const totalPages = Math.ceil(totalRecords / pageSize)
-  const pagedResults = data.slice(start, start + pageSize)
-
-  return { totalPages, data: pagedResults, page, totalRecords }
 }
