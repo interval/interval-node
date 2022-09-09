@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 import Actions from './classes/Actions'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
-import { NOTIFY, ActionEnvironment } from './internalRpcSchema'
+import { NOTIFY } from './internalRpcSchema'
 import { SerializableRecord } from './ioSchema'
 import type {
   ActionCtx,
@@ -96,14 +96,6 @@ export default class Interval {
   #httpEndpoint: string
   actions: Actions
 
-  organization:
-    | {
-        name: string
-        slug: string
-      }
-    | undefined
-  environment: ActionEnvironment | undefined
-
   constructor(config: InternalConfig) {
     this.config = config
     this.#apiKey = config.apiKey
@@ -168,8 +160,12 @@ export default class Interval {
       throw new IntervalError('Invalid input.')
     }
 
-    if (!config.transactionId && this.environment === 'development') {
-      this.#log.prod(
+    if (
+      !config.transactionId &&
+      (this.#client?.environment === 'development' ||
+        (!this.#client?.environment && !this.#apiKey?.startsWith('live_')))
+    ) {
+      this.#log.warn(
         'Calls to notify() outside of a transaction currently have no effect when Interval is instantiated with a development API key. Please use a live key to send notifications.'
       )
     }
