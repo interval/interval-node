@@ -8,6 +8,7 @@ import {
   filterRows,
   sortRows,
   TABLE_DATA_BUFFER_SIZE,
+  missingColumnMessage,
 } from '../utils/table'
 
 type PublicProps<Row> = Omit<
@@ -17,11 +18,6 @@ type PublicProps<Row> = Omit<
   data: Row[]
   columns?: (TableColumn<Row> | string)[]
   rowMenuItems?: (row: Row) => z.infer<typeof menuItem>[]
-}
-
-function missingColumnMessage(component: string) {
-  return (column: string) =>
-    `Provided column "${column}" not found in data for ${component}`
 }
 
 export default function displayTable(logger: Logger) {

@@ -14,20 +14,18 @@ import {
   tableRowSerializer,
   sortRows,
   TABLE_DATA_BUFFER_SIZE,
+  missingColumnMessage,
 } from '../utils/table'
 
-function missingColumnMessage(component: string) {
-  return (column: string) =>
-    `Provided column "${column}" not found in data for ${component}`
+type PublicProps<Row> = Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
+  data: Row[]
+  columns?: (TableColumn<Row> | string)[]
+  rowMenuItems?: (row: Row) => z.infer<typeof menuItem>[]
 }
 
 export default function selectTable(logger: Logger) {
   return function <Row extends z.input<typeof tableRow> = any>(
-    props: Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
-      data: Row[]
-      columns?: (TableColumn<Row> | string)[]
-      rowMenuItems?: (row: Row) => z.infer<typeof menuItem>[]
-    }
+    props: PublicProps<Row>
   ) {
     type DataList = typeof props['data']
 

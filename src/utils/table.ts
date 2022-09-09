@@ -189,3 +189,8 @@ export function filterRows<T extends IsomorphicTableRow>({
       .map(({ filterValue, ...row }) => row)
   )
 }
+
+export function missingColumnMessage(component: string) {
+  return (column: string) =>
+    `Provided column "${column}" not found in data for ${component}`
+}

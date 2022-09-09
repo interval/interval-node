@@ -465,7 +465,7 @@ export const ioSchema = {
       queryTerm: z.string(),
       sortColumn: z.string().nullish(),
       sortDirection: z.enum(['asc', 'desc']).nullish(),
-      offset: z.number().int().default(20),
+      offset: z.number().int().default(0),
       isSelectAll: z.boolean().default(false),
     }),
     // replaced full rows with just keys in v0.28
@@ -556,7 +556,7 @@ export const ioSchema = {
       queryTerm: z.string(),
       sortColumn: z.string().nullish(),
       sortDirection: z.enum(['asc', 'desc']).nullish(),
-      offset: z.number().int().default(20),
+      offset: z.number().int().default(0),
     }),
     returns: z.null(),
   },
