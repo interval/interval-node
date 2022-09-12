@@ -199,6 +199,7 @@ export default class IntervalClient {
     return this.#logger
   }
 
+  #pageIOClients = new Map<string, IOClient>()
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
   #pendingIOCalls = new Map<string, string>()
   #transactionLoadingStates = new Map<string, LoadingState>()
@@ -717,8 +718,7 @@ export default class IntervalClient {
             io: { group, display },
           } = client
 
-          // FIXME: Need to clean these up, not sure when/how we can do that
-          // client.inlineActionKeys
+          this.#pageIOClients.set(pageKey, client)
           this.#ioResponseHandlers.set(pageKey, client.onResponse.bind(client))
 
           pageLocalStorage.run({ display, ctx }, () => {
@@ -800,6 +800,19 @@ export default class IntervalClient {
             type: 'SUCCESS' as const,
             pageKey,
           }
+        },
+        CLOSE_PAGE: async inputs => {
+          const client = this.#pageIOClients.get(inputs.pageKey)
+          if (client) {
+            for (const key of client.inlineActionKeys.values()) {
+              this.#actionHandlers.delete(key)
+            }
+
+            client.inlineActionKeys.clear()
+            this.#pageIOClients.delete(inputs.pageKey)
+          }
+
+          this.#ioResponseHandlers.delete(inputs.pageKey)
         },
         START_TRANSACTION: async inputs => {
           if (!this.organization) {

@@ -183,6 +183,12 @@ export const wsServerSchema = {
       }),
     ]),
   },
+  LEAVE_PAGE: {
+    inputs: z.object({
+      pageKey: z.string(),
+    }),
+    returns: z.boolean(),
+  },
   RESPOND_TO_IO_CALL: {
     inputs: z.object({
       transactionId: z.string(),
@@ -395,13 +401,6 @@ export const clientSchema = {
 export type ClientSchema = typeof clientSchema
 
 export const hostSchema = {
-  IO_RESPONSE: {
-    inputs: z.object({
-      value: z.string(),
-      transactionId: z.string(),
-    }),
-    returns: z.void().nullable(),
-  },
   OPEN_PAGE: {
     inputs: z.object({
       pageKey: z.string(),
@@ -428,6 +427,12 @@ export const hostSchema = {
       }),
     ]),
   },
+  CLOSE_PAGE: {
+    inputs: z.object({
+      pageKey: z.string(),
+    }),
+    returns: z.void().nullable(),
+  },
   START_TRANSACTION: {
     inputs: z.object({
       transactionId: z.string(),
@@ -446,6 +451,13 @@ export const hostSchema = {
       }),
       params: serializableRecord,
       paramsMeta: z.any().optional(),
+    }),
+    returns: z.void().nullable(),
+  },
+  IO_RESPONSE: {
+    inputs: z.object({
+      value: z.string(),
+      transactionId: z.string(),
     }),
     returns: z.void().nullable(),
   },
