@@ -13,14 +13,14 @@ import type {
   IntervalActionStore,
   NotifyConfig,
   IntervalActionDefinitions,
-  IntervalAppStore,
-  AppCtx,
+  IntervalPageStore,
+  PageCtx,
 } from './types'
 import IntervalClient, {
   DEFAULT_WEBSOCKET_ENDPOINT,
   getHttpEndpoint,
   actionLocalStorage,
-  appLocalStorage,
+  pageLocalStorage,
 } from './classes/IntervalClient'
 
 export type {
@@ -65,8 +65,8 @@ export function getActionStore(): IntervalActionStore {
   return store
 }
 
-export function getAppStore(): IntervalAppStore {
-  const store = appLocalStorage.getStore()
+export function getAppStore(): IntervalPageStore {
+  const store = pageLocalStorage.getStore()
   if (!store) {
     throw new IntervalError(
       'Global io and ctx objects can only be used inside an App'
@@ -76,7 +76,7 @@ export function getAppStore(): IntervalAppStore {
   return store
 }
 
-export function getSomeStore(): IntervalActionStore | IntervalAppStore {
+export function getSomeStore(): IntervalActionStore | IntervalPageStore {
   try {
     return getAppStore()
   } catch (err) {
@@ -102,7 +102,7 @@ export const io: IO = {
 }
 
 // prettier-ignore
-export const ctx: ActionCtx & AppCtx = {
+export const ctx: ActionCtx & PageCtx = {
   get user() { return getSomeStore().ctx.user },
   get params() { return getSomeStore().ctx.params },
   get environment() { return getSomeStore().ctx.environment },
@@ -110,7 +110,7 @@ export const ctx: ActionCtx & AppCtx = {
   get log() { return getActionStore().ctx.log },
   get organization() { return getSomeStore().ctx.organization },
   get action() { return getActionStore().ctx.action },
-  get app() { return getAppStore().ctx.app },
+  get page() { return getAppStore().ctx.page },
   get notify() { return getActionStore().ctx.notify },
   get redirect() { return getActionStore().ctx.redirect },
 }

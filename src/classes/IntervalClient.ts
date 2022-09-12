@@ -33,10 +33,10 @@ import * as pkg from '../../package.json'
 import { deserializeDates } from '../utils/deserialize'
 import type {
   ActionCtx,
-  AppCtx,
+  PageCtx,
   IntervalActionHandler,
   IntervalActionStore,
-  IntervalAppStore,
+  IntervalPageStore,
   InternalMenuItem,
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
@@ -71,7 +71,7 @@ interface SetupConfig {
 
 export const actionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
 
-export const appLocalStorage = new AsyncLocalStorage<IntervalAppStore>()
+export const pageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
 
 export default class IntervalClient {
   #interval: Interval
@@ -91,7 +91,7 @@ export default class IntervalClient {
   #actionDefinitions: ActionDefinition[] = []
   #groupDefinitions: GroupDefinition[] = []
   #actionHandlers: Map<string, IntervalActionHandler> = new Map()
-  #appHandlers: Map<string, NonNullable<ActionGroup['render']>> = new Map()
+  #pageHandlers: Map<string, NonNullable<ActionGroup['render']>> = new Map()
 
   organization:
     | {
@@ -141,7 +141,7 @@ export default class IntervalClient {
     const groupDefinitions: GroupDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
     const actionHandlers = new Map<string, IntervalActionHandler>()
-    const appHandlers = new Map<string, NonNullable<ActionGroup['render']>>()
+    const pageHandlers = new Map<string, NonNullable<ActionGroup['render']>>()
 
     function walkActionGroup(groupSlug: string, group: ActionGroup) {
       groupDefinitions.push({
@@ -152,7 +152,7 @@ export default class IntervalClient {
       })
 
       if (group.render) {
-        appHandlers.set(groupSlug, group.render)
+        pageHandlers.set(groupSlug, group.render)
       }
 
       for (const [slug, def] of Object.entries(group.actions)) {
@@ -192,7 +192,7 @@ export default class IntervalClient {
     this.#groupDefinitions = groupDefinitions
     this.#actionDefinitions = actionDefinitions
     this.#actionHandlers = actionHandlers
-    this.#appHandlers = appHandlers
+    this.#pageHandlers = pageHandlers
   }
 
   get #log() {
@@ -604,19 +604,19 @@ export default class IntervalClient {
       canCall: wsServerSchema,
       canRespondTo: hostSchema,
       handlers: {
-        START_APP: async inputs => {
+        OPEN_PAGE: async inputs => {
           if (!this.organization) {
             this.#log.error('No organization defined')
             return { type: 'ERROR' as const }
           }
 
-          const { app, pageKey } = inputs
-          const appHandler = this.#appHandlers.get(app.slug)
+          const { pageKey } = inputs
+          const appHandler = this.#pageHandlers.get(inputs.page.slug)
 
           this.#log.debug(appHandler)
 
           if (!appHandler) {
-            this.#log.debug('No app handler called', app.slug)
+            this.#log.debug('No app handler called', inputs.page.slug)
             return { type: 'ERROR' as const }
           }
 
@@ -628,12 +628,12 @@ export default class IntervalClient {
               meta: paramsMeta,
             })
           }
-          const ctx: AppCtx = {
+          const ctx: PageCtx = {
             user: inputs.user,
             params: deserializeDates(params),
             environment: inputs.environment,
             organization: this.organization,
-            app,
+            page: inputs.page,
           }
 
           let page: Page
@@ -721,7 +721,7 @@ export default class IntervalClient {
           // client.inlineActionKeys
           this.#ioResponseHandlers.set(pageKey, client.onResponse.bind(client))
 
-          appLocalStorage.run({ display, ctx }, () => {
+          pageLocalStorage.run({ display, ctx }, () => {
             appHandler(display, ctx).then(res => {
               page = res
 

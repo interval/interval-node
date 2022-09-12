@@ -49,11 +49,11 @@ export type ActionCtx = Pick<
   }
 }
 
-export type AppCtx = Pick<
+export type PageCtx = Pick<
   ActionCtx,
   'user' | 'params' | 'environment' | 'organization'
 > & {
-  app: {
+  page: {
     slug: string
   }
 }
@@ -72,9 +72,9 @@ export interface IntervalActionStore {
   ctx: ActionCtx
 }
 
-export interface IntervalAppStore {
+export interface IntervalPageStore {
   display: IO['display']
-  ctx: AppCtx
+  ctx: PageCtx
 }
 
 export interface ExplicitIntervalActionDefinition {
@@ -180,13 +180,11 @@ export type ComponentsRenderer<
 > = (
   components: Components,
   validator?: IOClientRenderValidator<Components>
-) => Promise<
-  {
-    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-      ? z.infer<Components[Idx]['schema']['returns']> | undefined
-      : Components[Idx]
-  }
->
+) => Promise<{
+  [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+    ? z.infer<Components[Idx]['schema']['returns']> | undefined
+    : Components[Idx]
+}>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 

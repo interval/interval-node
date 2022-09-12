@@ -164,10 +164,10 @@ export const wsServerSchema = {
     }),
     returns: z.boolean(),
   },
-  REQUEST_APP: {
+  REQUEST_PAGE: {
     inputs: z.object({
       pageKey: z.string().optional(),
-      appSlug: z.string(),
+      pageSlug: z.string(),
       actionEnvironment,
       organizationEnvironmentId: z.string().optional(),
       params: serializableRecord.optional(),
@@ -402,10 +402,10 @@ export const hostSchema = {
     }),
     returns: z.void().nullable(),
   },
-  START_APP: {
+  OPEN_PAGE: {
     inputs: z.object({
       pageKey: z.string(),
-      app: z.object({
+      page: z.object({
         slug: z.string(),
       }),
       environment: actionEnvironment,

@@ -1,6 +1,6 @@
 import { Evt } from 'evt'
 import {
-  AppCtx,
+  PageCtx,
   IO,
   IntervalActionDefinition,
   IntervalActionDefinitions,
@@ -12,14 +12,14 @@ export interface ActionGroupConfig {
   description?: string
   actions?: IntervalActionDefinitions
   groups?: Record<string, ActionGroup>
-  render?: (display: IO['display'], ctx: AppCtx) => Promise<Page>
+  render?: (display: IO['display'], ctx: PageCtx) => Promise<Page>
 }
 
 export default class ActionGroup {
   name: string
   description?: string
   actions: IntervalActionDefinitions
-  render?: (display: IO['display'], ctx: AppCtx) => Promise<Page>
+  render?: (display: IO['display'], ctx: PageCtx) => Promise<Page>
 
   onChange: Evt<void>
   #groupChangeCtx = Evt.newCtx()

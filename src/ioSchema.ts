@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import type { IntervalActionHandler } from './types'
 
 export const DISPLAY_COMPONENT_TO_RENDER = z.object({
   methodName: z.string(),
