@@ -100,8 +100,8 @@ const interval = new Interval({
       };
       users[users.indexOf(user)] = updatedUser;
 
-      resetUserPassword(updatedUser);
-      sendVerificationEmail(updatedUser);
+      if (resetPassword) resetUserPassword(updatedUser);
+      if (user.email !== email) sendVerificationEmail(updatedUser);
 
       return updatedUser;
     },
