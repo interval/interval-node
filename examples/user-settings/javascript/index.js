@@ -66,24 +66,30 @@ const interval = new Interval({
         }),
       ]);
 
-      let confirmed = false;
-      if (resetPassword || user.email !== email) {
-        const messages = [];
-        const helpTexts = [];
-        if (resetPassword) {
-          messages.push("reset this user's password");
-          helpTexts.push('log the user out all current sessions');
+      const messages = [];
+      const helpTexts = [];
+      if (resetPassword) {
+        messages.push('reset their password');
+        helpTexts.push('log the user out all current sessions');
+      }
+      if (user.email !== email) {
+        messages.push('change their email');
+        helpTexts.push('send an email to verifiy the new email address');
+      }
+      const confirmed = await io.confirm(
+        `Are you sure you want to ${messages
+          .join(', ')
+          .replace(/,(?!.*,)/gim, messages.length > 2 ? ', and' : ' and')}?`,
+        {
+          helpText:
+            helpTexts.length > 0
+              ? `This will ${helpTexts.join(' and ')}.`
+              : undefined,
         }
-        if (user.email !== email) {
-          messages.push('change their email');
-          helpTexts.push('send an email to verifiy the new email address');
-        }
-        confirmed = await io.confirm(
-          `Are you sure you want to ${messages.join(' and ')}?`,
-          {
-            helpText: `This will ${helpTexts.join(' and ')}.`,
-          }
-        );
+      );
+
+      if (!confirmed) {
+        return 'No confirmation, did not update the user';
       }
 
       const updatedUser = {
@@ -94,8 +100,8 @@ const interval = new Interval({
       };
       users[users.indexOf(user)] = updatedUser;
 
-      if (confirmed && resetPassword) resetUserPassword(updatedUser);
-      if (confirmed && user.email !== email) sendVerificationEmail(updatedUser);
+      resetUserPassword(updatedUser);
+      sendVerificationEmail(updatedUser);
 
       return updatedUser;
     },
