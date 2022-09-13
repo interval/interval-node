@@ -16,14 +16,14 @@ function generateRows(count: number) {
   return rows
 }
 
-export const table_basic: IntervalActionHandler = async io => {
+export const display_table: IntervalActionHandler = async io => {
   faker.seed(0)
 
-  const data = generateRows(10_000)
+  const data = generateRows(50_000)
 
-  await io.select.table('Display users', {
+  await io.display.table('Display users', {
     data,
-    defaultPageSize: 10,
+    defaultPageSize: 20,
     columns: [
       'string',
       'number',
@@ -46,6 +46,12 @@ export const table_basic: IntervalActionHandler = async io => {
       },
     ],
   })
+}
+
+export const select_table: IntervalActionHandler = async io => {
+  faker.seed(0)
+
+  const data = generateRows(50_000)
 
   const selected = await io.select.table('Display users', {
     data,
