@@ -6,7 +6,7 @@ const hello_app = new ActionGroup({
   name: 'App',
   render: async () => {
     return new Resource({
-      title: 'Resource',
+      title: sleep(1000).then(() => 'Resource'),
       description: sleep(750).then(
         () => 'This is an asynchronous description!'
       ),
@@ -69,6 +69,15 @@ const interval = new Interval({
   endpoint: 'ws://localhost:3000/websocket',
   actions: {
     hello_app,
+    childless: new ActionGroup({
+      name: 'Childless',
+      async render() {
+        return new Resource({
+          title: 'Hey',
+          description: 'No children!',
+        })
+      },
+    }),
   },
 })
 

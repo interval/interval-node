@@ -641,10 +641,9 @@ export default class IntervalClient {
           let menuItems: InternalMenuItem[] | undefined = undefined
           let renderInstruction: T_IO_RENDER_INPUT | undefined = undefined
 
-          let pageAttempts = 0
-          const sendPage = async () => {
-            if (pageAttempts++ > 5) return
+          const MAX_PAGE_RETRIES = 5
 
+          const sendPage = async () => {
             if (page instanceof Resource) {
               const pageRender: PageSchemaInput = {
                 kind: 'RESOURCE',
@@ -685,30 +684,76 @@ export default class IntervalClient {
                 }
               }
 
-              try {
-                await this.#send('SEND_PAGE', {
-                  pageKey,
-                  page: JSON.stringify(pageRender),
-                })
-                pageAttempts = 0
-              } catch (err) {
-                this.#logger.debug(
-                  `Failed sending page, retrying in ${this.#retryIntervalMs}`
-                )
-                setTimeout(sendPage, this.#retryIntervalMs)
+              for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
+                try {
+                  await this.#send('SEND_PAGE', {
+                    pageKey,
+                    page: JSON.stringify(pageRender),
+                  })
+                  return
+                } catch (err) {
+                  this.#logger.debug('Failed sending page', err)
+                  this.#logger.debug('Retrying in', this.#retryIntervalMs)
+                  await sleep(this.#retryIntervalMs)
+                }
               }
+
+              throw new IntervalError(
+                'Unsuccessful sending page, max retries exceeded.'
+              )
             }
+          }
+
+          // What follows is a pretty convoluted way to coalesce
+          // `scheduleSendPage` calls into non-clobbering/overlapping
+          // `sendPage `calls. This can probably be simplified but I
+          // can't think of a better way at the moment.
+
+          // Tracks whether a send is currently in progress
+          let sendPagePromise: Promise<void> | null = null
+
+          // Keeps track of a brief timeout to coalesce rapid send calls
+          let pageSendTimeout: NodeJS.Timeout | null = null
+
+          // Tracks whether a new send needs to happen after the current one
+          let newPageScheduled = false
+
+          const processSendPage = () => {
+            newPageScheduled = false
+            pageSendTimeout = null
+            sendPagePromise = sendPage()
+              .catch(err => {
+                this.#logger.error(
+                  `Failed sending page with key ${pageKey}`,
+                  err
+                )
+              })
+              .finally(() => {
+                sendPagePromise = null
+
+                if (newPageScheduled) {
+                  scheduleSendPage()
+                }
+              })
+          }
+
+          const scheduleSendPage = () => {
+            newPageScheduled = true
+
+            if (sendPagePromise) return
+            if (pageSendTimeout) return
+
+            pageSendTimeout = setTimeout(processSendPage, 0)
           }
 
           const client = new IOClient({
             logger: this.#logger,
             send: async instruction => {
               renderInstruction = instruction
-              sendPage()
+              scheduleSendPage()
             },
             onAddInlineAction: handler => {
               const key = v4()
-              console.log('adding handler', key)
               this.#actionHandlers.set(key, handler)
               return key
             },
@@ -732,7 +777,7 @@ export default class IntervalClient {
               if (page.title instanceof Promise) {
                 page.title.then(title => {
                   page.title = title
-                  sendPage()
+                  scheduleSendPage()
                 })
               }
 
@@ -744,7 +789,7 @@ export default class IntervalClient {
                 if (page.description instanceof Promise) {
                   page.description.then(description => {
                     page.description = description
-                    sendPage()
+                    scheduleSendPage()
                   })
                 }
               }
@@ -779,20 +824,23 @@ export default class IntervalClient {
                     if (value instanceof Promise) {
                       value.then(resolved => {
                         metadata[i].value = resolved
-                        sendPage()
+                        scheduleSendPage()
                       })
                     }
                   }
                 }
               }
 
-              sendPage()
-              group(page.children).then(() => {
-                this.#logger.debug(
-                  'Initial children render complete for pageKey',
-                  pageKey
-                )
-              })
+              if (page.children) {
+                group(page.children).then(() => {
+                  this.#logger.debug(
+                    'Initial children render complete for pageKey',
+                    pageKey
+                  )
+                })
+              } else {
+                scheduleSendPage()
+              }
             })
           })
 

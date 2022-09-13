@@ -11,7 +11,7 @@ type EventualString =
 interface PageConfig {
   title?: EventualString
   description?: EventualString
-  children: AnyDisplayIOPromise[]
+  children?: AnyDisplayIOPromise[]
   menuItems?: MenuItem[]
 }
 
@@ -19,7 +19,7 @@ interface PageConfig {
 export class Page {
   title?: EventualString
   description?: EventualString
-  children: AnyDisplayIOPromise[]
+  children?: AnyDisplayIOPromise[]
   menuItems?: MenuItem[]
 
   constructor(config: PageConfig) {
