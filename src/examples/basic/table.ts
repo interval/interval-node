@@ -29,7 +29,7 @@ export const display_table: IntervalActionHandler = async io => {
 
   await io.display.table('Display users', {
     data,
-    defaultPageSize: 5,
+    defaultPageSize: 50,
     columns: [
       'id',
       'description',

@@ -7,7 +7,7 @@ import {
 } from '../ioSchema'
 import { z } from 'zod'
 
-export const TABLE_DATA_BUFFER_SIZE = 200
+export const TABLE_DATA_BUFFER_SIZE = 500
 
 /**
  * Generates column headers from rows if no columns are provided.
