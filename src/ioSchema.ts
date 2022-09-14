@@ -189,6 +189,10 @@ export const internalTableRow = z.object({
   key: z.string(),
   data: tableRow,
   menu: z.array(menuItem).optional(),
+  // filterValue is a string we compile when we render each row, allowing us to quickly
+  // filter array items without having to search all object keys for the query term.
+  // It is not sent to the client.
+  filterValue: z.string().optional(),
 })
 
 export const tableColumn = z.object({
@@ -444,15 +448,29 @@ export const ioSchema = {
   SELECT_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      columns: z.optional(z.array(internalTableColumn)),
+      columns: z.array(internalTableColumn),
       data: z.array(internalTableRow),
       defaultPageSize: z.number().optional(),
       minSelections: z.optional(z.number().int().min(0)),
       maxSelections: z.optional(z.number().positive().int()),
       disabled: z.optional(z.boolean().default(false)),
+      //== private props
+      // added in v0.28, optional until required by all active versions
+      totalRecords: z.optional(z.number().int()),
+      selectedKeys: z.array(z.string()).default([]),
     }),
-    state: z.null(),
-    returns: z.array(internalTableRow),
+    state: z.object({
+      queryTerm: z.string(),
+      sortColumn: z.string().nullish(),
+      sortDirection: z.enum(['asc', 'desc']).nullish(),
+      offset: z.number().int().default(0),
+      isSelectAll: z.boolean().default(false),
+    }),
+    // replaced full rows with just keys in v0.28
+    returns: z.union([
+      z.array(internalTableRow),
+      z.array(z.object({ key: z.string() })),
+    ]),
   },
   SELECT_SINGLE: {
     props: z.object({
@@ -524,12 +542,20 @@ export const ioSchema = {
   DISPLAY_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      columns: z.optional(z.array(internalTableColumn)),
+      columns: z.array(internalTableColumn),
       data: z.array(internalTableRow),
       orientation: z.enum(['vertical', 'horizontal']).default('horizontal'),
       defaultPageSize: z.number().optional(),
+      //== private props
+      // added in v0.28, optional until required by all active versions
+      totalRecords: z.optional(z.number().int()),
     }),
-    state: z.null(),
+    state: z.object({
+      queryTerm: z.string(),
+      sortColumn: z.string().nullish(),
+      sortDirection: z.enum(['asc', 'desc']).nullish(),
+      offset: z.number().int().default(0),
+    }),
     returns: z.null(),
   },
   DISPLAY_PROGRESS_STEPS: {

@@ -12,6 +12,8 @@ import type {
   T_IO_INPUT_METHOD_NAMES,
   LinkProps,
   ButtonTheme,
+  serializableRecord,
+  tableColumn,
 } from './ioSchema'
 import type { HostSchema } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
@@ -259,4 +261,21 @@ export type ButtonConfig = {
 
 export type GroupConfig = {
   continueButton: ButtonConfig
+}
+
+export type TableCellValue = string | number | boolean | null | Date | undefined
+
+export type TableColumnResult =
+  | {
+      label: string | number | boolean | null | Date | undefined
+      value?: TableCellValue
+      url?: string
+      action?: string
+      params?: z.infer<typeof serializableRecord>
+    }
+  | TableCellValue
+
+export interface TableColumn<Row> extends z.input<typeof tableColumn> {
+  label: string
+  renderCell: (row: Row) => TableColumnResult
 }
