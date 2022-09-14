@@ -6,7 +6,13 @@ function generateRows(count: number) {
 
   for (let i = 0; i < count; i++) {
     rows.push({
-      string: faker.random.word(),
+      id: i,
+      email: faker.internet.email(),
+      description: faker.helpers.arrayElement([
+        faker.random.word(),
+        faker.random.words(),
+        faker.lorem.paragraph(),
+      ]),
       number: faker.datatype.number(100),
       boolean: faker.datatype.boolean(),
       date: faker.datatype.datetime(),
@@ -23,19 +29,20 @@ export const display_table: IntervalActionHandler = async io => {
 
   await io.display.table('Display users', {
     data,
-    defaultPageSize: 20,
+    defaultPageSize: 5,
     columns: [
-      'string',
-      'number',
+      'id',
+      'description',
       'boolean',
       'date',
       {
         label: 'renderCell',
-        renderCell: row => `${row.string} ${row.number}`,
+        renderCell: row =>
+          `${String(row.description).split(' ')[0]} ${row.number}`,
       },
       {
-        label: 'Edit',
-        renderCell: row => ({ href: '#', label: row.string }),
+        label: 'Link',
+        renderCell: row => ({ href: '#', label: row.email }),
       },
     ],
     rowMenuItems: row => [
@@ -55,19 +62,21 @@ export const select_table: IntervalActionHandler = async io => {
 
   const selected = await io.select.table('Display users', {
     data,
-    defaultPageSize: 10,
+    defaultPageSize: 500,
     columns: [
-      'string',
+      'id',
+      'description',
       'number',
       'boolean',
       'date',
       {
         label: 'renderCell',
-        renderCell: row => `${row.string} ${row.number}`,
+        renderCell: row =>
+          `${String(row.description).split(' ')[0]} ${row.number}`,
       },
       {
-        label: 'Edit',
-        renderCell: row => ({ href: '#', label: row.string }),
+        label: 'Link',
+        renderCell: row => ({ href: '#', label: row.email }),
       },
     ],
     minSelections: 1,
