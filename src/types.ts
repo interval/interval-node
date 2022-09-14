@@ -266,14 +266,13 @@ export type GroupConfig = {
 export type TableCellValue = string | number | boolean | null | Date | undefined
 
 export type TableColumnResult =
-  | ({
+  | {
       label: string | number | boolean | null | Date | undefined
       value?: TableCellValue
-    } & (
-      | { url: string }
-      | { action: string; params?: z.infer<typeof serializableRecord> }
-      | {}
-    ))
+      url?: string
+      action?: string
+      params?: z.infer<typeof serializableRecord>
+    }
   | TableCellValue
 
 export interface TableColumn<Row> extends z.input<typeof tableColumn> {

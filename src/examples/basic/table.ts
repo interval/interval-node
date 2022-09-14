@@ -3,10 +3,9 @@ import { IntervalActionHandler } from '../..'
 import { faker } from '@faker-js/faker'
 
 function generateRows(count: number) {
-  const rows: { [key: string]: string | number | boolean | Date }[] = []
-
-  for (let i = 0; i < count; i++) {
-    rows.push({
+  return Array(count)
+    .fill(null)
+    .map((_, i) => ({
       id: i,
       email: faker.internet.email(),
       description: faker.helpers.arrayElement([
@@ -17,10 +16,7 @@ function generateRows(count: number) {
       number: faker.datatype.number(100),
       boolean: faker.datatype.boolean(),
       date: faker.datatype.datetime(),
-    })
-  }
-
-  return rows
+    }))
 }
 
 export const no_pagination: IntervalActionHandler = async io => {
@@ -71,7 +67,7 @@ export const display_table: IntervalActionHandler = async io => {
       },
       {
         label: 'Link',
-        renderCell: row => ({ href: '#', label: row.email }),
+        renderCell: row => ({ url: '#', label: row.email }),
       },
     ],
     rowMenuItems: row => [
@@ -105,7 +101,7 @@ export const select_table: IntervalActionHandler = async io => {
       },
       {
         label: 'Link',
-        renderCell: row => ({ href: '#', label: row.email }),
+        renderCell: row => ({ url: '#', label: row.email }),
       },
     ],
     minSelections: 1,
@@ -121,17 +117,17 @@ export const select_table: IntervalActionHandler = async io => {
   await io.display.table('Display users', {
     data: selected,
     columns: [
-      'string',
+      'description',
       'number',
       'boolean',
       'date',
       {
         label: 'renderCell',
-        renderCell: row => `${row.string} ${row.number}`,
+        renderCell: row => `${row.description} ${row.number}`,
       },
       {
         label: 'Edit',
-        renderCell: row => ({ href: '#', label: row.string }),
+        renderCell: row => ({ url: '#', label: row.email }),
       },
     ],
   })
