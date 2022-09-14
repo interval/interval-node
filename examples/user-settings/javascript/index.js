@@ -13,11 +13,6 @@ const users = [...Array(10)].map((_, i) => {
   };
 });
 
-function sendVerificationEmail(user) {
-  // replace with a call to your email service
-  ctx.log('Sending verification email to', user.email);
-}
-
 function resetUserPassword(user) {
   // replace with database update and a call to send a password reset email
   ctx.log('Resetting password for', user.email);
@@ -66,25 +61,16 @@ const interval = new Interval({
         }),
       ]);
 
-      const messages = [];
-      const helpTexts = [];
+      const messages = ['update the user'];
+      let helpText;
       if (resetPassword) {
         messages.push('reset their password');
-        helpTexts.push('log the user out all current sessions');
-      }
-      if (user.email !== email) {
-        messages.push('change their email');
-        helpTexts.push('send an email to verifiy the new email address');
+        helpText = 'This will log the user out all current sessions.';
       }
       const confirmed = await io.confirm(
-        `Are you sure you want to ${messages
-          .join(', ')
-          .replace(/,(?!.*,)/gim, messages.length > 2 ? ', and' : ' and')}?`,
+        `Are you sure you want to ${messages.join(', ')}?`,
         {
-          helpText:
-            helpTexts.length > 0
-              ? `This will ${helpTexts.join(' and ')}.`
-              : undefined,
+          helpText,
         }
       );
 
@@ -101,7 +87,6 @@ const interval = new Interval({
       users[users.indexOf(user)] = updatedUser;
 
       if (resetPassword) resetUserPassword(updatedUser);
-      if (user.email !== email) sendVerificationEmail(updatedUser);
 
       return updatedUser;
     },
