@@ -648,7 +648,7 @@ export default class IntervalClient {
               const pageRender: PageSchemaInput = {
                 kind: 'RESOURCE',
                 title:
-                  page.description === undefined
+                  page.title === undefined
                     ? undefined
                     : typeof page.title === 'string'
                     ? page.title
