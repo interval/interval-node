@@ -752,11 +752,11 @@ export default class IntervalClient {
               renderInstruction = instruction
               scheduleSendPage()
             },
-            onAddInlineAction: handler => {
-              const key = v4()
-              this.#actionHandlers.set(key, handler)
-              return key
-            },
+            // onAddInlineAction: () => {
+            //   const key = v4()
+            //   this.#actionHandlers.set(key, handler)
+            //   return key
+            // },
           })
 
           const {
@@ -796,18 +796,18 @@ export default class IntervalClient {
 
               if (page.menuItems) {
                 menuItems = page.menuItems.map(menuItem => {
-                  if (
-                    'action' in menuItem &&
-                    typeof menuItem['action'] === 'function'
-                  ) {
-                    const inlineAction = client.addInlineAction(menuItem.action)
-                    return {
-                      ...menuItem,
-                      inlineAction,
-                    }
-                  }
+                  // if (
+                  //   'action' in menuItem &&
+                  //   typeof menuItem['action'] === 'function'
+                  // ) {
+                  //   const inlineAction = client.addInlineAction(menuItem.action)
+                  //   return {
+                  //     ...menuItem,
+                  //     inlineAction,
+                  //   }
+                  // }
 
-                  return menuItem as InternalMenuItem
+                  return menuItem
                 })
               }
 
@@ -891,11 +891,11 @@ export default class IntervalClient {
 
               this.#transactionLoadingStates.delete(transactionId)
             },
-            onAddInlineAction: handler => {
-              const key = v4()
-              this.#actionHandlers.set(key, handler)
-              return key
-            },
+            // onAddInlineAction: handler => {
+            //   const key = v4()
+            //   this.#actionHandlers.set(key, handler)
+            //   return key
+            // },
           })
 
           this.#ioResponseHandlers.set(

@@ -4,9 +4,8 @@ import {
   tableRow,
   internalTableRow,
 } from '../ioSchema'
-import { MenuItem, InternalMenuItem } from '../types'
+import { MenuItem } from '../types'
 import { z } from 'zod'
-import { IOClient } from '../classes/IOClient'
 
 /**
  * Generates column headers from rows if no columns are provided.
@@ -57,7 +56,6 @@ export function columnsWithoutRender(
  * Applies cell renderers to a row.
  */
 export function tableRowSerializer<T extends z.infer<typeof tableRow>>(
-  ioClient: IOClient,
   idx: number,
   row: T,
   columns: z.infer<typeof tableColumn>[],
@@ -81,19 +79,7 @@ export function tableRowSerializer<T extends z.infer<typeof tableRow>>(
     finalRow[i.toString()] = val
   }
 
-  const menu = menuBuilder
-    ? menuBuilder(row).map(menuItem => {
-        if ('action' in menuItem && typeof menuItem['action'] === 'function') {
-          const inlineAction = ioClient.addInlineAction(menuItem.action)
-          return {
-            ...menuItem,
-            inlineAction,
-          }
-        }
-
-        return menuItem as InternalMenuItem
-      })
-    : undefined
+  const menu = menuBuilder ? menuBuilder(row) : undefined
 
   return {
     key,

@@ -44,7 +44,6 @@ export function selectTable(logger: Logger) {
       rowMenuItems?: (row: Row) => MenuItem[]
     }
   ) {
-    const ioClient = this
     type DataList = typeof props['data']
 
     const columns = columnsBuilder(props, column =>
@@ -52,7 +51,7 @@ export function selectTable(logger: Logger) {
     )
 
     const data = props.data.map((row, idx) =>
-      tableRowSerializer(ioClient, idx, row, columns, props.rowMenuItems)
+      tableRowSerializer(idx, row, columns, props.rowMenuItems)
     )
 
     return {
@@ -79,13 +78,12 @@ export function displayTable(logger: Logger) {
       rowMenuItems?: (row: Row) => MenuItem[]
     }
   ) {
-    const ioClient = this
     const columns = columnsBuilder(props, column =>
       logger.error(missingColumnMessage('io.display.table')(column))
     )
 
     const data = props.data.map((row, idx) =>
-      tableRowSerializer(ioClient, idx, row, columns, props.rowMenuItems)
+      tableRowSerializer(idx, row, columns, props.rowMenuItems)
     )
 
     return {

@@ -181,10 +181,6 @@ export const menuItem = z.intersection(
       disabled: z.boolean().optional(),
     }),
     z.object({
-      inlineAction: z.string(),
-      disabled: z.boolean().optional(),
-    }),
-    z.object({
       disabled: z.literal(true),
     }),
   ])

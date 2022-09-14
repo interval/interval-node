@@ -280,11 +280,10 @@ export type IOComponentDefinition<
 }
 
 export type InternalMenuItem = z.input<typeof menuItem>
-export type MenuItem =
-  | Omit<InternalMenuItem, 'inlineAction'>
-  | {
-      label: InternalMenuItem['label']
-      theme?: InternalMenuItem['theme']
-      action: IntervalActionHandler
-      disabled?: boolean
-    }
+export type MenuItem = InternalMenuItem
+// | {
+//     label: InternalMenuItem['label']
+//     theme?: InternalMenuItem['theme']
+//     action: IntervalActionHandler
+//     disabled?: boolean
+//   }

@@ -1,4 +1,4 @@
-import Interval, { ActionGroup, io, ctx } from '../../experimental'
+import Interval, { ActionGroup, io } from '../../experimental'
 import { Resource } from '../../classes/Page'
 import { sleep } from '../utils/helpers'
 
@@ -24,15 +24,19 @@ const hello_app = new ActionGroup({
       ],
       menuItems: [
         {
-          label: 'Inline action',
-          action: async () => {
-            const name = await io.input.text('Your name')
-            await io.display.markdown(`Hello, ${name}`)
-            return {
-              name,
-            }
-          },
+          label: 'Action link',
+          action: 'hello_app/hello_world',
         },
+        // {
+        //   label: 'Inline action',
+        //   action: async () => {
+        //     const name = await io.input.text('Your name')
+        //     await io.display.markdown(`Hello, ${name}`)
+        //     return {
+        //       name,
+        //     }
+        //   },
+        // },
       ],
       children: [
         io.display.markdown('Hello, resource!'),
@@ -44,13 +48,13 @@ const hello_app = new ActionGroup({
           ],
           rowMenuItems: () => [
             {
-              label: 'Edit',
+              label: 'Hello',
               action: 'hello_app/hello_world',
             },
-            {
-              label: 'Inline',
-              action: async () => {},
-            },
+            // {
+            //   label: 'Inline',
+            //   action: async () => {},
+            // },
           ],
         }),
       ],

@@ -48,7 +48,7 @@ import { IntervalError } from '..'
 interface ClientConfig {
   logger: Logger
   send: IORenderSender
-  onAddInlineAction: (handler: IntervalActionHandler) => string
+  // onAddInlineAction: (handler: IntervalActionHandler) => string
 }
 
 export type IOClientRenderReturnValues<
@@ -73,7 +73,7 @@ export type IOClientRenderValidator<
 export class IOClient {
   logger: Logger
   send: IORenderSender
-  onAddInlineAction: (handler: IntervalActionHandler) => string
+  // onAddInlineAction: (handler: IntervalActionHandler) => string
 
   onResponseHandler: ResponseHandlerFn | undefined
   inlineActionKeys = new Set<string>()
@@ -82,14 +82,14 @@ export class IOClient {
   constructor(config: ClientConfig) {
     this.logger = config.logger
     this.send = config.send
-    this.onAddInlineAction = config.onAddInlineAction
+    // this.onAddInlineAction = config.onAddInlineAction
   }
 
-  addInlineAction(handler: IntervalActionHandler): string {
-    const key = this.onAddInlineAction(handler)
-    this.inlineActionKeys.add(key)
-    return key
-  }
+  // addInlineAction(handler: IntervalActionHandler): string {
+  //   const key = this.onAddInlineAction(handler)
+  //   this.inlineActionKeys.add(key)
+  //   return key
+  // }
 
   /**
    * Creates a render loop for an IO call.
