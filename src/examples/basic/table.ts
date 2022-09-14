@@ -1,3 +1,4 @@
+import { IntervalActionDefinition } from '@interval/sdk/src/types'
 import { IntervalActionHandler } from '../..'
 import { faker } from '@faker-js/faker'
 
@@ -22,10 +23,38 @@ function generateRows(count: number) {
   return rows
 }
 
-export const display_table: IntervalActionHandler = async io => {
-  faker.seed(0)
+export const no_pagination: IntervalActionHandler = async io => {
+  const data = generateRows(5)
 
-  const data = generateRows(50_000)
+  await io.display.table('Display users', {
+    data,
+    defaultPageSize: 50,
+  })
+}
+
+export const paginated: IntervalActionHandler = async io => {
+  const data = generateRows(50)
+
+  await io.display.table('Display users', {
+    data,
+    defaultPageSize: 10,
+  })
+}
+
+export const large_table: IntervalActionDefinition = {
+  name: '10k rows',
+  handler: async io => {
+    const data = generateRows(10_000)
+
+    await io.display.table('Display users', {
+      data,
+      defaultPageSize: Infinity,
+    })
+  },
+}
+
+export const display_table: IntervalActionHandler = async io => {
+  const data = generateRows(50)
 
   await io.display.table('Display users', {
     data,
@@ -134,14 +163,14 @@ export const table_custom: IntervalActionHandler = async io => {
         { label: 'Display', value: 'display' },
         { label: 'Select', value: 'select' },
       ],
-      defaultValue: { label: 'Select', value: 'select' },
+      defaultValue: { label: 'Display', value: 'display' },
     }),
     io.select.single('Orientation', {
       options: [
         { label: 'Horizontal', value: 'horizontal' },
         { label: 'Vertical', value: 'vertical' },
       ],
-      defaultValue: { label: 'Select', value: 'select' },
+      defaultValue: { label: 'Horizontal', value: 'horizontal' },
       helpText:
         'Warning: Vertical orientation is not supported for select tables; it will be ignored',
     }),
