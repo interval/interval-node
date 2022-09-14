@@ -68,7 +68,7 @@ const interval = new Interval({
         helpText = 'This will log the user out all current sessions.';
       }
       const confirmed = await io.confirm(
-        `Are you sure you want to ${messages.join(', ')}?`,
+        `Are you sure you want to ${messages.join(' and ')}?`,
         {
           helpText,
         }
