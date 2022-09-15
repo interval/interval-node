@@ -176,6 +176,12 @@ const interval = new Interval({
         })
       },
     }),
+    hello_world: {
+      name: 'Hello world',
+      handler: async () => {
+        await io.display.markdown('Hello, world!')
+      },
+    },
   },
 })
 
@@ -187,6 +193,13 @@ const prod = new Interval({
   endpoint: 'ws://localhost:3000/websocket',
   actions: {
     hello_app,
+    hello_world: {
+      name: 'Hello world',
+      handler: async () => {
+        // await io.display.markdown('Hello, world!')
+        return 'Hello, world!'
+      },
+    },
   },
 })
 
