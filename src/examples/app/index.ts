@@ -1,6 +1,7 @@
-import Interval, { ActionGroup, io } from '../../experimental'
+import Interval, { ActionGroup, ctx, io } from '../../experimental'
 import { Resource } from '../../classes/Page'
 import { sleep } from '../utils/helpers'
+import * as db from './db'
 
 const hello_app = new ActionGroup({
   name: 'App',
@@ -67,18 +68,111 @@ const hello_app = new ActionGroup({
   },
 })
 
+const users = new ActionGroup({
+  name: 'Users',
+  render: async () => {
+    const allUsers = db.getUsers()
+
+    return new Resource({
+      // TODO: this should fallback to the group title if undefined, I think
+      title: 'Users',
+      metadata: [
+        { label: 'Total users', value: allUsers.length },
+        {
+          label: 'New today',
+          value: allUsers.filter(
+            u => u.createdAt.getTime() > Date.now() - 1000 * (60 * 60 * 24)
+          ).length,
+        },
+        {
+          label: 'New this week',
+          value: allUsers.filter(
+            u => u.createdAt.getTime() > Date.now() - 1000 * (60 * 60 * 24 * 7)
+          ).length,
+        },
+      ],
+      menuItems: [
+        {
+          label: 'Create user',
+          action: 'users/create',
+        },
+        {
+          label: 'View funnel',
+          action: 'users/view_funnel',
+        },
+      ],
+      children: [
+        io.display.table('Users', {
+          data: allUsers,
+          rowMenuItems: row => [
+            {
+              label: 'Edit',
+              action: 'users/edit',
+              params: { id: row.id },
+            },
+          ],
+        }),
+      ],
+    })
+  },
+  actions: {
+    create: {
+      name: 'Create user',
+      handler: async () => {
+        const [firstName, lastName, email] = await io.group([
+          io.input.text('First name'),
+          io.input.text('Last name'),
+          io.input.email('Email'),
+        ])
+
+        await sleep(1000)
+
+        return { firstName, lastName, email }
+      },
+    },
+    edit: {
+      name: 'Edit user',
+      handler: async () => {
+        const userId = ctx.params.id
+        if (!userId) throw new Error('No user ID provided')
+
+        const user = db.getUser(String(userId))
+        if (!user) throw new Error('User not found')
+
+        const [firstName, lastName, email] = await io.group([
+          io.input.text('ID', { defaultValue: user.id, disabled: true }),
+          io.input.text('First name', { defaultValue: user.firstName }),
+          io.input.text('Last name', { defaultValue: user.lastName }),
+          io.input.email('Email', { defaultValue: user.email }),
+        ])
+
+        await sleep(1000)
+
+        return { firstName, lastName, email }
+      },
+    },
+    view_funnel: {
+      name: 'View funnel',
+      handler: async () => {
+        await io.display.markdown('# 🌪️')
+      },
+    },
+  },
+})
+
 const interval = new Interval({
   apiKey: 'alex_dev_Bku6kYZlyhyvkCO36W5HnpwtXACI1khse8SnZ9PuwsmqdRfe',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   actions: {
     hello_app,
-    childless: new ActionGroup({
-      name: 'Childless',
+    users,
+    info: new ActionGroup({
+      name: 'Info',
       async render() {
         return new Resource({
-          title: 'Hey',
-          description: 'No children!',
+          title: 'Info',
+          description: 'This is a text-only page. No children, just text.',
         })
       },
     }),
