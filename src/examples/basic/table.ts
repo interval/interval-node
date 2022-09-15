@@ -16,6 +16,7 @@ function generateRows(count: number) {
       number: faker.datatype.number(100),
       boolean: faker.datatype.boolean(),
       date: faker.datatype.datetime(),
+      image: faker.image.imageUrl(480, 480, undefined, true),
     }))
 }
 
@@ -60,6 +61,17 @@ export const display_table: IntervalActionHandler = async io => {
       'description',
       'boolean',
       'date',
+      {
+        label: 'Image',
+        renderCell: row => ({
+          label: 'Label',
+          image: {
+            alt: 'Alt tag',
+            url: row.image,
+            size: 'small',
+          },
+        }),
+      },
       {
         label: 'renderCell',
         renderCell: row =>

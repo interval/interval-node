@@ -40,6 +40,7 @@ export default function selectTable(logger: Logger) {
         row,
         columns,
         menuBuilder: props.rowMenuItems,
+        logger,
       })
     )
 

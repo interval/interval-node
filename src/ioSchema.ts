@@ -119,6 +119,9 @@ export type Serializable = z.infer<typeof serializableSchema>
 export const serializableRecord = z.record(serializableSchema)
 export type SerializableRecord = z.infer<typeof serializableRecord>
 
+export const imageSize = z.enum(['thumbnail', 'small', 'medium', 'large'])
+export type ImageSize = z.infer<typeof imageSize>
+
 export const tableRowValue = z.union([
   z.string(),
   z.number(),
@@ -128,7 +131,7 @@ export const tableRowValue = z.union([
   z.undefined(),
   z.bigint(),
   z.object({
-    label: z.string(),
+    label: z.string().optional(),
     value: z
       .union([
         z.string(),
@@ -141,6 +144,14 @@ export const tableRowValue = z.union([
       .optional(),
     href: z.string().optional(),
     url: z.string().optional(),
+    image: z
+      .object({
+        alt: z.string().optional(),
+        width: imageSize.optional(),
+        height: imageSize.optional(),
+        url: z.string(),
+      })
+      .optional(),
     action: z.string().optional(),
     params: serializableRecord.optional(),
   }),
@@ -150,7 +161,7 @@ export const tableRow = z
   .record(tableRowValue)
   // Allow arbitrary objects/interfaces with specified column mappings.
   // If no columns specified, we'll just serialize any nested objects.
-  .or(z.object({}).passthrough())
+  .or(z.record(z.any()))
 
 export const menuItem = z.intersection(
   z.object({
@@ -195,58 +206,6 @@ export const internalTableRow = z.object({
   filterValue: z.string().optional(),
 })
 
-export const tableColumn = z.object({
-  label: z.string(),
-  renderCell: z
-    .function()
-    .args(z.any())
-    .returns(
-      z.union([
-        z.intersection(
-          z.object({
-            label: z.union([
-              z.string(),
-              z.number(),
-              z.boolean(),
-              z.date(),
-              z.null(),
-              z.undefined(),
-            ]),
-            value: z
-              .union([
-                z.string(),
-                z.number(),
-                z.boolean(),
-                z.null(),
-                z.date(),
-                z.undefined(),
-              ])
-              .optional(),
-          }),
-          z.union([
-            z.object({
-              url: z.string(),
-            }),
-            z.object({
-              href: z.string(),
-            }),
-            z.object({
-              action: z.string(),
-              params: serializableRecord.optional(),
-            }),
-            z.object({}),
-          ])
-        ),
-        z.string(),
-        z.number(),
-        z.boolean(),
-        z.date(),
-        z.null(),
-        z.undefined(),
-      ])
-    ),
-})
-
 export const internalTableColumn = z.object({
   label: z.string(),
 })
@@ -262,9 +221,6 @@ export const CURRENCIES = [
 ] as const
 export const currencyCode = z.enum(CURRENCIES)
 export type CurrencyCode = z.infer<typeof currencyCode>
-
-export const imageSize = z.enum(['thumbnail', 'small', 'medium', 'large'])
-export type ImageSize = z.infer<typeof imageSize>
 
 export const dateObject = z.object({
   year: z.number(),
