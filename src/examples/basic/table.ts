@@ -7,6 +7,7 @@ function generateRows(count: number) {
     .fill(null)
     .map((_, i) => ({
       id: i,
+      name: `${faker.name.firstName()} ${faker.name.lastName()}`,
       email: faker.internet.email(),
       description: faker.helpers.arrayElement([
         faker.random.word(),
@@ -16,6 +17,12 @@ function generateRows(count: number) {
       number: faker.datatype.number(100),
       boolean: faker.datatype.boolean(),
       date: faker.datatype.datetime(),
+      image: faker.image.imageUrl(
+        480,
+        Math.random() < 0.25 ? 300 : 480,
+        undefined,
+        true
+      ),
     }))
 }
 
@@ -57,6 +64,17 @@ export const display_table: IntervalActionHandler = async io => {
     defaultPageSize: 50,
     columns: [
       'id',
+      {
+        label: 'User',
+        renderCell: row => ({
+          label: row.name,
+          image: {
+            alt: 'Alt tag',
+            url: row.image,
+            size: 'small',
+          },
+        }),
+      },
       'description',
       'boolean',
       'date',
@@ -230,4 +248,129 @@ export const table_custom: IntervalActionHandler = async io => {
     })
     await io.display.object('Selected', { data: selections })
   }
+}
+
+export const image_viewer: IntervalActionHandler = async io => {
+  const data = Array(50)
+    .fill(null)
+    .map((_, i) => {
+      const [width, height, crazyW, crazyH] = [
+        faker.datatype.number({ min: 500, max: 700 }),
+        faker.datatype.number({ min: 200, max: 400 }),
+        faker.datatype.number({ min: 100, max: 999 }),
+        faker.datatype.number({ min: 100, max: 999 }),
+      ]
+
+      return {
+        id: i,
+        name: faker.name.findName(),
+        square: faker.image.avatar(),
+        width,
+        height,
+        crazyW,
+        crazyH,
+        wide: faker.image.imageUrl(width, height, undefined, true),
+        tall: faker.image.imageUrl(height, width, undefined, true),
+        crazy: faker.image.imageUrl(crazyW, crazyH, undefined, true),
+      }
+    })
+
+  await io.display.table('Images', {
+    data,
+    defaultPageSize: 50,
+    columns: [
+      'id',
+      {
+        label: 'Square',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.square,
+            size: 'small',
+          },
+        }),
+      },
+      {
+        label: 'Tall',
+        renderCell: row => ({
+          label: `${row.height} x ${row.width}`,
+          image: {
+            alt: 'Alt tag',
+            url: row.tall,
+            size: 'small',
+          },
+        }),
+      },
+      {
+        label: 'Wide',
+        renderCell: row => ({
+          label: `${row.width} x ${row.height}`,
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+            size: 'small',
+          },
+        }),
+      },
+      {
+        label: 'Crazy',
+        renderCell: row => ({
+          label: `${row.crazyW} x ${row.crazyH}`,
+          image: {
+            alt: 'Alt tag',
+            url: row.crazy,
+            size: 'small',
+          },
+        }),
+      },
+    ],
+  })
+
+  await io.display.table('Image sizes', {
+    data,
+    defaultPageSize: 50,
+    columns: [
+      'id',
+      {
+        label: 'Thumbnail',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+            size: 'thumbnail',
+          },
+        }),
+      },
+      {
+        label: 'Small',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+            size: 'small',
+          },
+        }),
+      },
+      {
+        label: 'Medium',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+            size: 'medium',
+          },
+        }),
+      },
+      {
+        label: 'Large',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+            size: 'large',
+          },
+        }),
+      },
+    ],
+  })
 }

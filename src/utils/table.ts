@@ -1,24 +1,26 @@
 import {
-  tableColumn,
   internalTableColumn,
   tableRow,
   internalTableRow,
   menuItem,
 } from '../ioSchema'
 import { z } from 'zod'
+import { TableColumn, TableColumnResult } from '../types'
+import { bufferToDataUrl } from './image'
+import Logger from '../classes/Logger'
 
 export const TABLE_DATA_BUFFER_SIZE = 500
 
 /**
  * Generates column headers from rows if no columns are provided.
  */
-export function columnsBuilder(
+export function columnsBuilder<Row extends z.infer<typeof tableRow>>(
   props: {
-    columns?: (z.infer<typeof tableColumn> | string)[]
-    data: z.infer<typeof tableRow>[]
+    columns?: (TableColumn<Row> | string)[]
+    data: Row[]
   },
   logMissingColumn: (column: string) => void
-): z.infer<typeof tableColumn>[] {
+): TableColumn<Row>[] {
   const dataColumns = new Set(props.data.flatMap(record => Object.keys(record)))
   if (!props.columns) {
     const labels = Array.from(dataColumns.values())
@@ -49,7 +51,7 @@ export function columnsBuilder(
  * Removes the `render` function from column defs before sending data up to the server.
  */
 export function columnsWithoutRender(
-  columns: z.infer<typeof tableColumn>[]
+  columns: TableColumn<any>[]
 ): z.infer<typeof internalTableColumn>[] {
   return columns.map(({ renderCell, ...column }) => column)
 }
@@ -57,22 +59,24 @@ export function columnsWithoutRender(
 const dateFormatter = new Intl.DateTimeFormat('en-US')
 
 type RenderedTableRow = {
-  [key: string]: ReturnType<z.infer<typeof tableColumn>['renderCell']>
+  [key: string]: TableColumnResult
 }
 
 /**
  * Applies cell renderers to a row.
  */
-export function tableRowSerializer<T extends z.infer<typeof tableRow>>({
+export function tableRowSerializer<Row extends z.infer<typeof tableRow>>({
   index,
   row,
   columns,
   menuBuilder,
+  logger,
 }: {
   index: number
-  row: T
-  columns: z.infer<typeof tableColumn>[]
-  menuBuilder?: (row: T) => z.infer<typeof menuItem>[]
+  row: Row
+  columns: TableColumn<Row>[]
+  menuBuilder?: (row: Row) => z.infer<typeof menuItem>[]
+  logger: Logger
 }): z.infer<typeof internalTableRow> {
   const key = index.toString()
 
@@ -83,11 +87,44 @@ export function tableRowSerializer<T extends z.infer<typeof tableRow>>({
     const col = columns[i]
     const val = col.renderCell(row) ?? null
 
-    if (!!val && typeof val === 'object' && 'label' in val) {
+    if (val && typeof val === 'object' && 'image' in val) {
+      const image = val.image
+
+      if (image) {
+        if (image.size) {
+          if (!image.width) {
+            image.width = image.size
+          }
+
+          if (!image.height) {
+            image.height = image.size
+          }
+        }
+
+        if ('buffer' in image) {
+          const { buffer, ...rest } = image
+          try {
+            val.image = {
+              ...rest,
+              url: bufferToDataUrl(buffer),
+            }
+          } catch (err) {
+            logger.error(err)
+            delete val.image
+          }
+        }
+      }
+    }
+
+    if (val && typeof val === 'object' && 'label' in val) {
       if (val.label === undefined) {
         val.label = null
       } else if (val.label) {
-        filterValues.push(String(val.label))
+        filterValues.push(
+          val.label instanceof Date
+            ? dateFormatter.format(val.label)
+            : String(val.label)
+        )
       }
     } else if (val instanceof Date) {
       filterValues.push(dateFormatter.format(val))

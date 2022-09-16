@@ -35,6 +35,7 @@ export default function displayTable(logger: Logger) {
         row,
         columns,
         menuBuilder: props.rowMenuItems,
+        logger,
       })
     )
 

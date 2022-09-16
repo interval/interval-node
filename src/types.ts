@@ -13,7 +13,7 @@ import type {
   LinkProps,
   ButtonTheme,
   serializableRecord,
-  tableColumn,
+  ImageSize,
 } from './ioSchema'
 import type { HostSchema } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
@@ -267,15 +267,21 @@ export type TableCellValue = string | number | boolean | null | Date | undefined
 
 export type TableColumnResult =
   | {
-      label: string | number | boolean | null | Date | undefined
+      label?: TableCellValue
       value?: TableCellValue
+      image?: {
+        alt?: string
+        size?: ImageSize
+        width?: ImageSize
+        height?: ImageSize
+      } & ({ url: string } | { buffer: Buffer })
       url?: string
       action?: string
       params?: z.infer<typeof serializableRecord>
     }
   | TableCellValue
 
-export interface TableColumn<Row> extends z.input<typeof tableColumn> {
+export interface TableColumn<Row> {
   label: string
   renderCell: (row: Row) => TableColumnResult
 }
