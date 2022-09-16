@@ -249,3 +249,128 @@ export const table_custom: IntervalActionHandler = async io => {
     await io.display.object('Selected', { data: selections })
   }
 }
+
+export const image_viewer: IntervalActionHandler = async io => {
+  const data = Array(50)
+    .fill(null)
+    .map((_, i) => {
+      const [width, height, crazyW, crazyH] = [
+        faker.datatype.number({ min: 500, max: 700 }),
+        faker.datatype.number({ min: 200, max: 400 }),
+        faker.datatype.number({ min: 100, max: 999 }),
+        faker.datatype.number({ min: 100, max: 999 }),
+      ]
+
+      return {
+        id: i,
+        name: faker.name.findName(),
+        square: faker.image.avatar(),
+        width,
+        height,
+        crazyW,
+        crazyH,
+        wide: faker.image.imageUrl(width, height, undefined, true),
+        tall: faker.image.imageUrl(height, width, undefined, true),
+        crazy: faker.image.imageUrl(crazyW, crazyH, undefined, true),
+      }
+    })
+
+  await io.display.table('Images', {
+    data,
+    defaultPageSize: 50,
+    columns: [
+      'id',
+      {
+        label: 'Square',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.square,
+            size: 'small',
+          },
+        }),
+      },
+      {
+        label: 'Tall',
+        renderCell: row => ({
+          label: `${row.height} x ${row.width}`,
+          image: {
+            alt: 'Alt tag',
+            url: row.tall,
+            size: 'small',
+          },
+        }),
+      },
+      {
+        label: 'Wide',
+        renderCell: row => ({
+          label: `${row.width} x ${row.height}`,
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+            size: 'small',
+          },
+        }),
+      },
+      {
+        label: 'Crazy',
+        renderCell: row => ({
+          label: `${row.crazyW} x ${row.crazyH}`,
+          image: {
+            alt: 'Alt tag',
+            url: row.crazy,
+            size: 'small',
+          },
+        }),
+      },
+    ],
+  })
+
+  await io.display.table('Image sizes', {
+    data,
+    defaultPageSize: 50,
+    columns: [
+      'id',
+      {
+        label: 'Thumbnail',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+            size: 'thumbnail',
+          },
+        }),
+      },
+      {
+        label: 'Small',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+            size: 'small',
+          },
+        }),
+      },
+      {
+        label: 'Medium',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+            size: 'medium',
+          },
+        }),
+      },
+      {
+        label: 'Large',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+            size: 'large',
+          },
+        }),
+      },
+    ],
+  })
+}
