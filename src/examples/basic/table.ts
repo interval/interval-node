@@ -7,6 +7,7 @@ function generateRows(count: number) {
     .fill(null)
     .map((_, i) => ({
       id: i,
+      name: `${faker.name.firstName()} ${faker.name.lastName()}`,
       email: faker.internet.email(),
       description: faker.helpers.arrayElement([
         faker.random.word(),
@@ -16,7 +17,12 @@ function generateRows(count: number) {
       number: faker.datatype.number(100),
       boolean: faker.datatype.boolean(),
       date: faker.datatype.datetime(),
-      image: faker.image.imageUrl(480, 480, undefined, true),
+      image: faker.image.imageUrl(
+        480,
+        Math.random() < 0.25 ? 300 : 480,
+        undefined,
+        true
+      ),
     }))
 }
 
@@ -58,13 +64,10 @@ export const display_table: IntervalActionHandler = async io => {
     defaultPageSize: 50,
     columns: [
       'id',
-      'description',
-      'boolean',
-      'date',
       {
-        label: 'Image',
+        label: 'User',
         renderCell: row => ({
-          label: 'Label',
+          label: row.name,
           image: {
             alt: 'Alt tag',
             url: row.image,
@@ -72,6 +75,9 @@ export const display_table: IntervalActionHandler = async io => {
           },
         }),
       },
+      'description',
+      'boolean',
+      'date',
       {
         label: 'renderCell',
         renderCell: row =>
