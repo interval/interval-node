@@ -965,8 +965,6 @@ const interval = new Interval({
 
       return 'All done!'
     },
-  },
-  groups: {
     tables: new ActionGroup({
       name: 'Tables',
       actions: table_actions,
