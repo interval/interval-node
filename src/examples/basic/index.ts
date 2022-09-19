@@ -315,6 +315,11 @@ const interval = new Interval({
           text: 'console.log("Hello, world!")',
           language: 'typescript',
         }),
+        io.display.code('Code from file', {
+          text: fs.readFileSync('./src/examples/utils/helpers.ts', {
+            encoding: 'utf8',
+          }),
+        }),
       ])
     },
     images: async () => {
