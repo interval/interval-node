@@ -309,6 +309,19 @@ const interval = new Interval({
         data: { mySuperValue: data || 'No data' },
       })
     },
+    code: async () => {
+      await io.group([
+        io.display.code('Code from string', {
+          code: 'console.log("Hello, world!")',
+          language: 'typescript',
+        }),
+        io.display.code('Code from file', {
+          code: fs.readFileSync('./src/examples/utils/helpers.ts', {
+            encoding: 'utf8',
+          }),
+        }),
+      ])
+    },
     images: async () => {
       await io.group([
         io.display.image('Image via url', {

@@ -481,6 +481,7 @@ export class IOClient {
         }),
       },
       display: {
+        code: this.createIOMethod('DISPLAY_CODE'),
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
         image: this.createIOMethod('DISPLAY_IMAGE', {
