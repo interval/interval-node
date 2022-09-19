@@ -16,6 +16,7 @@ import type {
   IntervalPageStore,
   PageCtx,
 } from './types'
+import IntervalError from './classes/IntervalError'
 import IntervalClient, {
   DEFAULT_WEBSOCKET_ENDPOINT,
   getHttpEndpoint,
@@ -46,12 +47,6 @@ export interface QueuedAction {
   id: string
   assignee?: string
   params?: SerializableRecord
-}
-
-export class IntervalError extends Error {
-  constructor(message: string) {
-    super(message)
-  }
 }
 
 export function getActionStore(): IntervalActionStore {
@@ -220,4 +215,4 @@ export default class Interval {
   }
 }
 
-export { Interval, IOError }
+export { Interval, IOError, IntervalError }
