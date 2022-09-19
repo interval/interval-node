@@ -313,9 +313,6 @@ const interval = new Interval({
       await io.group([
         io.display.code('Code from string', {
           text: 'console.log("Hello, world!")',
-        }),
-        io.display.code('Code from file', {
-          buffer: fs.readFileSync('./src/examples/basic/editEmail.ts'),
           language: 'typescript',
         }),
       ])

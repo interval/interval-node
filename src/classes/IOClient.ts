@@ -27,7 +27,6 @@ import selectTable from '../components/selectTable'
 import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
-import displayCode from '../components/displayCode'
 import displayLink from '../components/displayLink'
 import displayImage from '../components/displayImage'
 import displayVideo from '../components/displayVideo'
@@ -470,9 +469,7 @@ export class IOClient {
         }),
       },
       display: {
-        code: this.createIOMethod('DISPLAY_CODE', {
-          componentDef: displayCode,
-        }),
+        code: this.createIOMethod('DISPLAY_CODE'),
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
         image: this.createIOMethod('DISPLAY_IMAGE', {
