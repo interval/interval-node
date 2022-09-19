@@ -312,11 +312,11 @@ const interval = new Interval({
     code: async () => {
       await io.group([
         io.display.code('Code from string', {
-          text: 'console.log("Hello, world!")',
+          code: 'console.log("Hello, world!")',
           language: 'typescript',
         }),
         io.display.code('Code from file', {
-          text: fs.readFileSync('./src/examples/utils/helpers.ts', {
+          code: fs.readFileSync('./src/examples/utils/helpers.ts', {
             encoding: 'utf8',
           }),
         }),

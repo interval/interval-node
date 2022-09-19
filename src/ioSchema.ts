@@ -455,7 +455,7 @@ export const ioSchema = {
   },
   DISPLAY_CODE: {
     props: z.object({
-      text: z.string(),
+      code: z.string(),
       language: z.string().optional(),
     }),
     state: z.null(),
