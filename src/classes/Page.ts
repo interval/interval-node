@@ -30,9 +30,15 @@ export class Page {
   }
 }
 
+export type MetaItemValue = Literal | bigint
+
 export interface MetaItem {
   label: string
-  value: Literal | Promise<Literal> | (() => Literal) | (() => Promise<Literal>)
+  value:
+    | MetaItemValue
+    | Promise<MetaItemValue>
+    | (() => MetaItemValue)
+    | (() => Promise<MetaItemValue>)
 }
 
 interface ResourceConfig extends PageConfig {
@@ -50,7 +56,7 @@ export class Resource extends Page {
 
 export const META_ITEM_SCHEMA = z.object({
   label: z.string(),
-  value: primitiveValue.nullish(),
+  value: primitiveValue.or(z.bigint()).nullish(),
 })
 
 export type MetaItemSchema = z.infer<typeof META_ITEM_SCHEMA>

@@ -40,7 +40,6 @@ import {
   RequiredPropsDisplayIOComponentFunction,
   InputIOComponentFunction,
   RequiredPropsInputIOComponentFunction,
-  IntervalActionHandler,
 } from '../types'
 import { stripUndefined } from '../utils/deserialize'
 import { IntervalError } from '..'
