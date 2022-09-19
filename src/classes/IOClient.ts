@@ -2,6 +2,7 @@ import { v4 } from 'uuid'
 import { z } from 'zod'
 import * as superjson from 'superjson'
 import type {
+  ButtonTheme,
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
   T_IO_PROPS,
@@ -21,11 +22,14 @@ import {
 } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
-import { selectTable, displayTable } from '../components/table'
+import displayTable from '../components/displayTable'
+import selectTable from '../components/selectTable'
 import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
 import displayLink from '../components/displayLink'
+import displayImage from '../components/displayImage'
+import displayVideo from '../components/displayVideo'
 import urlInput from '../components/url'
 import { date, datetime } from '../components/inputDate'
 import { file } from '../components/upload'
@@ -40,6 +44,8 @@ import {
   RequiredPropsDisplayIOComponentFunction,
   InputIOComponentFunction,
   RequiredPropsInputIOComponentFunction,
+  GroupConfig,
+  ButtonConfig,
 } from '../types'
 import { stripUndefined } from '../utils/deserialize'
 import { IntervalError } from '..'
@@ -103,7 +109,8 @@ export class IOClient {
     Components extends [AnyIOComponent, ...AnyIOComponent[]]
   >(
     components: Components,
-    groupValidator?: IOClientRenderValidator<Components>
+    groupValidator?: IOClientRenderValidator<Components>,
+    continueButton?: ButtonConfig
   ) {
     if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
@@ -135,6 +142,7 @@ export class IOClient {
               }),
             validationErrorMessage,
             kind: 'RENDER',
+            continueButton,
           }
 
           await this.send(packed)
@@ -252,16 +260,17 @@ export class IOClient {
       MaybeOptionalGroupIOPromise,
       ...MaybeOptionalGroupIOPromise[]
     ]
-  >(ioPromises: IOPromises): IOGroupPromise<IOPromises>
+  >(ioPromises: IOPromises, props?: GroupConfig): IOGroupPromise<IOPromises>
   group(
-    ioPromises: MaybeOptionalGroupIOPromise[]
+    ioPromises: MaybeOptionalGroupIOPromise[],
+    props?: GroupConfig
   ): IOGroupPromise<MaybeOptionalGroupIOPromise[]>
   group<
     IOPromises extends [
       MaybeOptionalGroupIOPromise,
       ...MaybeOptionalGroupIOPromise[]
     ]
-  >(promises: IOPromises) {
+  >(promises: IOPromises, props?: GroupConfig) {
     const exclusivePromises = promises.filter(
       pi => pi instanceof ExclusiveIOPromise
     )
@@ -277,6 +286,7 @@ export class IOClient {
     return new IOGroupPromise({
       promises,
       renderer: this.renderComponents.bind(this),
+      continueButton: props?.continueButton,
     })
   }
 
@@ -473,6 +483,9 @@ export class IOClient {
       display: {
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
+        image: this.createIOMethod('DISPLAY_IMAGE', {
+          componentDef: displayImage,
+        }),
         link: this.createIOMethod('DISPLAY_LINK', {
           componentDef: displayLink,
         }),
@@ -480,6 +493,9 @@ export class IOClient {
         table: this.createIOMethod('DISPLAY_TABLE', {
           propsRequired: true,
           componentDef: displayTable(this.logger),
+        }),
+        video: this.createIOMethod('DISPLAY_VIDEO', {
+          componentDef: displayVideo,
         }),
       },
       experimental: {

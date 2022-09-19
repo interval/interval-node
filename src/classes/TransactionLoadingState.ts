@@ -10,6 +10,8 @@ export default class TransactionLoadingState {
   #logger: Logger
   #sender: TransactionLoadingStateConfig['send']
   #state: LoadingState | undefined
+  #sendTimeout: NodeJS.Timeout | null = null
+  #sendTimeoutMs = 100
 
   constructor(config: TransactionLoadingStateConfig) {
     this.#sender = config.send
@@ -17,11 +19,16 @@ export default class TransactionLoadingState {
   }
 
   async #sendState() {
-    try {
-      await this.#sender(this.#state ?? {})
-    } catch (err) {
-      this.#logger.error('Failed sending loading state to Interval')
-      this.#logger.debug(err)
+    if (!this.#sendTimeout) {
+      // Buffer send calls for 100ms to prevent accidental DoSing with
+      // many loading calls
+      this.#sendTimeout = setTimeout(() => {
+        this.#sender(this.#state ?? {}).catch(err => {
+          this.#logger.error('Failed sending loading state to Interval')
+          this.#logger.debug(err)
+        })
+        this.#sendTimeout = null
+      }, this.#sendTimeoutMs)
     }
   }
 

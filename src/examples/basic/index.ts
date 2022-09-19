@@ -6,15 +6,12 @@ import {
 } from '../../types'
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
-import {
-  table_basic,
-  table_custom_columns,
-  table_custom,
-  table_actions,
-} from './selectFromTable'
+import * as table_actions from './table'
 import unauthorized from './unauthorized'
 import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
+import fs from 'fs'
+import { ActionGroup } from '../../experimental'
 
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
@@ -231,10 +228,6 @@ const interval = new Interval({
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed sit amet quam in lorem sagittis accumsan malesuada nec mauris. Nulla cursus dolor id augue sodales, et consequat elit mattis. Suspendisse nec sollicitudin ex. Pellentesque laoreet nulla nec malesuada consequat. Donec blandit leo id tincidunt tristique. Mauris vehicula metus sed ex bibendum, nec bibendum urna tincidunt. Curabitur porttitor euismod velit sed interdum. Suspendisse at dapibus eros. Vestibulum varius, est vel luctus pellentesque, risus lorem ullamcorper est, a ullamcorper metus dolor eget neque. Donec sit amet nulla tempus, fringilla magna eu, bibendum tortor. Nam pulvinar diam id vehicula posuere. Praesent non turpis et nibh dictum suscipit non nec ante. Phasellus vulputate egestas nisl a dapibus. Duis augue lorem, mattis auctor condimentum a, convallis sed elit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Pellentesque bibendum, magna vel pharetra fermentum, eros mi vulputate enim, in consectetur est quam quis felis.',
       }
     },
-    table_actions,
-    table_basic,
-    table_custom,
-    table_custom_columns,
     // 'progress-through-long-list': async io => {
     //   const resp = await io.experimental.progressThroughList(
     //     'Here are some items',
@@ -315,6 +308,33 @@ const interval = new Interval({
       await io.display.object('Return', {
         data: { mySuperValue: data || 'No data' },
       })
+    },
+    images: async () => {
+      await io.group([
+        io.display.image('Image via url', {
+          url: 'https://media.giphy.com/media/26ybw6AltpBRmyS76/giphy.gif',
+          alt: "Man makes like he's going to jump on a skateboard but doesn't",
+          width: 'medium',
+        }),
+        io.display.image('Image via buffer', {
+          buffer: fs.readFileSync('./src/examples/static/fail.gif'),
+          alt: 'Wile E. Coyote pulls a rope to launch a boulder from a catapult but it topples backwards and crushes him',
+        }),
+      ])
+    },
+    videos: async () => {
+      await io.group([
+        io.display.video('Video via url', {
+          url: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/The_Kid_scenes.ogv',
+          size: 'large',
+          muted: true,
+        }),
+        io.display.video('Video via buffer', {
+          loop: true,
+          buffer: fs.readFileSync('./src/examples/static/canyon.mp4'),
+          size: 'large',
+        }),
+      ])
     },
     enter_a_number: async io => {
       const num = await io.input.number('Enter a number')
@@ -676,6 +696,23 @@ const interval = new Interval({
 
       await sleep(1000)
     },
+    loading_dos: async () => {
+      const itemsInQueue = 100_000
+      await ctx.loading.start({
+        title: 'Migrating users',
+        description: 'There are a lot, but they are very fast',
+        itemsInQueue,
+      })
+
+      for (let i = 0; i < itemsInQueue; i++) {
+        await ctx.loading.completeOne()
+      }
+    },
+    log_dos: async () => {
+      for (let i = 0; i < 1000; i++) {
+        await ctx.log(i)
+      }
+    },
     echoParams: async (io, ctx) => {
       ctx.log(ctx.params)
       await io.display.object('Params', {
@@ -905,6 +942,22 @@ const interval = new Interval({
         paramsStr,
       }
     },
+    continue_button: async () => {
+      const url = await io.group([io.input.text('Important data')], {
+        continueButton: {
+          label: 'Delete the data',
+          theme: 'danger',
+        },
+      })
+
+      return 'All done!'
+    },
+  },
+  groups: {
+    tables: new ActionGroup({
+      name: 'Tables',
+      actions: table_actions,
+    }),
   },
 })
 

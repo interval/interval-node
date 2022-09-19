@@ -1170,7 +1170,7 @@ export default class IntervalClient {
     return await this.#serverRpc.send(methodName, inputs)
   }
 
-  #sendLog(transactionId: string, index: number, ...args: any[]) {
+  async #sendLog(transactionId: string, index: number, ...args: any[]) {
     if (!args.length) return
 
     let data = args
@@ -1188,11 +1188,13 @@ export default class IntervalClient {
         '\n^ Warning: 10k logline character limit reached.\nTo avoid this error, try separating your data into multiple ctx.log() calls.'
     }
 
-    this.#send('SEND_LOG', {
+    await this.#send('SEND_LOG', {
       transactionId,
       data,
       index,
       timestamp: new Date().valueOf(),
+    }).catch(err => {
+      this.#logger.error('Failed sending log to Interval', err)
     })
   }
 

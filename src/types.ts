@@ -12,6 +12,9 @@ import type {
   T_IO_INPUT_METHOD_NAMES,
   LinkProps,
   menuItem,
+  ButtonTheme,
+  serializableRecord,
+  tableColumn,
 } from './ioSchema'
 import type { HostSchema } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
@@ -57,8 +60,6 @@ export type PageCtx = Pick<
     slug: string
   }
 }
-
-export type ActionLogFn = (...args: any[]) => void
 
 export type IO = IOClient['io']
 
@@ -179,7 +180,8 @@ export type ComponentsRenderer<
   ]
 > = (
   components: Components,
-  validator?: IOClientRenderValidator<Components>
+  validator?: IOClientRenderValidator<Components>,
+  continueButton?: ButtonConfig
 ) => Promise<{
   [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
     ? z.infer<Components[Idx]['schema']['returns']> | undefined
@@ -200,6 +202,8 @@ export type NotifyConfig = {
   transactionId?: string
   idempotencyKey?: string
 }
+
+export type ActionLogFn = (...args: any[]) => Promise<void>
 
 export type NotifyFn = (config: NotifyConfig) => Promise<void>
 
@@ -287,3 +291,29 @@ export type MenuItem = InternalMenuItem
 //     action: IntervalActionHandler
 //     disabled?: boolean
 //   }
+
+export type ButtonConfig = {
+  label?: string
+  theme?: ButtonTheme
+}
+
+export type GroupConfig = {
+  continueButton: ButtonConfig
+}
+
+export type TableCellValue = string | number | boolean | null | Date | undefined
+
+export type TableColumnResult =
+  | {
+      label: string | number | boolean | null | Date | undefined
+      value?: TableCellValue
+      url?: string
+      action?: string
+      params?: z.infer<typeof serializableRecord>
+    }
+  | TableCellValue
+
+export interface TableColumn<Row> extends z.input<typeof tableColumn> {
+  label: string
+  renderCell: (row: Row) => TableColumnResult
+}
