@@ -172,7 +172,19 @@ const interval = new Interval({
       async render() {
         return new Resource({
           title: 'Info',
-          description: 'This is a text-only page. No children, just text.',
+          description:
+            'This is a text-only page. No children, just text. Metadata are params.',
+          metadata: Object.entries(ctx.params).map(([label, value]) => ({
+            label,
+            value,
+          })),
+          menuItems: [
+            {
+              label: 'Add timestamp param',
+              action: 'info',
+              params: { timestamp: new Date().valueOf() },
+            },
+          ],
         })
       },
     }),
