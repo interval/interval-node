@@ -453,6 +453,14 @@ export const ioSchema = {
     state: z.null(),
     returns: z.array(labelValue),
   },
+  DISPLAY_CODE: {
+    props: z.object({
+      text: z.string(),
+      language: z.string().optional(),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
   DISPLAY_HEADING: {
     props: z.object({}),
     state: z.null(),
