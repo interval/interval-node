@@ -7,7 +7,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@interval/sdk": "^0.25.0",
+    "@interval/sdk": "^0.29.0",
     "dotenv": "^16.0.1"
   },
   "devDependencies": {
