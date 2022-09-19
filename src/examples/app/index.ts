@@ -93,12 +93,12 @@ const users = new ActionGroup({
       ],
       menuItems: [
         {
-          label: 'Create user',
-          action: 'users/create',
-        },
-        {
           label: 'View funnel',
           action: 'users/view_funnel',
+        },
+        {
+          label: 'Create user',
+          action: 'users/create',
         },
       ],
       children: [
