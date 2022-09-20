@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import Logger from '../classes/Logger'
-import { tableRow, T_IO_PROPS, menuItem, T_IO_STATE } from '../ioSchema'
+import {
+  tableRow,
+  T_IO_PROPS,
+  menuItem,
+  T_IO_STATE,
+  internalTableRow,
+} from '../ioSchema'
 import { TableColumn } from '../types'
 import {
   columnsBuilder,
@@ -9,63 +15,110 @@ import {
   sortRows,
   TABLE_DATA_BUFFER_SIZE,
   missingColumnMessage,
+  TableDataFetcher,
 } from '../utils/table'
 
 type PublicProps<Row> = Omit<
   T_IO_PROPS<'DISPLAY_TABLE'>,
-  'data' | 'columns' | 'totalRecords'
+  'data' | 'columns' | 'totalRecords' | 'isAsync'
 > & {
-  data: Row[]
   columns?: (TableColumn<Row> | string)[]
   rowMenuItems?: (row: Row) => z.infer<typeof menuItem>[]
-}
+} & (
+    | {
+        data: Row[]
+      }
+    | {
+        getData: TableDataFetcher<Row>
+      }
+  )
 
 export default function displayTable(logger: Logger) {
   return function displayTable<Row extends z.input<typeof tableRow> = any>(
     props: PublicProps<Row>
   ) {
-    const columns = columnsBuilder(props, column =>
+    const initialColumns = columnsBuilder(props, column =>
       logger.error(missingColumnMessage('io.display.table')(column))
     )
 
     // Rendering all rows on initialization is necessary for filtering and sorting
-    const data = props.data.map((row, index) =>
-      tableRowSerializer({
-        index,
-        row,
-        columns,
-        menuBuilder: props.rowMenuItems,
-        logger,
-      })
-    )
+    const initialData =
+      'data' in props && props.data
+        ? props.data.map((row, index) =>
+            tableRowSerializer({
+              key: index.toString(),
+              row,
+              columns: initialColumns,
+              menuBuilder: props.rowMenuItems,
+              logger,
+            })
+          )
+        : []
+
+    const isAsync = 'getData' in props && !!props.getData
 
     return {
       props: {
         ...props,
-        data: data.slice(0, TABLE_DATA_BUFFER_SIZE),
-        totalRecords: data.length,
-        columns,
+        data: initialData.slice(0, TABLE_DATA_BUFFER_SIZE),
+        totalRecords:
+          'data' in props && props.data ? initialData.length : undefined,
+        columns: initialColumns,
+        isAsync,
       } as T_IO_PROPS<'DISPLAY_TABLE'>,
       async onStateChange(newState: T_IO_STATE<'DISPLAY_TABLE'>) {
-        const filtered = filterRows({
-          queryTerm: newState.queryTerm,
-          data,
-        })
+        let serializedData: z.infer<typeof internalTableRow>[]
+        let builtColumns: TableColumn<Row>[]
+        let totalRecords: number | undefined
 
-        const sorted = sortRows({
-          data: filtered,
-          column: newState.sortColumn ?? null,
-          direction: newState.sortDirection ?? null,
-        })
+        if (isAsync) {
+          const { data, totalRecords: r } = await props.getData(newState)
+          builtColumns = columnsBuilder(
+            {
+              columns: props.columns,
+              data,
+            },
+            column =>
+              logger.error(missingColumnMessage('io.display.table')(column))
+          )
+          serializedData = data.map((row, index) =>
+            tableRowSerializer({
+              key: (index + newState.offset).toString(),
+              row,
+              columns: builtColumns,
+              menuBuilder: props.rowMenuItems,
+              logger,
+            })
+          )
+          totalRecords = r
+        } else {
+          const filtered = filterRows({
+            queryTerm: newState.queryTerm,
+            data: initialData,
+          })
+
+          const sorted = sortRows({
+            data: filtered,
+            column: newState.sortColumn ?? null,
+            direction: newState.sortDirection ?? null,
+          })
+
+          serializedData = sorted.slice(
+            newState.offset,
+            newState.offset +
+              Math.min(newState.pageSize * 3, TABLE_DATA_BUFFER_SIZE)
+          )
+
+          builtColumns = initialColumns
+          totalRecords = initialData.length
+        }
 
         return {
           ...props,
-          data: sorted.slice(
-            newState.offset,
-            newState.offset + TABLE_DATA_BUFFER_SIZE
-          ),
-          totalRecords: sorted.length,
-          columns: columns.map(c => ({ label: c.label })),
+          data: serializedData,
+          totalRecords,
+          isAsync,
+          columns: builtColumns.map(c => ({ label: c.label })),
         }
       },
     }

@@ -13,11 +13,14 @@ export const TABLE_DATA_BUFFER_SIZE = 500
 export function columnsBuilder<Row extends z.infer<typeof tableRow>>(
   props: {
     columns?: (TableColumn<Row> | string)[]
-    data: Row[]
+    data?: Row[]
   },
   logMissingColumn: (column: string) => void
 ): TableColumn<Row>[] {
-  const dataColumns = new Set(props.data.flatMap(record => Object.keys(record)))
+  const dataColumns = props.data
+    ? new Set(props.data.flatMap(record => Object.keys(record)))
+    : new Set<string>()
+
   if (!props.columns) {
     const labels = Array.from(dataColumns.values())
 
@@ -58,24 +61,30 @@ type RenderedTableRow = {
   [key: string]: TableColumnResult
 }
 
+export type TableDataFetcher<Row extends z.infer<typeof tableRow>> = (props: {
+  queryTerm?: string | null
+  sortColumn?: string | null
+  sortDirection?: 'asc' | 'desc' | null
+  offset: number
+  pageSize: number
+}) => Promise<{ data: Row[]; totalRecords?: number }>
+
 /**
  * Applies cell renderers to a row.
  */
 export function tableRowSerializer<Row extends z.infer<typeof tableRow>>({
-  index,
+  key,
   row,
   columns,
   menuBuilder,
   logger,
 }: {
-  index: number
+  key: string
   row: Row
   columns: TableColumn<Row>[]
   menuBuilder?: (row: Row) => MenuItem[]
   logger: Logger
 }): z.infer<typeof internalTableRow> {
-  const key = index.toString()
-
   const renderedRow: RenderedTableRow = {}
   const filterValues: string[] = []
 
@@ -205,7 +214,7 @@ export function filterRows<T extends IsomorphicTableRow>({
   queryTerm,
   data,
 }: {
-  queryTerm: string
+  queryTerm?: string | null
   data: T[]
 }): Omit<T, 'filterValue'>[] {
   if (!queryTerm) return data

@@ -36,7 +36,7 @@ export default function selectTable(logger: Logger) {
     // Rendering all rows on initialization is necessary for filtering and sorting
     const data = props.data.map((row, index) =>
       tableRowSerializer({
-        index,
+        key: index.toString(),
         row,
         columns,
         menuBuilder: props.rowMenuItems,

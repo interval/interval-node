@@ -446,10 +446,11 @@ export const ioSchema = {
       selectedKeys: z.array(z.string()).default([]),
     }),
     state: z.object({
-      queryTerm: z.string(),
+      queryTerm: z.string().nullish(),
       sortColumn: z.string().nullish(),
       sortDirection: z.enum(['asc', 'desc']).nullish(),
       offset: z.number().int().default(0),
+      pageSize: z.number().int(),
       isSelectAll: z.boolean().default(false),
     }),
     // replaced full rows with just keys in v0.28
@@ -543,12 +544,14 @@ export const ioSchema = {
       //== private props
       // added in v0.28, optional until required by all active versions
       totalRecords: z.optional(z.number().int()),
+      isAsync: z.optional(z.boolean().default(false)),
     }),
     state: z.object({
-      queryTerm: z.string(),
+      queryTerm: z.string().nullish(),
       sortColumn: z.string().nullish(),
       sortDirection: z.enum(['asc', 'desc']).nullish(),
       offset: z.number().int().default(0),
+      pageSize: z.number().int(),
     }),
     returns: z.null(),
   },

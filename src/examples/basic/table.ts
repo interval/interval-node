@@ -2,11 +2,11 @@ import { IntervalActionDefinition } from '@interval/sdk/src/types'
 import { IntervalActionHandler } from '../..'
 import { faker } from '@faker-js/faker'
 
-function generateRows(count: number) {
+function generateRows(count: number, offset = 0) {
   return Array(count)
     .fill(null)
     .map((_, i) => ({
-      id: i,
+      id: offset + i,
       name: `${faker.name.firstName()} ${faker.name.lastName()}`,
       email: faker.internet.email(),
       description: faker.helpers.arrayElement([
@@ -60,7 +60,7 @@ export const large_table: IntervalActionDefinition = {
 }
 
 export const display_table: IntervalActionHandler = async io => {
-  const data = generateRows(50)
+  const data = generateRows(200)
 
   await io.display.table('Display users', {
     data,
@@ -144,6 +144,81 @@ export const multiple_tables: IntervalActionHandler = async io => {
       defaultPageSize: 10,
     }),
   ])
+}
+
+export const async_table: IntervalActionHandler = async io => {
+  await io.display.table<ReturnType<typeof generateRows>[0]>('Display users', {
+    async getData({ queryTerm, sortColumn, sortDirection, offset, pageSize }) {
+      let data = generateRows(pageSize * 4, offset)
+
+      if (queryTerm) {
+        data = data.filter(row => {
+          const re = new RegExp(queryTerm)
+          return (
+            re.test(row.name) || re.test(row.email) || re.test(row.description)
+          )
+        })
+      }
+
+      if (sortColumn && sortDirection) {
+        data.sort((a, b) => {
+          if (sortDirection === 'desc') {
+            const temp = b
+            b = a
+            a = temp
+          }
+
+          if (!(sortColumn in a) || !(sortColumn in b)) return 0
+
+          const aVal = a[sortColumn as keyof typeof a]
+          const bVal = b[sortColumn as keyof typeof b]
+
+          if (aVal < bVal) return -1
+          if (aVal > bVal) return 1
+          return 0
+        })
+      }
+
+      return {
+        data,
+        totalRecords: 2000,
+      }
+    },
+    defaultPageSize: 50,
+    columns: [
+      'id',
+      {
+        label: 'User',
+        renderCell: row => ({
+          label: row.name,
+          image: {
+            alt: 'Alt tag',
+            url: row.image,
+            size: 'small',
+          },
+        }),
+      },
+      'description',
+      'boolean',
+      'date',
+      {
+        label: 'renderCell',
+        renderCell: row =>
+          `${String(row.description).split(' ')[0]} ${row.number}`,
+      },
+      {
+        label: 'Link',
+        renderCell: row => ({ url: '#', label: row.email }),
+      },
+    ],
+    rowMenuItems: row => [
+      {
+        label: 'Edit',
+        action: 'edit_user',
+        params: { email: row.email },
+      },
+    ],
+  })
 }
 
 export const select_table: IntervalActionHandler = async io => {
