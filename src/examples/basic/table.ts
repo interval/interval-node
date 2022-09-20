@@ -23,6 +23,9 @@ function generateRows(count: number) {
         undefined,
         true
       ),
+      array: Array(10)
+        .fill(null)
+        .map(() => faker.word.noun()),
     }))
 }
 
@@ -78,6 +81,7 @@ export const display_table: IntervalActionHandler = async io => {
       'description',
       'boolean',
       'date',
+      'array',
       {
         label: 'renderCell',
         renderCell: row =>
