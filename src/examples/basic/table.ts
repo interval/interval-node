@@ -153,7 +153,7 @@ export const async_table: IntervalActionHandler = async io => {
 
       if (queryTerm) {
         data = data.filter(row => {
-          const re = new RegExp(queryTerm)
+          const re = new RegExp(queryTerm, 'gi')
           return (
             re.test(row.name) || re.test(row.email) || re.test(row.description)
           )
