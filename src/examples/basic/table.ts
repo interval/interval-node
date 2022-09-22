@@ -147,18 +147,22 @@ export const multiple_tables: IntervalActionHandler = async io => {
 }
 
 export const async_table: IntervalActionHandler = async io => {
+  const allData = generateRows(500)
   await io.display.table<ReturnType<typeof generateRows>[0]>('Display users', {
     async getData({ queryTerm, sortColumn, sortDirection, offset, pageSize }) {
-      let data = generateRows(pageSize * 4, offset)
+      let filteredData = allData
 
       if (queryTerm) {
-        data = data.filter(row => {
-          const re = new RegExp(queryTerm, 'gi')
+        const re = new RegExp(queryTerm, 'i')
+
+        filteredData = filteredData.filter(row => {
           return (
             re.test(row.name) || re.test(row.email) || re.test(row.description)
           )
         })
       }
+
+      const data = filteredData.slice(offset, offset + pageSize)
 
       if (sortColumn && sortDirection) {
         data.sort((a, b) => {
@@ -181,7 +185,7 @@ export const async_table: IntervalActionHandler = async io => {
 
       return {
         data,
-        totalRecords: 2000,
+        totalRecords: filteredData.length,
       }
     },
     defaultPageSize: 50,
@@ -198,6 +202,7 @@ export const async_table: IntervalActionHandler = async io => {
           },
         }),
       },
+      'email',
       'description',
       'boolean',
       'date',
