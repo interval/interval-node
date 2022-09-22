@@ -50,6 +50,7 @@ export const ACTION_DEFINITION = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
   backgroundable: z.boolean().optional(),
+  unlisted: z.boolean().optional(),
 })
 
 export type ActionDefinition = z.infer<typeof ACTION_DEFINITION>

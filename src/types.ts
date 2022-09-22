@@ -79,9 +79,9 @@ export interface IntervalPageStore {
 }
 
 export interface ExplicitIntervalActionDefinition {
-  prefix?: string
   handler: IntervalActionHandler
   backgroundable?: boolean
+  unlisted?: boolean
   name?: string
   description?: string
 }

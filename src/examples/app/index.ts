@@ -132,6 +132,7 @@ const users = new ActionGroup({
     },
     edit: {
       name: 'Edit user',
+      unlisted: true,
       handler: async () => {
         const userId = ctx.params.id
         if (!userId) throw new Error('No user ID provided')
@@ -192,6 +193,13 @@ const interval = new Interval({
       name: 'Hello world',
       handler: async () => {
         await io.display.markdown('Hello, world!')
+      },
+    },
+    unlisted: {
+      name: 'Unlisted',
+      unlisted: true,
+      handler: async () => {
+        await io.display.markdown("You're in")
       },
     },
   },
