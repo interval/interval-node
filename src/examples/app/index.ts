@@ -220,6 +220,13 @@ const prod = new Interval({
         return 'Hello, world!'
       },
     },
+    unlisted: {
+      name: 'Unlisted',
+      unlisted: true,
+      handler: async () => {
+        return 'Hello, invisibly!'
+      },
+    },
   },
 })
 
