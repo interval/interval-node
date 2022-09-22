@@ -69,6 +69,22 @@ export type TableDataFetcher<Row extends z.infer<typeof tableRow>> = (props: {
   pageSize: number
 }) => Promise<{ data: Row[]; totalRecords?: number }>
 
+export function getColumnKey(
+  col: { label: string },
+  keyOccurrances: Map<string, number>
+): string {
+  let key = col.label
+  const keyNum = keyOccurrances.get(key)
+  if (keyNum !== undefined) {
+    key = `${key} (${keyNum})`
+    keyOccurrances.set(key, keyNum + 1)
+  } else {
+    keyOccurrances.set(key, 1)
+  }
+
+  return key
+}
+
 /**
  * Applies cell renderers to a row.
  */
@@ -88,8 +104,11 @@ export function tableRowSerializer<Row extends z.infer<typeof tableRow>>({
   const renderedRow: RenderedTableRow = {}
   const filterValues: string[] = []
 
+  const colKeys = new Map<string, number>()
+
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i]
+    const key = getColumnKey(col, colKeys)
     const val = col.renderCell(row) ?? null
 
     if (val && typeof val === 'object' && 'image' in val) {
@@ -137,7 +156,7 @@ export function tableRowSerializer<Row extends z.infer<typeof tableRow>>({
       filterValues.push(String(val))
     }
 
-    renderedRow[i.toString()] = val
+    renderedRow[key] = val
   }
 
   return {
@@ -164,7 +183,7 @@ export function sortRows<T extends IsomorphicTableRow>({
   direction: 'asc' | 'desc' | null
 }): T[] {
   if (column === null || direction === null) {
-    return data.sort((a, b) => (Number(a.key) > Number(b.key) ? 1 : -1))
+    return data.sort((a, b) => Number(a.key) - Number(b.key))
   }
 
   return data.sort((a, b) => {
@@ -173,6 +192,7 @@ export function sortRows<T extends IsomorphicTableRow>({
     const sortA = getSortableValue(direction === 'desc' ? b : a, column) ?? null
     const sortB = getSortableValue(direction === 'desc' ? a : b, column) ?? null
 
+    if (sortA === null && sortB === null) return 0
     if (sortA === null) return 1
     if (sortB === null) return -1
 
