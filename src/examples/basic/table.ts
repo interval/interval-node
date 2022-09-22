@@ -98,6 +98,31 @@ export const display_table: IntervalActionHandler = async io => {
   })
 }
 
+export const multiple_tables: IntervalActionHandler = async io => {
+  await io.group([
+    io.display.table('Display users', {
+      data: generateRows(10),
+      defaultPageSize: 10,
+    }),
+    io.display.table('Display users', {
+      data: generateRows(10),
+      defaultPageSize: 10,
+    }),
+    io.display.table('Display users', {
+      data: generateRows(10),
+      defaultPageSize: 10,
+    }),
+    io.display.table('Display users', {
+      data: generateRows(10),
+      defaultPageSize: 10,
+    }),
+    io.display.table('Display users', {
+      data: generateRows(10),
+      defaultPageSize: 10,
+    }),
+  ])
+}
+
 export const select_table: IntervalActionHandler = async io => {
   faker.seed(0)
 
