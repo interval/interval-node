@@ -11,14 +11,14 @@ export interface RouterConfig {
   name: string
   description?: string
   routes?: IntervalActionDefinitions
-  render?: (display: IO['display'], ctx: PageCtx) => Promise<Layout>
+  index?: (display: IO['display'], ctx: PageCtx) => Promise<Layout>
 }
 
 export default class Router {
   name: string
   description?: string
   routes: IntervalActionDefinitions
-  render?: (display: IO['display'], ctx: PageCtx) => Promise<Layout>
+  index?: (display: IO['display'], ctx: PageCtx) => Promise<Layout>
 
   onChange: Evt<void>
   #groupChangeCtx = Evt.newCtx()
@@ -27,7 +27,7 @@ export default class Router {
     this.name = config.name
     this.description = config.description
     this.routes = config.routes ?? {}
-    this.render = config.render
+    this.index = config.index
     this.onChange = new Evt()
 
     for (const actionOrGroup of Object.values(this.routes)) {

@@ -4,7 +4,7 @@ import * as db from './db'
 
 const hello_app = new Router({
   name: 'App',
-  render: async () => {
+  index: async () => {
     return new Layout.Basic({
       title: sleep(1000).then(() => 'Resource'),
       description: sleep(750).then(
@@ -69,7 +69,7 @@ const hello_app = new Router({
 
 const users = new Router({
   name: 'Users',
-  render: async () => {
+  index: async () => {
     const allUsers = db.getUsers()
 
     return new Layout.Basic({
@@ -169,7 +169,7 @@ const interval = new Interval({
     users,
     info: new Router({
       name: 'Info',
-      async render() {
+      async index() {
         return new Layout.Basic({
           title: 'Info',
           description:

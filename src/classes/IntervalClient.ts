@@ -18,7 +18,7 @@ import {
   CREATE_GHOST_MODE_ACCOUNT,
   DECLARE_HOST,
   ActionDefinition,
-  GroupDefinition,
+  RouterDefinition,
 } from '../internalRpcSchema'
 import {
   ActionResultSchema,
@@ -89,9 +89,9 @@ export default class IntervalClient {
   #config: InternalConfig
 
   #actionDefinitions: ActionDefinition[] = []
-  #routerDefinitions: GroupDefinition[] = []
+  #routerDefinitions: RouterDefinition[] = []
   #actionHandlers: Map<string, IntervalActionHandler> = new Map()
-  #pageHandlers: Map<string, NonNullable<Router['render']>> = new Map()
+  #pageHandlers: Map<string, NonNullable<Router['index']>> = new Map()
 
   organization:
     | {
@@ -138,21 +138,21 @@ export default class IntervalClient {
   }
 
   #walkRoutes() {
-    const routerDefinitions: GroupDefinition[] = []
+    const routerDefinitions: RouterDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
     const actionHandlers = new Map<string, IntervalActionHandler>()
-    const pageHandlers = new Map<string, NonNullable<Router['render']>>()
+    const pageHandlers = new Map<string, NonNullable<Router['index']>>()
 
     function walkRouter(groupSlug: string, router: Router) {
       routerDefinitions.push({
         slug: groupSlug,
         name: router.name,
         description: router.description,
-        hasRenderer: !!router.render,
+        hasIndex: !!router.index,
       })
 
-      if (router.render) {
-        pageHandlers.set(groupSlug, router.render)
+      if (router.index) {
+        pageHandlers.set(groupSlug, router.index)
       }
 
       for (const [slug, def] of Object.entries(router.routes)) {
@@ -646,7 +646,7 @@ export default class IntervalClient {
 
           const sendPage = async () => {
             if (page instanceof Basic) {
-              const pageRender: LayoutSchemaInput = {
+              const pageLayout: LayoutSchemaInput = {
                 kind: 'BASIC',
                 title:
                   page.title === undefined
@@ -678,7 +678,7 @@ export default class IntervalClient {
                 const { json, meta } = superjson.serialize(items)
 
                 if (json) {
-                  pageRender.metadata = {
+                  pageLayout.metadata = {
                     json: json as MetaItemSchema[],
                     meta,
                   } as MetaItemsSchema
@@ -689,7 +689,7 @@ export default class IntervalClient {
                 try {
                   await this.#send('SEND_PAGE', {
                     pageKey,
-                    page: JSON.stringify(pageRender),
+                    page: JSON.stringify(pageLayout),
                   })
                   return
                 } catch (err) {
