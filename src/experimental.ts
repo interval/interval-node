@@ -16,6 +16,12 @@ import {
 import Actions from './classes/Actions'
 import Logger from './classes/Logger'
 import { IntervalActionDefinition } from './types'
+import { Page as Basic, Resource } from './classes/Page'
+
+export const Page = {
+  Basic,
+  Resource,
+}
 
 class ExperimentalInterval extends Interval {
   #groupChangeCtx = Evt.newCtx()
