@@ -5,7 +5,7 @@ const interval = new Interval({
   apiKey: DEMO_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
-  actions: {
+  routes: {
     helloCurrentUser: async (io, ctx) => {
       console.log(ctx.params)
 
@@ -23,18 +23,18 @@ const interval = new Interval({
 interval.listen()
 
 setTimeout(async () => {
-  await interval.actions.enqueue('helloCurrentUser', {
+  await interval.routes.enqueue('helloCurrentUser', {
     assignee: 'alex@interval.com',
     params: {
       message: 'Hello, queue!',
     },
   })
 
-  const queuedAction = await interval.actions.enqueue('helloCurrentUser', {
+  const queuedAction = await interval.routes.enqueue('helloCurrentUser', {
     params: {
       message: 'Hello, anyone!',
     },
   })
 
-  await interval.actions.dequeue(queuedAction.id)
+  await interval.routes.dequeue(queuedAction.id)
 }, 1000)

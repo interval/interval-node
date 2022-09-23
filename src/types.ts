@@ -32,7 +32,7 @@ import type {
 } from './classes/IOPromise'
 import type IOError from './classes/IOError'
 import type TransactionLoadingState from './classes/TransactionLoadingState'
-import type { ActionGroup } from './experimental'
+import type { Router } from './experimental'
 
 export type ActionCtx = Pick<
   z.infer<HostSchema['START_TRANSACTION']['inputs']>,
@@ -92,7 +92,7 @@ export type IntervalActionDefinition =
 
 export type IntervalActionDefinitions = Record<
   string,
-  IntervalActionDefinition | ActionGroup
+  IntervalActionDefinition | Router
 >
 
 export type RequiredPropsIOComponentFunction<

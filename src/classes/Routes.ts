@@ -8,7 +8,7 @@ import { ENQUEUE_ACTION, DEQUEUE_ACTION } from '../internalRpcSchema'
 /**
  * This is effectively a namespace inside of Interval with a little bit of its own state.
  */
-export default class Actions {
+export default class Routes {
   protected interval: Interval
   #logger: Logger
   #apiKey?: string

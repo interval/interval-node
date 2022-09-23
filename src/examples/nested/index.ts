@@ -1,5 +1,5 @@
 import { IntervalActionHandler } from '../..'
-import ExperimentalInterval, { ActionGroup, io } from '../../experimental'
+import ExperimentalInterval, { Router, io } from '../../experimental'
 
 const action: IntervalActionHandler = async () => {
   const message = await io.input.text('Hello?')
@@ -7,9 +7,9 @@ const action: IntervalActionHandler = async () => {
   return message
 }
 
-const devOnly = new ActionGroup({
+const devOnly = new Router({
   name: 'Dev-only',
-  actions: {
+  routes: {
     action,
   },
 })
@@ -18,24 +18,24 @@ const interval = new ExperimentalInterval({
   apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
-  actions: {
+  routes: {
     devOnly,
-    toRemove: new ActionGroup({
+    toRemove: new Router({
       name: 'To remove',
-      actions: {
+      routes: {
         action,
       },
     }),
   },
 })
 
-interval.actions.add('new_action', async () => {
+interval.routes.add('new_action', async () => {
   'Hello, dynamism!'
 })
 
-const nested = new ActionGroup({
+const nested = new Router({
   name: 'Nested',
-  actions: {
+  routes: {
     action,
     hello: action,
     configure: action,
@@ -44,21 +44,21 @@ const nested = new ActionGroup({
 
 nested.add(
   'more',
-  new ActionGroup({
+  new Router({
     name: 'More nested',
-    actions: {
+    routes: {
       action,
     },
   })
 )
 
-interval.actions.add('nested', nested)
+interval.routes.add('nested', nested)
 
 nested.add(
   'other',
-  new ActionGroup({
+  new Router({
     name: 'Other',
-    actions: {
+    routes: {
       action,
       hello: action,
     },
@@ -66,17 +66,17 @@ nested.add(
 )
 
 interval.listen().then(() => {
-  interval.actions.add(
+  interval.routes.add(
     'new',
-    new ActionGroup({
+    new Router({
       name: 'New Group',
-      actions: {
+      routes: {
         action,
       },
     })
   )
 
-  interval.actions.remove('toRemove')
+  interval.routes.remove('toRemove')
 
   devOnly.add('self_destructing', async () => {
     devOnly.remove('self_destructing')
@@ -89,7 +89,7 @@ const anon = new ExperimentalInterval({
   endpoint: 'ws://localhost:3000/websocket',
 })
 
-anon.actions.add('nested', nested)
+anon.routes.add('nested', nested)
 
 anon.listen()
 
@@ -99,6 +99,6 @@ const prod = new ExperimentalInterval({
   endpoint: 'ws://localhost:3000/websocket',
 })
 
-prod.actions.add('test', nested)
+prod.routes.add('test', nested)
 
 prod.listen()

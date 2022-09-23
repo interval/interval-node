@@ -11,7 +11,7 @@ import unauthorized from './unauthorized'
 import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
-import { ActionGroup } from '../../experimental'
+import { Router } from '../../experimental'
 
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
@@ -60,7 +60,7 @@ const actionLinks: IntervalActionHandler = async () => {
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3000/websocket',
-  actions: {
+  routes: {
     actionLinks,
     ImportUsers: {
       backgroundable: true,
@@ -155,7 +155,7 @@ const interval = new Interval({
   apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
-  actions: {
+  routes: {
     disabled_inputs: async io => {
       await io.group([
         io.display.heading('Here are a bunch of disabled inputs'),
@@ -965,9 +965,9 @@ const interval = new Interval({
 
       return 'All done!'
     },
-    tables: new ActionGroup({
+    tables: new Router({
       name: 'Tables',
-      actions: table_actions,
+      routes: table_actions,
     }),
   },
 })

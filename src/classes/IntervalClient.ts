@@ -42,14 +42,14 @@ import type {
 import TransactionLoadingState from '../classes/TransactionLoadingState'
 import localConfig from '../localConfig'
 import { Interval, InternalConfig, IntervalError } from '..'
-import ActionGroup from './ActionGroup'
+import Router from './Router'
 import {
-  Page,
-  Resource,
-  PageSchemaInput,
+  Layout,
+  Basic,
+  LayoutSchemaInput,
   MetaItemSchema,
   MetaItemsSchema,
-} from './Page'
+} from './Layout'
 
 export const DEFAULT_WEBSOCKET_ENDPOINT = 'wss://interval.com/websocket'
 
@@ -89,9 +89,9 @@ export default class IntervalClient {
   #config: InternalConfig
 
   #actionDefinitions: ActionDefinition[] = []
-  #groupDefinitions: GroupDefinition[] = []
+  #routerDefinitions: GroupDefinition[] = []
   #actionHandlers: Map<string, IntervalActionHandler> = new Map()
-  #pageHandlers: Map<string, NonNullable<ActionGroup['render']>> = new Map()
+  #pageHandlers: Map<string, NonNullable<Router['render']>> = new Map()
 
   organization:
     | {
@@ -137,27 +137,27 @@ export default class IntervalClient {
     this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
   }
 
-  #walkActions() {
-    const groupDefinitions: GroupDefinition[] = []
+  #walkRoutes() {
+    const routerDefinitions: GroupDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
     const actionHandlers = new Map<string, IntervalActionHandler>()
-    const pageHandlers = new Map<string, NonNullable<ActionGroup['render']>>()
+    const pageHandlers = new Map<string, NonNullable<Router['render']>>()
 
-    function walkActionGroup(groupSlug: string, group: ActionGroup) {
-      groupDefinitions.push({
+    function walkRouter(groupSlug: string, router: Router) {
+      routerDefinitions.push({
         slug: groupSlug,
-        name: group.name,
-        description: group.description,
-        hasRenderer: !!group.render,
+        name: router.name,
+        description: router.description,
+        hasRenderer: !!router.render,
       })
 
-      if (group.render) {
-        pageHandlers.set(groupSlug, group.render)
+      if (router.render) {
+        pageHandlers.set(groupSlug, router.render)
       }
 
-      for (const [slug, def] of Object.entries(group.actions)) {
-        if (def instanceof ActionGroup) {
-          walkActionGroup(`${groupSlug}/${slug}`, def)
+      for (const [slug, def] of Object.entries(router.routes)) {
+        if (def instanceof Router) {
+          walkRouter(`${groupSlug}/${slug}`, def)
         } else {
           actionDefinitions.push({
             groupSlug,
@@ -174,10 +174,10 @@ export default class IntervalClient {
       }
     }
 
-    if (this.#config.actions) {
-      for (const [slug, def] of Object.entries(this.#config.actions)) {
-        if (def instanceof ActionGroup) {
-          walkActionGroup(slug, def)
+    if (this.#config.routes) {
+      for (const [slug, def] of Object.entries(this.#config.routes)) {
+        if (def instanceof Router) {
+          walkRouter(slug, def)
         } else {
           actionDefinitions.push({
             slug,
@@ -189,7 +189,7 @@ export default class IntervalClient {
       }
     }
 
-    this.#groupDefinitions = groupDefinitions
+    this.#routerDefinitions = routerDefinitions
     this.#actionDefinitions = actionDefinitions
     this.#actionHandlers = actionHandlers
     this.#pageHandlers = pageHandlers
@@ -283,11 +283,12 @@ export default class IntervalClient {
   }
 
   async declareHost(httpHostId: string) {
-    this.#walkActions()
+    this.#walkRoutes()
 
     const body: z.infer<typeof DECLARE_HOST['inputs']> = {
       httpHostId,
       actions: this.#actionDefinitions,
+      groups: this.#routerDefinitions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
     }
@@ -637,16 +638,16 @@ export default class IntervalClient {
             page: inputs.page,
           }
 
-          let page: Page
+          let page: Layout
           let menuItems: InternalMenuItem[] | undefined = undefined
           let renderInstruction: T_IO_RENDER_INPUT | undefined = undefined
 
           const MAX_PAGE_RETRIES = 5
 
           const sendPage = async () => {
-            if (page instanceof Resource) {
-              const pageRender: PageSchemaInput = {
-                kind: 'RESOURCE',
+            if (page instanceof Basic) {
+              const pageRender: LayoutSchemaInput = {
+                kind: 'BASIC',
                 title:
                   page.title === undefined
                     ? undefined
@@ -811,7 +812,7 @@ export default class IntervalClient {
                 })
               }
 
-              if (page instanceof Resource) {
+              if (page instanceof Basic) {
                 const { metadata } = page
                 if (metadata) {
                   for (let i = 0; i < metadata.length; i++) {
@@ -1087,12 +1088,12 @@ export default class IntervalClient {
     const isInitialInitialization = !this.#isInitialized
     this.#isInitialized = true
 
-    this.#walkActions()
+    this.#walkRoutes()
 
     const response = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
       actions: this.#actionDefinitions,
-      groups: this.#groupDefinitions,
+      groups: this.#routerDefinitions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
       requestId,

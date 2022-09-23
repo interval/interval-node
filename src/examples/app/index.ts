@@ -1,12 +1,11 @@
-import Interval, { ActionGroup, ctx, io } from '../../experimental'
-import { Resource } from '../../classes/Page'
+import Interval, { Router, ctx, io, Layout } from '../../experimental'
 import { sleep } from '../utils/helpers'
 import * as db from './db'
 
-const hello_app = new ActionGroup({
+const hello_app = new Router({
   name: 'App',
   render: async () => {
-    return new Resource({
+    return new Layout.Basic({
       title: sleep(1000).then(() => 'Resource'),
       description: sleep(750).then(
         () => 'This is an asynchronous description!'
@@ -61,19 +60,19 @@ const hello_app = new ActionGroup({
       ],
     })
   },
-  actions: {
+  routes: {
     hello_world: async () => {
       return 'Hello, world!'
     },
   },
 })
 
-const users = new ActionGroup({
+const users = new Router({
   name: 'Users',
   render: async () => {
     const allUsers = db.getUsers()
 
-    return new Resource({
+    return new Layout.Basic({
       // TODO: this should fallback to the group title if undefined, I think
       title: 'Users',
       metadata: [
@@ -115,7 +114,7 @@ const users = new ActionGroup({
       ],
     })
   },
-  actions: {
+  routes: {
     create: {
       name: 'Create user',
       handler: async () => {
@@ -165,13 +164,13 @@ const interval = new Interval({
   apiKey: 'alex_dev_Bku6kYZlyhyvkCO36W5HnpwtXACI1khse8SnZ9PuwsmqdRfe',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
-  actions: {
+  routes: {
     hello_app,
     users,
-    info: new ActionGroup({
+    info: new Router({
       name: 'Info',
       async render() {
-        return new Resource({
+        return new Layout.Basic({
           title: 'Info',
           description:
             'This is a text-only page. No children, just text. Metadata are params.',
@@ -211,7 +210,7 @@ const prod = new Interval({
   apiKey: 'live_arKSsqtp1R6Mf6w16jflF4ZDDtFC7LwBaKLDDne3MZUgGyev',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
-  actions: {
+  routes: {
     hello_app,
     hello_world: {
       name: 'Hello world',

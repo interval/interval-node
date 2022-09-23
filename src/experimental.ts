@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import type { IncomingMessage, ServerResponse } from 'http'
 import Interval, { io, ctx, InternalConfig, IntervalError } from '.'
 import IntervalClient from './classes/IntervalClient'
-import ActionGroup from './classes/ActionGroup'
+import Router from './classes/Router'
 import * as pkg from '../package.json'
 import { DECLARE_HOST } from './internalRpcSchema'
 import {
@@ -13,23 +13,22 @@ import {
   LambdaRequestPayload,
   LambdaResponse,
 } from './utils/http'
-import Actions from './classes/Actions'
+import Routes from './classes/Routes'
 import Logger from './classes/Logger'
 import { IntervalActionDefinition } from './types'
-import { Page as Basic, Resource } from './classes/Page'
+import { Basic } from './classes/Layout'
 
-export const Page = {
+export const Layout = {
   Basic,
-  Resource,
 }
 
 class ExperimentalInterval extends Interval {
   #groupChangeCtx = Evt.newCtx()
-  actions: ExperimentalActions
+  routes: ExperimentalRoutes
 
   constructor(config: InternalConfig) {
     super(config)
-    this.actions = new ExperimentalActions(
+    this.routes = new ExperimentalRoutes(
       this.#groupChangeCtx,
       this,
       this.httpEndpoint,
@@ -37,9 +36,9 @@ class ExperimentalInterval extends Interval {
       this.apiKey
     )
 
-    if (this.config.actions) {
-      for (const group of Object.values(this.config.actions)) {
-        if (group instanceof ActionGroup) {
+    if (this.config.routes) {
+      for (const group of Object.values(this.config.routes)) {
+        if (group instanceof Router) {
           group.onChange.attach(this.#groupChangeCtx, () => {
             this.client?.handleActionsChange(this.config)
           })
@@ -170,7 +169,7 @@ class ExperimentalInterval extends Interval {
   }
 
   async #declareHost(httpHostId: string) {
-    const actions = Object.entries(this.config.actions ?? {}).map(
+    const actions = Object.entries(this.config.routes ?? {}).map(
       ([slug, def]) => ({
         slug,
         ...('handler' in def ? def : {}),
@@ -234,7 +233,7 @@ class ExperimentalInterval extends Interval {
   }
 }
 
-export class ExperimentalActions extends Actions {
+export class ExperimentalRoutes extends Routes {
   #groupChangeCtx: VoidCtx
 
   constructor(
@@ -248,38 +247,38 @@ export class ExperimentalActions extends Actions {
     this.#groupChangeCtx = ctx
   }
 
-  add(slug: string, actionOrGroup: IntervalActionDefinition | ActionGroup) {
-    if (!this.interval.config.actions) {
-      this.interval.config.actions = {}
+  add(slug: string, route: IntervalActionDefinition | Router) {
+    if (!this.interval.config.routes) {
+      this.interval.config.routes = {}
     }
 
-    if (actionOrGroup instanceof ActionGroup) {
-      actionOrGroup.onChange.attach(this.#groupChangeCtx, () => {
+    if (route instanceof Router) {
+      route.onChange.attach(this.#groupChangeCtx, () => {
         this.interval.client?.handleActionsChange(this.interval.config)
       })
     }
 
-    this.interval.config.actions[slug] = actionOrGroup
+    this.interval.config.routes[slug] = route
     this.interval.client?.handleActionsChange(this.interval.config)
   }
 
   remove(slug: string) {
-    const { actions } = this.interval.config
+    const { routes } = this.interval.config
 
-    if (!actions) return
-    const actionOrGroup = actions[slug]
-    if (!actionOrGroup) return
+    if (!routes) return
+    const route = routes[slug]
+    if (!route) return
 
-    if (actionOrGroup instanceof ActionGroup) {
-      actionOrGroup.onChange.detach(this.#groupChangeCtx)
+    if (route instanceof Router) {
+      route.onChange.detach(this.#groupChangeCtx)
     }
 
-    delete actions[slug]
+    delete routes[slug]
 
     this.interval.client?.handleActionsChange(this.interval.config)
   }
 }
 
-export { ActionGroup, io, ctx, IntervalError, ExperimentalInterval as Interval }
+export { Router, io, ctx, IntervalError, ExperimentalInterval as Interval }
 
 export default ExperimentalInterval

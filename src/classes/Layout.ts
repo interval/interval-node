@@ -8,7 +8,15 @@ type EventualString =
   | (() => string)
   | (() => Promise<string>)
 
-interface PageConfig {
+interface BasicLayoutConfig {
+  title?: EventualString
+  description?: EventualString
+  children?: AnyDisplayIOPromise[]
+  menuItems?: MenuItem[]
+  metadata?: MetaItem[]
+}
+
+export interface Layout {
   title?: EventualString
   description?: EventualString
   children?: AnyDisplayIOPromise[]
@@ -16,17 +24,19 @@ interface PageConfig {
 }
 
 // Base class
-export class Page {
+export class Basic implements Layout {
   title?: EventualString
   description?: EventualString
   children?: AnyDisplayIOPromise[]
   menuItems?: MenuItem[]
+  metadata?: MetaItem[]
 
-  constructor(config: PageConfig) {
+  constructor(config: BasicLayoutConfig) {
     this.title = config.title
     this.description = config.description
     this.children = config.children
     this.menuItems = config.menuItems
+    this.metadata = config.metadata
   }
 }
 
@@ -39,19 +49,6 @@ export interface MetaItem {
     | Promise<MetaItemValue>
     | (() => MetaItemValue)
     | (() => Promise<MetaItemValue>)
-}
-
-interface ResourceConfig extends PageConfig {
-  metadata?: MetaItem[]
-}
-
-export class Resource extends Page {
-  metadata?: MetaItem[]
-
-  constructor(config: ResourceConfig) {
-    super(config)
-    this.metadata = config.metadata
-  }
 }
 
 export const META_ITEM_SCHEMA = z.object({
@@ -69,8 +66,8 @@ export const META_ITEMS_SCHEMA = z.object({
 
 export type MetaItemsSchema = z.infer<typeof META_ITEMS_SCHEMA>
 
-export const RESOURCE_PAGE_SCHEMA = z.object({
-  kind: z.literal('RESOURCE'),
+export const BASIC_LAYOUT_SCHEMA = z.object({
+  kind: z.literal('BASIC'),
   title: z.string().nullish(),
   description: z.string().nullish(),
   children: IO_RENDER.optional(),
@@ -79,9 +76,9 @@ export const RESOURCE_PAGE_SCHEMA = z.object({
 })
 
 // To be extended with z.discriminatedUnion when adding different pages
-export const PAGE_SCHEMA = RESOURCE_PAGE_SCHEMA
+export const LAYOUT_SCHEMA = BASIC_LAYOUT_SCHEMA
 
-export type PageSchema = z.infer<typeof PAGE_SCHEMA>
-export type PageSchemaInput = z.input<typeof PAGE_SCHEMA>
-export type ResourcePageSchema = z.infer<typeof RESOURCE_PAGE_SCHEMA>
-export type ResourcePageSchemaInput = z.input<typeof RESOURCE_PAGE_SCHEMA>
+export type LayoutSchema = z.infer<typeof LAYOUT_SCHEMA>
+export type LayoutSchemaInput = z.input<typeof LAYOUT_SCHEMA>
+export type BasicLayoutSchema = z.infer<typeof BASIC_LAYOUT_SCHEMA>
+export type BasicLayoutSchemaInput = z.input<typeof BASIC_LAYOUT_SCHEMA>

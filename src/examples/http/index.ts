@@ -5,7 +5,7 @@ const interval = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
-  actions: {
+  routes: {
     hello_http: async io => {
       const message = await io.input.text('Enter a message')
       return `"${message}", from HTTP!`

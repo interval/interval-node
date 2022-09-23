@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import fetch from 'node-fetch'
-import Actions from './classes/Actions'
+import Routes from './classes/Routes'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
 import { NOTIFY } from './internalRpcSchema'
@@ -34,7 +34,7 @@ export type {
 
 export interface InternalConfig {
   apiKey?: string
-  actions?: IntervalActionDefinitions
+  routes?: IntervalActionDefinitions
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
@@ -60,7 +60,7 @@ export function getActionStore(): IntervalActionStore {
   return store
 }
 
-export function getAppStore(): IntervalPageStore {
+export function getPageStore(): IntervalPageStore {
   const store = pageLocalStorage.getStore()
   if (!store) {
     throw new IntervalError(
@@ -73,7 +73,7 @@ export function getAppStore(): IntervalPageStore {
 
 export function getSomeStore(): IntervalActionStore | IntervalPageStore {
   try {
-    return getAppStore()
+    return getPageStore()
   } catch (err) {
     return getActionStore()
   }
@@ -88,7 +88,7 @@ export const io: IO = {
   get select() { return getActionStore().io.select },
   get display() {
     try {
-      return getAppStore().display
+      return getPageStore().display
     } catch (err) {
       return getActionStore().io.display
     }
@@ -105,7 +105,7 @@ export const ctx: ActionCtx & PageCtx = {
   get log() { return getActionStore().ctx.log },
   get organization() { return getSomeStore().ctx.organization },
   get action() { return getActionStore().ctx.action },
-  get page() { return getAppStore().ctx.page },
+  get page() { return getPageStore().ctx.page },
   get notify() { return getActionStore().ctx.notify },
   get redirect() { return getActionStore().ctx.redirect },
 }
@@ -116,7 +116,7 @@ export default class Interval {
   #client: IntervalClient | undefined
   #apiKey: string | undefined
   #httpEndpoint: string
-  actions: Actions
+  routes: Routes
 
   constructor(config: InternalConfig) {
     this.config = config
@@ -126,7 +126,7 @@ export default class Interval {
     this.#httpEndpoint = getHttpEndpoint(
       config.endpoint ?? DEFAULT_WEBSOCKET_ENDPOINT
     )
-    this.actions = new Actions(
+    this.routes = new Routes(
       this,
       this.#httpEndpoint,
       this.#logger,

@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker'
 import { IntervalActionHandler } from '../..'
-import ExperimentalInterval, { ActionGroup, io, ctx } from '../../experimental'
+import ExperimentalInterval, { Router, io, ctx } from '../../experimental'
 
 const action: IntervalActionHandler = async () => {
   const message = await io.input.text('Hello?')
@@ -24,9 +24,9 @@ const editAction: IntervalActionHandler = async () => {
   return { firstName, lastName, email }
 }
 
-const usersGroup = new ActionGroup({
+const usersGroup = new Router({
   name: 'Users',
-  actions: {
+  routes: {
     index: action,
     create: {
       name: 'Create user',
@@ -36,18 +36,18 @@ const usersGroup = new ActionGroup({
       name: 'Edit user',
       handler: editAction,
     },
-    billing: new ActionGroup({
+    billing: new Router({
       name: 'Billing',
-      actions: {
+      routes: {
         view_unpaid_invoices: action,
       },
     }),
   },
 })
 
-const classesGroup = new ActionGroup({
+const classesGroup = new Router({
   name: 'Classes',
-  actions: {
+  routes: {
     index: action,
     create: {
       name: 'Create class',
@@ -66,13 +66,13 @@ const classesGroup = new ActionGroup({
 const prod = new ExperimentalInterval({
   apiKey: 'live_arKSsqtp1R6Mf6w16jflF4ZDDtFC7LwBaKLDDne3MZUgGyev',
   endpoint: 'ws://localhost:3000/websocket',
-  actions: {
+  routes: {
     hello_world: action,
   },
 })
 
-prod.actions.add('classes', classesGroup)
-prod.actions.add('users', usersGroup)
+prod.routes.add('classes', classesGroup)
+prod.routes.add('users', usersGroup)
 prod.listen()
 
 /**
@@ -81,11 +81,11 @@ prod.listen()
 const dev = new ExperimentalInterval({
   apiKey: 'alex_dev_Bku6kYZlyhyvkCO36W5HnpwtXACI1khse8SnZ9PuwsmqdRfe',
   endpoint: 'ws://localhost:3000/websocket',
-  actions: {
+  routes: {
     hello_world: action,
   },
 })
 
-dev.actions.add('classes', classesGroup)
-dev.actions.add('users', usersGroup)
+dev.routes.add('classes', classesGroup)
+dev.routes.add('users', usersGroup)
 dev.listen()
