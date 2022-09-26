@@ -2,7 +2,6 @@ import { v4 } from 'uuid'
 import { z } from 'zod'
 import * as superjson from 'superjson'
 import type {
-  ButtonTheme,
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
   T_IO_PROPS,
@@ -256,22 +255,16 @@ export class IOClient {
    * method.
    */
   group<
-    IOPromises extends [
-      MaybeOptionalGroupIOPromise,
-      ...MaybeOptionalGroupIOPromise[]
-    ]
-  >(ioPromises: IOPromises, props?: GroupConfig): IOGroupPromise<IOPromises>
-  group(
-    ioPromises: MaybeOptionalGroupIOPromise[],
-    props?: GroupConfig
-  ): IOGroupPromise<MaybeOptionalGroupIOPromise[]>
-  group<
-    IOPromises extends [
-      MaybeOptionalGroupIOPromise,
-      ...MaybeOptionalGroupIOPromise[]
-    ]
+    IOPromises extends
+      | [MaybeOptionalGroupIOPromise, ...MaybeOptionalGroupIOPromise[]]
+      | Record<string, MaybeOptionalGroupIOPromise>
+      | MaybeOptionalGroupIOPromise[]
   >(promises: IOPromises, props?: GroupConfig) {
-    const exclusivePromises = promises.filter(
+    const promiseValues = Array.isArray(promises)
+      ? promises
+      : Object.values(promises)
+
+    const exclusivePromises = promiseValues.filter(
       pi => pi instanceof ExclusiveIOPromise
     )
 
