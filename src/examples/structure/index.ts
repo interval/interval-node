@@ -42,9 +42,7 @@ const routes: IntervalActionDefinitions = {
       nested: new Router({
         name: 'Nested router',
         async index() {
-          return new Layout.Basic({
-            title: 'Nested router',
-          })
+          return new Layout.Basic({})
         },
         routes: {
           hello_app: async () => {
