@@ -438,6 +438,7 @@ export class IOClient {
       group: this.group.bind(this),
 
       confirm: this.createExclusiveIOMethod('CONFIRM'),
+      confirmIdentity: this.createExclusiveIOMethod('CONFIRM_IDENTITY'),
 
       search: this.createIOMethod('SEARCH', {
         propsRequired: true,
