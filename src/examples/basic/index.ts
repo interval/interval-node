@@ -989,18 +989,13 @@ const interval = new Interval({
       const email = await io.input.email('Enter your email address')
 
       const canDoSensitiveTask = await io.confirmIdentity(
-        'Please confirm your identity to continue',
-        {
-          helpText: 'This action is pretty sensitive',
-        }
+        'This action is pretty sensitive'
       )
       if (canDoSensitiveTask) {
         ctx.log('OK! Identity confirmed.')
       } else {
         ctx.log('Identity not confirmed, cancelling…')
       }
-
-      const anotherEmail = await io.input.email('Enter another email address')
 
       return {
         identityConfirmed: canDoSensitiveTask,

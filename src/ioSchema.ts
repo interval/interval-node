@@ -424,9 +424,7 @@ export const ioSchema = {
     exclusive: z.literal(true),
   },
   CONFIRM_IDENTITY: {
-    props: z.object({
-      helpText: z.optional(z.string()),
-    }),
+    props: z.object({}),
     state: z.null(),
     returns: z.boolean(),
     exclusive: z.literal(true),
