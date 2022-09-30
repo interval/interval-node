@@ -254,6 +254,22 @@ const interval = new Interval({
 
       console.log(resp)
     },
+    object_group: async io => {
+      const resp = await io.group({
+        name: io.input.text('Name'),
+        email: io.input.email('Email'),
+        num: io.input.number('Number').optional(),
+        _disp: io.display.markdown('---'),
+      })
+
+      const { name, email, num } = resp
+
+      return {
+        name,
+        email,
+        num,
+      }
+    },
     optional_values: async io => {
       const [name, num, color] = await io.group([
         io.input.text('Your name'),
