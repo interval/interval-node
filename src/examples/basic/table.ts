@@ -98,6 +98,25 @@ export const display_table: IntervalActionHandler = async io => {
         action: 'edit_user',
         params: { email: row.email },
       },
+      {
+        label: 'Edit',
+        action: 'edit_user',
+        params: { email: row.email },
+        disabled: true,
+      },
+      {
+        label: 'Delete',
+        action: 'delete_user',
+        params: { email: row.email },
+        theme: 'danger',
+      },
+      {
+        label: 'Delete',
+        action: 'delete_user',
+        params: { email: row.email },
+        theme: 'danger',
+        disabled: true,
+      },
     ],
   })
 }
