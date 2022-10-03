@@ -11,6 +11,8 @@ export interface RouterConfig {
   name: string
   description?: string
   routes?: IntervalActionDefinitions
+  actions?: Record<string, IntervalActionDefinition>
+  groups?: Record<string, Router>
   index?: (display: IO['display'], ctx: PageCtx) => Promise<Layout>
 }
 
@@ -26,7 +28,11 @@ export default class Router {
   constructor(config: RouterConfig) {
     this.name = config.name
     this.description = config.description
-    this.routes = config.routes ?? {}
+    this.routes = {
+      ...config.routes,
+      ...config.actions,
+      ...config.groups,
+    }
     this.index = config.index
     this.onChange = new Evt()
 

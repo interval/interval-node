@@ -3,6 +3,7 @@ import fetch from 'node-fetch'
 import Routes from './classes/Routes'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
+import ActionGroup from './classes/Router'
 import { NOTIFY } from './internalRpcSchema'
 import { SerializableRecord } from './ioSchema'
 import type {
@@ -15,6 +16,7 @@ import type {
   IntervalActionDefinitions,
   IntervalPageStore,
   PageCtx,
+  IntervalActionDefinition,
 } from './types'
 import IntervalError from './classes/IntervalError'
 import IntervalClient, {
@@ -35,6 +37,10 @@ export type {
 export interface InternalConfig {
   apiKey?: string
   routes?: IntervalActionDefinitions
+  // TODO: Mark as deprecated soon, remove soon afterward
+  actions?: Record<string, IntervalActionDefinition>
+  // TODO: Mark as deprecated soon, remove soon afterward
+  groups?: Record<string, ActionGroup>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
@@ -133,6 +139,11 @@ export default class Interval {
       this.#logger,
       this.#apiKey
     )
+  }
+
+  // TODO: Mark as deprecated soon, remove soon afterward
+  get actions(): Routes {
+    return this.routes
   }
 
   protected get apiKey(): string | undefined {
