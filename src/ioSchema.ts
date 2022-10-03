@@ -424,7 +424,9 @@ export const ioSchema = {
     exclusive: z.literal(true),
   },
   CONFIRM_IDENTITY: {
-    props: z.object({}),
+    props: z.object({
+      gracePeriodMs: z.number().optional(),
+    }),
     state: z.null(),
     returns: z.boolean(),
     exclusive: z.literal(true),

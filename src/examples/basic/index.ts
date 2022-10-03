@@ -989,7 +989,10 @@ const interval = new Interval({
       const email = await io.input.email('Enter your email address')
 
       const canDoSensitiveTask = await io.confirmIdentity(
-        'This action is pretty sensitive'
+        'This action is pretty sensitive',
+        {
+          gracePeriodMs: 1000 * 60,
+        }
       )
       let canDoSensitiveTaskAgain = false
 
