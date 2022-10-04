@@ -180,6 +180,10 @@ const interval = new Interval({
           })),
           menuItems: [
             {
+              label: 'Reload',
+              action: 'info',
+            },
+            {
               label: 'Add timestamp param',
               action: 'info',
               params: { timestamp: new Date().valueOf() },
