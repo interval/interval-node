@@ -986,19 +986,19 @@ const interval = new Interval({
       routes: table_actions,
     }),
     confirm_identity: async () => {
-      const email = await io.input.email('Enter your email address')
+      await io.input.text('Enter your name')
 
       const canDoSensitiveTask = await io.confirmIdentity(
         'This action is pretty sensitive',
         {
-          gracePeriodMs: 1000 * 60,
+          gracePeriodMs: 0,
         }
       )
       let canDoSensitiveTaskAgain = false
 
       if (canDoSensitiveTask) {
         ctx.log('OK! Identity confirmed.')
-        await io.input.email('Enter another email address')
+        await io.input.text('Enter another name')
         canDoSensitiveTaskAgain = await io.confirmIdentity(
           'This action is still pretty sensitive'
         )
