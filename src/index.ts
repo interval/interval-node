@@ -83,6 +83,7 @@ export function getSomeStore(): IntervalActionStore | IntervalPageStore {
 export const io: IO = {
   get group() { return getActionStore().io.group },
   get confirm() { return getActionStore().io.confirm },
+  get confirmIdentity() { return getActionStore().io.confirmIdentity },
   get search() { return getActionStore().io.search },
   get input() { return getActionStore().io.input },
   get select() { return getActionStore().io.select },

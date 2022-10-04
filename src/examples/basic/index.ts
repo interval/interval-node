@@ -985,6 +985,31 @@ const interval = new Interval({
       name: 'Tables',
       routes: table_actions,
     }),
+    confirm_identity: async () => {
+      await io.input.text('Enter your name')
+
+      const canDoSensitiveTask = await io.confirmIdentity(
+        'This action is pretty sensitive',
+        {
+          gracePeriodMs: 0,
+        }
+      )
+      let canDoSensitiveTaskAgain = false
+
+      if (canDoSensitiveTask) {
+        ctx.log('OK! Identity confirmed.')
+        await io.input.text('Enter another name')
+        canDoSensitiveTaskAgain = await io.confirmIdentity(
+          'This action is still pretty sensitive'
+        )
+      } else {
+        ctx.log('Identity not confirmed, cancelling…')
+      }
+
+      return {
+        identityConfirmed: canDoSensitiveTask && canDoSensitiveTaskAgain,
+      }
+    },
   },
 })
 

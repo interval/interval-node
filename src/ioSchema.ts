@@ -423,6 +423,14 @@ export const ioSchema = {
     returns: z.boolean(),
     exclusive: z.literal(true),
   },
+  CONFIRM_IDENTITY: {
+    props: z.object({
+      gracePeriodMs: z.number().optional(),
+    }),
+    state: z.null(),
+    returns: z.boolean(),
+    exclusive: z.literal(true),
+  },
   SELECT_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
