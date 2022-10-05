@@ -155,6 +155,34 @@ const routes: IntervalActionDefinitions = {
               return '👋'
             },
           },
+          nested: new Router({
+            name: 'Nested L1',
+            async index() {
+              return new Layout.Basic({})
+            },
+            routes: {
+              create: {
+                name: 'Create L1',
+                handler: async () => {
+                  return '👋'
+                },
+              },
+              nested_2: new Router({
+                name: 'Nested L2',
+                async index() {
+                  return new Layout.Basic({})
+                },
+                routes: {
+                  create: {
+                    name: 'Create L2',
+                    handler: async () => {
+                      return '👋'
+                    },
+                  },
+                },
+              }),
+            },
+          }),
         },
       }),
     },
