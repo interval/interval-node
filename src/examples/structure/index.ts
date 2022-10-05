@@ -64,14 +64,6 @@ const routes: IntervalActionDefinitions = {
       })
     },
     routes: {
-      all_users: {
-        name: 'All users',
-        // TODO: I just want to link this to the index page
-        // path: 'users',
-        handler: async () => {
-          ctx.redirect({ action: 'users' })
-        },
-      },
       new_users: {
         name: 'New users',
         handler: async () => {
