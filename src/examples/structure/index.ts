@@ -36,12 +36,13 @@ const routes: IntervalActionDefinitions = {
   // router with actions and a nested router with an index page
   users: new Router({
     name: 'Users',
-    description: 'This is a multi-level router with multiple nested routers',
     async index() {
       const allUsers = db.getUsers()
 
       return new Layout.Basic({
         title: 'Users',
+        description:
+          'This is a multi-level router with multiple nested routers',
         menuItems: [
           {
             label: 'Create user',
