@@ -253,6 +253,13 @@ const interval = new Interval({
       const resp = await io.group(promises)
 
       console.log(resp)
+
+      const obj = {
+        text: io.input.text('Text'),
+        num: io.input.number('Number'),
+      }
+
+      const objResp = await io.group(obj)
     },
     object_group: async io => {
       const resp = await io.group({
