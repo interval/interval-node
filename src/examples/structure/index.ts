@@ -46,7 +46,7 @@ const routes: IntervalActionDefinitions = {
         menuItems: [
           {
             label: 'Create user',
-            action: 'users/add',
+            action: 'users/create',
           },
         ],
         children: [
@@ -64,8 +64,8 @@ const routes: IntervalActionDefinitions = {
       })
     },
     routes: {
-      new_users: {
-        name: 'New users',
+      create: {
+        name: 'Create user',
         handler: async () => {
           return 'Hello, world!'
         },
