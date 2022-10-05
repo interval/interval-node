@@ -1,5 +1,6 @@
 import Interval, { Router, ctx, io, Layout } from '../../experimental'
 import { IntervalActionDefinitions } from '../../types'
+import * as db from './db'
 
 const routes: IntervalActionDefinitions = {
   // root-level action
@@ -33,20 +34,133 @@ const routes: IntervalActionDefinitions = {
     },
   }),
   // router with actions and a nested router with an index page
-  multiLevel: new Router({
-    name: 'Multi-level router',
+  users: new Router({
+    name: 'Users',
+    description: 'This is a multi-level router with multiple nested routers',
+    async index() {
+      const allUsers = db.getUsers()
+
+      return new Layout.Basic({
+        title: 'Users',
+        menuItems: [
+          {
+            label: 'Create user',
+            action: 'users/add',
+          },
+        ],
+        children: [
+          io.display.table('Users', {
+            data: allUsers,
+            rowMenuItems: row => [
+              {
+                label: 'Edit',
+                action: 'users/edit',
+                params: { id: row.id },
+              },
+            ],
+          }),
+        ],
+      })
+    },
     routes: {
-      hello_world: async () => {
-        return 'Hello, world!'
+      all_users: {
+        name: 'All users',
+        // TODO: I just want to link this to the index page
+        // path: 'users',
+        handler: async () => {
+          ctx.redirect({ action: 'users' })
+        },
       },
-      nested: new Router({
-        name: 'Nested router',
+      new_users: {
+        name: 'New users',
+        handler: async () => {
+          return 'Hello, world!'
+        },
+      },
+      subscriptions: new Router({
+        name: 'Subscriptions',
         async index() {
-          return new Layout.Basic({})
+          const data = db.getSubscriptions()
+
+          return new Layout.Basic({
+            title: 'Subscriptions',
+            children: [
+              io.display.table('Subscriptions', {
+                data,
+                rowMenuItems: row => [
+                  {
+                    label: 'Edit',
+                    action: 'users/subscriptions/edit',
+                    params: { id: row.id },
+                  },
+                  {
+                    label: 'Cancel',
+                    action: 'users/subscriptions/cancel',
+                    theme: 'danger',
+                    params: { id: row.id },
+                  },
+                ],
+              }),
+            ],
+          })
         },
         routes: {
-          hello_app: async () => {
-            return 'Hello, app!'
+          edit: {
+            name: 'Edit subscription',
+            unlisted: true,
+            handler: async () => {
+              return 'Hello, world!'
+            },
+          },
+          cancel: {
+            name: 'Cancel subscription',
+            unlisted: true,
+            handler: async () => {
+              return 'Hello, world!'
+            },
+          },
+        },
+      }),
+      comments: new Router({
+        name: 'Comments',
+        async index() {
+          const data = db.getComments()
+
+          return new Layout.Basic({
+            title: 'Comments',
+            menuItems: [
+              {
+                label: 'Create comment',
+                action: 'users/comments/create',
+              },
+            ],
+            children: [
+              io.display.table('Comments', {
+                data,
+                rowMenuItems: row => [
+                  {
+                    label: 'Edit',
+                    action: 'users/comments/edit',
+                    params: { id: row.id },
+                  },
+                ],
+              }),
+            ],
+          })
+        },
+        routes: {
+          create: {
+            name: 'Create comment',
+            handler: async () => {
+              return '👋'
+            },
+          },
+          edit: {
+            name: 'Edit comment',
+            unlisted: true,
+            handler: async () => {
+              return '👋'
+            },
           },
         },
       }),
