@@ -149,6 +149,7 @@ export default class IntervalClient {
         name: router.name,
         description: router.description,
         hasIndex: !!router.index,
+        unlisted: router.unlisted,
       })
 
       if (router.index) {
