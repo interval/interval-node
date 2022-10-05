@@ -36,8 +36,14 @@ class ExperimentalInterval extends Interval {
       this.apiKey
     )
 
-    if (this.config.routes) {
-      for (const group of Object.values(this.config.routes)) {
+    const routes = {
+      ...this.config.actions,
+      ...this.config.groups,
+      ...this.config.routes,
+    }
+
+    if (routes) {
+      for (const group of Object.values(routes)) {
         if (group instanceof Router) {
           group.onChange.attach(this.#groupChangeCtx, () => {
             this.client?.handleActionsChange(this.config)
@@ -45,6 +51,21 @@ class ExperimentalInterval extends Interval {
         }
       }
     }
+  }
+
+  // TODO: Mark as deprecated soon, remove soon afterward
+  get actions(): ExperimentalRoutes {
+    return this.routes
+  }
+
+  // TODO: Mark as deprecated soon, remove soon afterward
+  addGroup(slug: string, group: Router) {
+    return this.routes.add(slug, group)
+  }
+
+  // TODO: Mark as deprecated soon, remove soon afterward
+  removeGroup(slug: string) {
+    return this.routes.remove(slug)
   }
 
   /*
@@ -169,13 +190,17 @@ class ExperimentalInterval extends Interval {
   }
 
   async #declareHost(httpHostId: string) {
-    const actions = Object.entries(this.config.routes ?? {}).map(
-      ([slug, def]) => ({
-        slug,
-        ...('handler' in def ? def : {}),
-        handler: undefined,
-      })
-    )
+    const routes = {
+      ...this.config.actions,
+      ...this.config.groups,
+      ...this.config.routes,
+    }
+
+    const actions = Object.entries(routes).map(([slug, def]) => ({
+      slug,
+      ...('handler' in def ? def : {}),
+      handler: undefined,
+    }))
     const slugs = actions.map(a => a.slug)
 
     if (slugs.length === 0) {
@@ -263,22 +288,33 @@ export class ExperimentalRoutes extends Routes {
   }
 
   remove(slug: string) {
-    const { routes } = this.interval.config
+    for (const key of ['routes', 'actions', 'groups'] as const) {
+      const routes = this.interval.config[key]
 
-    if (!routes) return
-    const route = routes[slug]
-    if (!route) return
+      if (!routes) continue
+      const route = routes[slug]
+      if (!route) continue
 
-    if (route instanceof Router) {
-      route.onChange.detach(this.#groupChangeCtx)
+      if (route instanceof Router) {
+        route.onChange.detach(this.#groupChangeCtx)
+      }
+
+      delete routes[slug]
+
+      this.interval.client?.handleActionsChange(this.interval.config)
+      return
     }
-
-    delete routes[slug]
-
-    this.interval.client?.handleActionsChange(this.interval.config)
   }
 }
 
-export { Router, io, ctx, IntervalError, ExperimentalInterval as Interval }
+export {
+  Router,
+  // TODO: Mark as deprecated soon, remove soon afterward
+  Router as ActionGroup,
+  io,
+  ctx,
+  IntervalError,
+  ExperimentalInterval as Interval,
+}
 
 export default ExperimentalInterval
