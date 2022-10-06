@@ -1,5 +1,6 @@
 import Interval, { Router, ctx, io, Layout } from '../../experimental'
 import { IntervalActionDefinitions } from '../../types'
+import { sleep } from '../utils/helpers'
 import * as db from './db'
 
 const routes: IntervalActionDefinitions = {
@@ -67,7 +68,22 @@ const routes: IntervalActionDefinitions = {
       create: {
         name: 'Create user',
         handler: async () => {
-          return 'Hello, world!'
+          const [firstName, lastName, email] = await io.group(
+            [
+              io.input.text('First name'),
+              io.input.text('Last name'),
+              io.input.email('Email address'),
+            ],
+            {
+              continueButton: {
+                label: 'Create user',
+              },
+            }
+          )
+
+          await sleep(1000)
+
+          return { firstName, lastName, email }
         },
       },
       subscriptions: new Router({
