@@ -78,7 +78,10 @@ export const display_table: IntervalActionHandler = async io => {
           },
         }),
       },
-      'description',
+      {
+        label: 'Description',
+        accessorKey: 'description',
+      },
       'boolean',
       'date',
       'array',
@@ -200,7 +203,10 @@ export const async_table: IntervalActionHandler = async io => {
           },
         }),
       },
-      'email',
+      {
+        label: 'Email',
+        accessorKey: 'email',
+      },
       'description',
       'boolean',
       'date',

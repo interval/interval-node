@@ -26,19 +26,20 @@ export function columnsBuilder<Row extends z.infer<typeof tableRow>>(
 
     return labels.map(label => ({
       label,
-      renderCell: row => row[label],
+      accessorKey: label,
     }))
   }
 
   return props.columns.map(column => {
-    if (typeof column === 'string') {
-      if (!dataColumns.has(column)) {
-        logMissingColumn(column)
-      }
+    const accessorKey = typeof column === 'string' ? column : column.accessorKey
+    if (accessorKey && !dataColumns.has(accessorKey)) {
+      logMissingColumn(accessorKey)
+    }
 
+    if (typeof column === 'string') {
       return {
         label: column,
-        renderCell: row => row[column],
+        accessorKey: column,
       }
     } else {
       return column
@@ -70,10 +71,10 @@ export type TableDataFetcher<Row extends z.infer<typeof tableRow>> = (props: {
 }) => Promise<{ data: Row[]; totalRecords?: number }>
 
 export function getColumnKey(
-  col: { label: string },
+  col: { label?: string; accessorKey?: string },
   keyOccurrances: Map<string, number>
 ): string {
-  let key = col.label
+  let key = col.accessorKey ?? col.label ?? ''
   const keyNum = keyOccurrances.get(key)
   if (keyNum !== undefined) {
     key = `${key} (${keyNum})`
@@ -109,7 +110,9 @@ export function tableRowSerializer<Row extends z.infer<typeof tableRow>>({
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i]
     const key = getColumnKey(col, colKeys)
-    const val = col.renderCell(row) ?? null
+    const val =
+      col.renderCell?.(row) ??
+      (col.accessorKey ? row[col.accessorKey as string] : null)
 
     if (val && typeof val === 'object' && 'image' in val) {
       const image = val.image

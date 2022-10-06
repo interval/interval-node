@@ -16,6 +16,7 @@ import {
   TABLE_DATA_BUFFER_SIZE,
   missingColumnMessage,
   TableDataFetcher,
+  columnsWithoutRender,
 } from '../utils/table'
 
 type PublicProps<Row> = Omit<
@@ -63,7 +64,7 @@ export default function displayTable(logger: Logger) {
         data: initialData.slice(0, TABLE_DATA_BUFFER_SIZE),
         totalRecords:
           'data' in props && props.data ? initialData.length : undefined,
-        columns: initialColumns,
+        columns: columnsWithoutRender(initialColumns),
         isAsync,
       } as T_IO_PROPS<'DISPLAY_TABLE'>,
       async onStateChange(newState: T_IO_STATE<'DISPLAY_TABLE'>) {
@@ -118,7 +119,7 @@ export default function displayTable(logger: Logger) {
           data: serializedData,
           totalRecords,
           isAsync,
-          columns: builtColumns.map(c => ({ label: c.label })),
+          columns: columnsWithoutRender(builtColumns),
         }
       },
     }

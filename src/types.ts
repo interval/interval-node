@@ -319,7 +319,15 @@ export type TableColumnResult =
     }
   | TableCellValue
 
-export interface TableColumn<Row> {
+export type TableColumn<Row> = {
   label: string
-  renderCell: (row: Row) => TableColumnResult
-}
+} & (
+  | {
+      accessorKey: string
+      renderCell?: (row: Row) => TableColumnResult
+    }
+  | {
+      accessorKey?: string
+      renderCell: (row: Row) => TableColumnResult
+    }
+)

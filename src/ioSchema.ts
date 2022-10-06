@@ -230,6 +230,7 @@ export const internalTableRow = z.object({
 
 export const internalTableColumn = z.object({
   label: z.string(),
+  accessorKey: z.string().optional(),
 })
 
 export const CURRENCIES = [
