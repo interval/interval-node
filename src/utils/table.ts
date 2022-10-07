@@ -70,22 +70,6 @@ export type TableDataFetcher<Row extends z.infer<typeof tableRow>> = (props: {
   pageSize: number
 }) => Promise<{ data: Row[]; totalRecords?: number }>
 
-export function getColumnKey(
-  col: { label?: string; accessorKey?: string },
-  keyOccurrances: Map<string, number>
-): string {
-  let key = col.accessorKey ?? col.label ?? ''
-  const keyNum = keyOccurrances.get(key)
-  if (keyNum !== undefined) {
-    key = `${key} (${keyNum})`
-    keyOccurrances.set(key, keyNum + 1)
-  } else {
-    keyOccurrances.set(key, 1)
-  }
-
-  return key
-}
-
 /**
  * Applies cell renderers to a row.
  */
@@ -105,11 +89,9 @@ export function tableRowSerializer<Row extends z.infer<typeof tableRow>>({
   const renderedRow: RenderedTableRow = {}
   const filterValues: string[] = []
 
-  const colKeys = new Map<string, number>()
-
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i]
-    const key = getColumnKey(col, colKeys)
+    const key = col.accessorKey ?? i.toString()
     const val =
       col.renderCell?.(row) ??
       (col.accessorKey ? row[col.accessorKey as string] : null)
