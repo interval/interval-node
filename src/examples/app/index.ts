@@ -198,7 +198,19 @@ const interval = new Interval({
         await io.display.markdown('Hello, world!')
       },
     },
-    unlisted: {
+    unlisted_router: new Router({
+      name: 'Unlisted',
+      unlisted: true,
+      actions: {
+        unlisted_listed: {
+          name: 'Listed',
+          handler: async () => {
+            await io.display.markdown('Hello, world!')
+          },
+        },
+      },
+    }),
+    unlisted_action: {
       name: 'Unlisted',
       unlisted: true,
       handler: async () => {

@@ -59,7 +59,8 @@ export const ROUTER_DEFINITION = z.object({
   slug: z.string(),
   name: z.string(),
   description: z.string().optional(),
-  hasIndex: z.boolean().default(false),
+  hasIndex: z.boolean().optional(),
+  unlisted: z.boolean().optional(),
 })
 
 export type RouterDefinition = z.infer<typeof ROUTER_DEFINITION>
