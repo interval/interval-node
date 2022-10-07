@@ -301,10 +301,23 @@ const interval = new Interval({
           .optional(),
       ])
 
+      const table = await io.select
+        .table('Table', {
+          data: [
+            { a: 1, b: 2, c: 3 },
+            { a: 4, b: 5, c: 6 },
+            { a: 7, b: 8, c: 9 },
+          ],
+          minSelections: 1,
+          maxSelections: 1,
+        })
+        .optional()
+
       return {
         Name: name,
         Number: num ?? 'No number selected',
         'Favorite color': color?.label ?? 'Unknown',
+        Selected: JSON.stringify(table),
       }
     },
     'unauthorized-error': unauthorized,
