@@ -149,6 +149,7 @@ export default class IntervalClient {
         name: router.name,
         description: router.description,
         hasIndex: !!router.index,
+        unlisted: router.unlisted,
       })
 
       if (router.index) {
@@ -174,8 +175,14 @@ export default class IntervalClient {
       }
     }
 
-    if (this.#config.routes) {
-      for (const [slug, def] of Object.entries(this.#config.routes)) {
+    const routes = {
+      ...this.#config.actions,
+      ...this.#config.groups,
+      ...this.#config.routes,
+    }
+
+    if (routes) {
+      for (const [slug, def] of Object.entries(routes)) {
         if (def instanceof Router) {
           walkRouter(slug, def)
         } else {
