@@ -18,6 +18,7 @@ const hello_app = new Router({
           label: 'Async function',
           value: async () => {
             await sleep(1000)
+            throw new Error('Metadata error in an async function')
             return '1 second'
           },
         },

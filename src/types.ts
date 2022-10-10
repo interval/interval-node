@@ -34,6 +34,7 @@ import type {
 import type IOError from './classes/IOError'
 import type TransactionLoadingState from './classes/TransactionLoadingState'
 import type { Router } from './experimental'
+import { BasicLayoutConfig } from './classes/Layout'
 
 export type ActionCtx = Pick<
   z.infer<HostSchema['START_TRANSACTION']['inputs']>,
@@ -336,4 +337,10 @@ export type TableColumnResult =
 export interface TableColumn<Row> {
   label: string
   renderCell: (row: Row) => TableColumnResult
+}
+
+export type PageError = {
+  error: string
+  message: string
+  layoutKey?: keyof BasicLayoutConfig
 }

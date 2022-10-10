@@ -6,7 +6,7 @@ import {
   menuItem,
   buttonItem,
 } from '../ioSchema'
-import { AnyDisplayIOPromise, ButtonItem } from '../types'
+import { AnyDisplayIOPromise, ButtonItem, PageError } from '../types'
 
 type EventualString =
   | string
@@ -14,7 +14,7 @@ type EventualString =
   | (() => string)
   | (() => Promise<string>)
 
-interface BasicLayoutConfig {
+export interface BasicLayoutConfig {
   title?: EventualString
   description?: EventualString
   children?: AnyDisplayIOPromise[]
@@ -27,6 +27,7 @@ export interface Layout {
   description?: EventualString
   children?: AnyDisplayIOPromise[]
   menuItems?: ButtonItem[]
+  errors?: PageError[]
 }
 
 // Base class
@@ -36,6 +37,7 @@ export class Basic implements Layout {
   children?: AnyDisplayIOPromise[]
   menuItems?: ButtonItem[]
   metadata?: MetaItem[]
+  errors?: PageError[]
 
   constructor(config: BasicLayoutConfig) {
     this.title = config.title
@@ -43,6 +45,7 @@ export class Basic implements Layout {
     this.children = config.children
     this.menuItems = config.menuItems
     this.metadata = config.metadata
+    this.errors = []
   }
 }
 
@@ -78,7 +81,20 @@ export const BASIC_LAYOUT_SCHEMA = z.object({
   description: z.string().nullish(),
   children: IO_RENDER.optional(),
   metadata: META_ITEMS_SCHEMA.optional(),
+<<<<<<< HEAD
   menuItems: z.array(buttonItem).optional(),
+=======
+  menuItems: z.array(menuItem).optional(),
+  errors: z
+    .array(
+      z.object({
+        layoutKey: z.string().optional(),
+        error: z.string(),
+        message: z.string(),
+      })
+    )
+    .optional(),
+>>>>>>> b53b9d00 (Pass page handler errors to display in dashboard)
 })
 
 // To be extended with z.discriminatedUnion when adding different pages
