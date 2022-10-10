@@ -1,6 +1,11 @@
 import { faker } from '@faker-js/faker'
 import { IntervalActionHandler } from '../..'
-import ExperimentalInterval, { Router, io, ctx } from '../../experimental'
+import ExperimentalInterval, {
+  Router,
+  io,
+  ctx,
+  Layout,
+} from '../../experimental'
 
 const action: IntervalActionHandler = async () => {
   const message = await io.input.text('Hello?')
@@ -26,6 +31,11 @@ const editAction: IntervalActionHandler = async () => {
 
 const usersGroup = new Router({
   name: 'Users',
+  index: async () => {
+    return new Layout.Basic({
+      title: 'Users',
+    })
+  },
   routes: {
     index: action,
     create: {
@@ -38,6 +48,11 @@ const usersGroup = new Router({
     },
     billing: new Router({
       name: 'Billing',
+      index: async () => {
+        return new Layout.Basic({
+          title: 'Billing',
+        })
+      },
       routes: {
         view_unpaid_invoices: action,
       },

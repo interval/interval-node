@@ -10,6 +10,7 @@ import { Layout } from './Layout'
 export interface RouterConfig {
   name: string
   description?: string
+  unlisted?: boolean
   routes?: IntervalActionDefinitions
   actions?: Record<string, IntervalActionDefinition>
   groups?: Record<string, Router>
@@ -19,6 +20,7 @@ export interface RouterConfig {
 export default class Router {
   name: string
   description?: string
+  unlisted?: boolean
   routes: IntervalActionDefinitions
   index?: (display: IO['display'], ctx: PageCtx) => Promise<Layout>
 
@@ -28,6 +30,7 @@ export default class Router {
   constructor(config: RouterConfig) {
     this.name = config.name
     this.description = config.description
+    this.unlisted = config.unlisted
     this.routes = {
       ...config.routes,
       ...config.actions,
