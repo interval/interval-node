@@ -679,11 +679,13 @@ export default class IntervalClient {
               if (page.metadata) {
                 const items: MetaItemSchema[] = []
                 for (const pageItem of page.metadata) {
-                  let { label, value } = pageItem
+                  let { label, value, error } = pageItem
                   if (typeof value === 'function' || value instanceof Promise) {
                     items.push({ label })
                   } else {
-                    items.push({ label, value })
+                    items.push(
+                      error ? { label, value, error } : { label, value }
+                    )
                   }
                 }
 
@@ -877,7 +879,10 @@ export default class IntervalClient {
                           metadata[i].value = value
                         } catch (err) {
                           this.#logger.error(err)
-                          errors.push(pageError(err, 'metadata'))
+                          const error = pageError(err)
+                          errors.push(error)
+                          metadata[i].value = null
+                          metadata[i].error = error.message
                         }
                       }
 
@@ -889,7 +894,10 @@ export default class IntervalClient {
                           })
                           .catch(err => {
                             this.#logger.error(err)
-                            errors.push(pageError(err, 'metadata'))
+                            const error = pageError(err)
+                            errors.push(error)
+                            metadata[i].value = null
+                            metadata[i].error = error.message
                             scheduleSendPage()
                           })
                       }
