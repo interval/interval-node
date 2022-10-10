@@ -63,9 +63,9 @@ type RenderedTableRow = {
 }
 
 export type TableDataFetcher<Row extends z.infer<typeof tableRow>> = (props: {
-  queryTerm?: string | null
-  sortColumn?: string | null
-  sortDirection?: 'asc' | 'desc' | null
+  queryTerm?: string
+  sortColumn?: string
+  sortDirection?: 'asc' | 'desc'
   offset: number
   pageSize: number
 }) => Promise<{ data: Row[]; totalRecords?: number }>

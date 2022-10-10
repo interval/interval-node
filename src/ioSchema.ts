@@ -548,9 +548,9 @@ export const ioSchema = {
       isAsync: z.optional(z.boolean().default(false)),
     }),
     state: z.object({
-      queryTerm: z.string().nullish(),
-      sortColumn: z.string().nullish(),
-      sortDirection: z.enum(['asc', 'desc']).nullish(),
+      queryTerm: z.string().optional(),
+      sortColumn: z.string().optional(),
+      sortDirection: z.enum(['asc', 'desc']).optional(),
       offset: z.number().int().default(0),
       pageSize: z.number().int(),
     }),
