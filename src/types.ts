@@ -286,11 +286,19 @@ export type IOComponentDefinition<
   ) => Promise<T_IO_PROPS<MethodName>>
 }
 
+type DistributiveOmit<T, K extends keyof any> = T extends any
+  ? Omit<T, K>
+  : never
+
 export type InternalMenuItem = z.input<typeof menuItem>
-export type MenuItem = InternalMenuItem
+export type MenuItem = DistributiveOmit<InternalMenuItem, 'theme'> & {
+  theme?: 'danger'
+}
 
 export type InternalButtonItem = z.input<typeof buttonItem>
-export type ButtonItem = InternalButtonItem
+export type ButtonItem = DistributiveOmit<InternalButtonItem, 'theme'> & {
+  theme?: 'primary' | 'secondary' | 'danger'
+}
 // | {
 //     label: InternalMenuItem['label']
 //     theme?: InternalMenuItem['theme']

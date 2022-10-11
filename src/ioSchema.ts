@@ -29,11 +29,12 @@ export const DISPLAY_RENDER = z.object({
   kind: z.literal('RENDER'),
 })
 
+// `default` deprecated in 0.31.0
 const buttonTheme = z
   .enum(['default', 'primary', 'secondary', 'danger'])
   .default('primary')
   .optional()
-export type ButtonTheme = z.infer<typeof buttonTheme>
+export type ButtonTheme = 'primary' | 'secondary' | 'danger'
 
 export const IO_RENDER = z.object({
   id: z.string(),
@@ -191,6 +192,7 @@ export const tableRow = z
 export const menuItem = z.intersection(
   z.object({
     label: z.string(),
+    // `default` deprecated in 0.31.0
     theme: z.enum(['default', 'danger']).optional(),
   }),
   z.union([

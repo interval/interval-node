@@ -7,7 +7,7 @@ import {
   T_IO_RETURNS,
   T_IO_STATE,
 } from '../ioSchema'
-import { TableColumn } from '../types'
+import { MenuItem, TableColumn } from '../types'
 import {
   columnsBuilder,
   filterRows,
@@ -20,7 +20,7 @@ import {
 type PublicProps<Row> = Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
   data: Row[]
   columns?: (TableColumn<Row> | string)[]
-  rowMenuItems?: (row: Row) => z.infer<typeof menuItem>[]
+  rowMenuItems?: (row: Row) => MenuItem[]
 }
 
 export default function selectTable(logger: Logger) {
