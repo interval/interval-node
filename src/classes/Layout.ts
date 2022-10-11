@@ -1,6 +1,12 @@
 import { z } from 'zod'
-import { primitiveValue, Literal, IO_RENDER, menuItem } from '../ioSchema'
-import { AnyDisplayIOPromise, MenuItem } from '../types'
+import {
+  primitiveValue,
+  Literal,
+  IO_RENDER,
+  menuItem,
+  buttonItem,
+} from '../ioSchema'
+import { AnyDisplayIOPromise, ButtonItem } from '../types'
 
 type EventualString =
   | string
@@ -12,7 +18,7 @@ interface BasicLayoutConfig {
   title?: EventualString
   description?: EventualString
   children?: AnyDisplayIOPromise[]
-  menuItems?: MenuItem[]
+  menuItems?: ButtonItem[]
   metadata?: MetaItem[]
 }
 
@@ -20,7 +26,7 @@ export interface Layout {
   title?: EventualString
   description?: EventualString
   children?: AnyDisplayIOPromise[]
-  menuItems?: MenuItem[]
+  menuItems?: ButtonItem[]
 }
 
 // Base class
@@ -28,7 +34,7 @@ export class Basic implements Layout {
   title?: EventualString
   description?: EventualString
   children?: AnyDisplayIOPromise[]
-  menuItems?: MenuItem[]
+  menuItems?: ButtonItem[]
   metadata?: MetaItem[]
 
   constructor(config: BasicLayoutConfig) {
@@ -72,7 +78,7 @@ export const BASIC_LAYOUT_SCHEMA = z.object({
   description: z.string().nullish(),
   children: IO_RENDER.optional(),
   metadata: META_ITEMS_SCHEMA.optional(),
-  menuItems: z.array(menuItem).optional(),
+  menuItems: z.array(buttonItem).optional(),
 })
 
 // To be extended with z.discriminatedUnion when adding different pages

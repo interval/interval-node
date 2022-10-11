@@ -12,6 +12,7 @@ import type {
   T_IO_INPUT_METHOD_NAMES,
   LinkProps,
   menuItem,
+  buttonItem,
   ButtonTheme,
   serializableRecord,
   ImageSize,
@@ -182,11 +183,13 @@ export type ComponentsRenderer<
   components: Components,
   validator?: IOClientRenderValidator<Components>,
   continueButton?: ButtonConfig
-) => Promise<{
-  [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-    ? z.infer<Components[Idx]['schema']['returns']> | undefined
-    : Components[Idx]
-}>
+) => Promise<
+  {
+    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+      ? z.infer<Components[Idx]['schema']['returns']> | undefined
+      : Components[Idx]
+  }
+>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 
@@ -283,8 +286,19 @@ export type IOComponentDefinition<
   ) => Promise<T_IO_PROPS<MethodName>>
 }
 
+type DistributiveOmit<T, K extends keyof any> = T extends any
+  ? Omit<T, K>
+  : never
+
 export type InternalMenuItem = z.input<typeof menuItem>
-export type MenuItem = InternalMenuItem
+export type MenuItem = DistributiveOmit<InternalMenuItem, 'theme'> & {
+  theme?: 'danger'
+}
+
+export type InternalButtonItem = z.input<typeof buttonItem>
+export type ButtonItem = DistributiveOmit<InternalButtonItem, 'theme'> & {
+  theme?: 'primary' | 'secondary' | 'danger'
+}
 // | {
 //     label: InternalMenuItem['label']
 //     theme?: InternalMenuItem['theme']
