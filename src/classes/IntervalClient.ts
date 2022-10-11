@@ -38,6 +38,7 @@ import type {
   IntervalActionStore,
   IntervalPageStore,
   InternalMenuItem,
+  InternalButtonItem,
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
 import localConfig from '../localConfig'
@@ -646,7 +647,7 @@ export default class IntervalClient {
           }
 
           let page: Layout
-          let menuItems: InternalMenuItem[] | undefined = undefined
+          let menuItems: InternalButtonItem[] | undefined = undefined
           let renderInstruction: T_IO_RENDER_INPUT | undefined = undefined
 
           const MAX_PAGE_RETRIES = 5
