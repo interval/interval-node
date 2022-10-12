@@ -879,7 +879,7 @@ export default class IntervalClient {
                           metadata[i].value = value
                         } catch (err) {
                           this.#logger.error(err)
-                          const error = pageError(err)
+                          const error = pageError(err, 'metadata')
                           errors.push(error)
                           metadata[i].value = null
                           metadata[i].error = error.message
@@ -894,7 +894,7 @@ export default class IntervalClient {
                           })
                           .catch(err => {
                             this.#logger.error(err)
-                            const error = pageError(err)
+                            const error = pageError(err, 'metadata')
                             errors.push(error)
                             metadata[i].value = null
                             metadata[i].error = error.message
