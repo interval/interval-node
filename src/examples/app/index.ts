@@ -4,6 +4,7 @@ import * as db from './db'
 
 const hello_app = new Router({
   name: 'App',
+  description: 'This should have a description',
   index: async () => {
     return new Layout.Basic({
       title: sleep(1000).then(() => 'Resource'),
@@ -202,6 +203,7 @@ const interval = new Interval({
     }),
     hello_world: {
       name: 'Hello world',
+      description: 'This should have a description too',
       handler: async () => {
         await io.display.markdown('Hello, world!')
       },
