@@ -83,10 +83,7 @@ export const BASIC_LAYOUT_SCHEMA = z.object({
   description: z.string().nullish(),
   children: IO_RENDER.optional(),
   metadata: META_ITEMS_SCHEMA.optional(),
-<<<<<<< HEAD
   menuItems: z.array(buttonItem).optional(),
-=======
-  menuItems: z.array(menuItem).optional(),
   errors: z
     .array(
       z.object({
@@ -96,7 +93,6 @@ export const BASIC_LAYOUT_SCHEMA = z.object({
       })
     )
     .optional(),
->>>>>>> b53b9d00 (Pass page handler errors to display in dashboard)
 })
 
 // To be extended with z.discriminatedUnion when adding different pages
