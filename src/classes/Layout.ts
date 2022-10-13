@@ -64,7 +64,7 @@ export interface MetaItem {
 export const META_ITEM_SCHEMA = z.object({
   label: z.string(),
   value: primitiveValue.or(z.bigint()).nullish(),
-  error: z.string().optional(),
+  error: z.string().nullish(),
 })
 
 export type MetaItemSchema = z.infer<typeof META_ITEM_SCHEMA>

@@ -683,9 +683,7 @@ export default class IntervalClient {
                   if (typeof value === 'function' || value instanceof Promise) {
                     items.push({ label })
                   } else {
-                    items.push(
-                      error ? { label, value, error } : { label, value }
-                    )
+                    items.push({ label, value, error })
                   }
                 }
 
