@@ -240,7 +240,10 @@ export const select_table: IntervalActionHandler = async io => {
     defaultPageSize: 500,
     columns: [
       'id',
-      'description',
+      {
+        label: 'Description',
+        accessorKey: 'description',
+      },
       'number',
       'boolean',
       'date',
