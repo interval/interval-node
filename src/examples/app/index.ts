@@ -4,6 +4,7 @@ import * as db from './db'
 
 const hello_app = new Router({
   name: 'App',
+  description: 'This should have a description',
   index: async () => {
     return new Layout.Basic({
       title: sleep(1000).then(() => 'Resource'),
@@ -17,12 +18,21 @@ const hello_app = new Router({
           label: 'Async function',
           value: async () => {
             await sleep(1000)
+            throw new Error('Metadata error in an async function')
             return '1 second'
           },
         },
         { label: 'Promise', value: sleep(2000).then(() => 2000) },
       ],
       menuItems: [
+        {
+          label: 'Hello world',
+          action: 'hello_world',
+        },
+        {
+          label: 'Add user',
+          action: 'users/create',
+        },
         {
           label: 'Action link',
           action: 'hello_app/hello_world',
@@ -194,6 +204,7 @@ const interval = new Interval({
     }),
     hello_world: {
       name: 'Hello world',
+      description: 'This should have a description too',
       handler: async () => {
         await io.display.markdown('Hello, world!')
       },

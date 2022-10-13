@@ -1,13 +1,7 @@
 import { z } from 'zod'
 import Logger from '../classes/Logger'
-import {
-  tableRow,
-  T_IO_PROPS,
-  menuItem,
-  T_IO_STATE,
-  internalTableRow,
-} from '../ioSchema'
-import { TableColumn } from '../types'
+import { tableRow, T_IO_PROPS, T_IO_STATE, internalTableRow } from '../ioSchema'
+import { MenuItem, TableColumn } from '../types'
 import {
   columnsBuilder,
   tableRowSerializer,
@@ -24,7 +18,7 @@ type PublicProps<Row> = Omit<
   'data' | 'columns' | 'totalRecords' | 'isAsync'
 > & {
   columns?: (TableColumn<Row> | string)[]
-  rowMenuItems?: (row: Row) => z.infer<typeof menuItem>[]
+  rowMenuItems?: (row: Row) => MenuItem[]
 } & (
     | {
         data: Row[]

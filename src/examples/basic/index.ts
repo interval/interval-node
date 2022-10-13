@@ -347,6 +347,7 @@ const interval = new Interval({
     },
     code: async () => {
       await io.group([
+        io.input.text('Text input'),
         io.display.code('Code from string', {
           code: 'console.log("Hello, world!")',
           language: 'typescript',

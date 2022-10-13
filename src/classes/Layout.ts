@@ -1,6 +1,12 @@
 import { z } from 'zod'
-import { primitiveValue, Literal, IO_RENDER, menuItem } from '../ioSchema'
-import { AnyDisplayIOPromise, MenuItem } from '../types'
+import {
+  primitiveValue,
+  Literal,
+  IO_RENDER,
+  menuItem,
+  buttonItem,
+} from '../ioSchema'
+import { AnyDisplayIOPromise, ButtonItem, PageError } from '../types'
 
 type EventualString =
   | string
@@ -8,11 +14,11 @@ type EventualString =
   | (() => string)
   | (() => Promise<string>)
 
-interface BasicLayoutConfig {
+export interface BasicLayoutConfig {
   title?: EventualString
   description?: EventualString
   children?: AnyDisplayIOPromise[]
-  menuItems?: MenuItem[]
+  menuItems?: ButtonItem[]
   metadata?: MetaItem[]
 }
 
@@ -20,7 +26,8 @@ export interface Layout {
   title?: EventualString
   description?: EventualString
   children?: AnyDisplayIOPromise[]
-  menuItems?: MenuItem[]
+  menuItems?: ButtonItem[]
+  errors?: PageError[]
 }
 
 // Base class
@@ -28,8 +35,9 @@ export class Basic implements Layout {
   title?: EventualString
   description?: EventualString
   children?: AnyDisplayIOPromise[]
-  menuItems?: MenuItem[]
+  menuItems?: ButtonItem[]
   metadata?: MetaItem[]
+  errors?: PageError[]
 
   constructor(config: BasicLayoutConfig) {
     this.title = config.title
@@ -37,6 +45,7 @@ export class Basic implements Layout {
     this.children = config.children
     this.menuItems = config.menuItems
     this.metadata = config.metadata
+    this.errors = []
   }
 }
 
@@ -49,11 +58,13 @@ export interface MetaItem {
     | Promise<MetaItemValue>
     | (() => MetaItemValue)
     | (() => Promise<MetaItemValue>)
+  error?: string
 }
 
 export const META_ITEM_SCHEMA = z.object({
   label: z.string(),
   value: primitiveValue.or(z.bigint()).nullish(),
+  error: z.string().nullish(),
 })
 
 export type MetaItemSchema = z.infer<typeof META_ITEM_SCHEMA>
@@ -72,7 +83,16 @@ export const BASIC_LAYOUT_SCHEMA = z.object({
   description: z.string().nullish(),
   children: IO_RENDER.optional(),
   metadata: META_ITEMS_SCHEMA.optional(),
-  menuItems: z.array(menuItem).optional(),
+  menuItems: z.array(buttonItem).optional(),
+  errors: z
+    .array(
+      z.object({
+        layoutKey: z.string().optional(),
+        error: z.string(),
+        message: z.string(),
+      })
+    )
+    .optional(),
 })
 
 // To be extended with z.discriminatedUnion when adding different pages

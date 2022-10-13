@@ -38,6 +38,8 @@ import type {
   IntervalActionStore,
   IntervalPageStore,
   InternalMenuItem,
+  InternalButtonItem,
+  PageError,
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
 import localConfig from '../localConfig'
@@ -49,6 +51,7 @@ import {
   LayoutSchemaInput,
   MetaItemSchema,
   MetaItemsSchema,
+  BasicLayoutConfig,
 } from './Layout'
 
 export const DEFAULT_WEBSOCKET_ENDPOINT = 'wss://interval.com/websocket'
@@ -646,8 +649,9 @@ export default class IntervalClient {
           }
 
           let page: Layout
-          let menuItems: InternalMenuItem[] | undefined = undefined
+          let menuItems: InternalButtonItem[] | undefined = undefined
           let renderInstruction: T_IO_RENDER_INPUT | undefined = undefined
+          let errors: PageError[] = []
 
           const MAX_PAGE_RETRIES = 5
 
@@ -669,16 +673,17 @@ export default class IntervalClient {
                     : null,
                 menuItems,
                 children: renderInstruction,
+                errors,
               }
 
               if (page.metadata) {
                 const items: MetaItemSchema[] = []
                 for (const pageItem of page.metadata) {
-                  let { label, value } = pageItem
+                  let { label, value, error } = pageItem
                   if (typeof value === 'function' || value instanceof Promise) {
                     items.push({ label })
                   } else {
-                    items.push({ label, value })
+                    items.push({ label, value, error })
                   }
                 }
 
@@ -774,82 +779,153 @@ export default class IntervalClient {
           this.#pageIOClients.set(pageKey, client)
           this.#ioResponseHandlers.set(pageKey, client.onResponse.bind(client))
 
+          const pageError = (
+            error: unknown,
+            layoutKey?: keyof BasicLayoutConfig
+          ) => {
+            if (error instanceof Error) {
+              return {
+                layoutKey,
+                error: error.name,
+                message: error.message,
+              }
+            } else {
+              return {
+                layoutKey,
+                error: 'Unknown error',
+                message: String(error),
+              }
+            }
+          }
+
           pageLocalStorage.run({ display, ctx }, () => {
-            appHandler(display, ctx).then(res => {
-              page = res
+            appHandler(display, ctx)
+              .then(res => {
+                page = res
 
-              if (typeof page.title === 'function') {
-                page.title = page.title()
-              }
-
-              if (page.title instanceof Promise) {
-                page.title.then(title => {
-                  page.title = title
-                  scheduleSendPage()
-                })
-              }
-
-              if (page.description) {
-                if (typeof page.description === 'function') {
-                  page.description = page.description()
+                if (typeof page.title === 'function') {
+                  try {
+                    page.title = page.title()
+                  } catch (err) {
+                    this.#logger.error(err)
+                    errors.push(pageError(err, 'title'))
+                  }
                 }
 
-                if (page.description instanceof Promise) {
-                  page.description.then(description => {
-                    page.description = description
-                    scheduleSendPage()
-                  })
+                if (page.title instanceof Promise) {
+                  page.title
+                    .then(title => {
+                      page.title = title
+                      scheduleSendPage()
+                    })
+                    .catch(err => {
+                      this.#logger.error(err)
+                      errors.push(pageError(err, 'title'))
+                      scheduleSendPage()
+                    })
                 }
-              }
 
-              if (page.menuItems) {
-                menuItems = page.menuItems.map(menuItem => {
-                  // if (
-                  //   'action' in menuItem &&
-                  //   typeof menuItem['action'] === 'function'
-                  // ) {
-                  //   const inlineAction = client.addInlineAction(menuItem.action)
-                  //   return {
-                  //     ...menuItem,
-                  //     inlineAction,
-                  //   }
-                  // }
-
-                  return menuItem
-                })
-              }
-
-              if (page instanceof Basic) {
-                const { metadata } = page
-                if (metadata) {
-                  for (let i = 0; i < metadata.length; i++) {
-                    let { value } = metadata[i]
-                    if (typeof value === 'function') {
-                      value = value()
-                      metadata[i].value = value
+                if (page.description) {
+                  if (typeof page.description === 'function') {
+                    try {
+                      page.description = page.description()
+                    } catch (err) {
+                      this.#logger.error(err)
+                      errors.push(pageError(err, 'description'))
                     }
+                  }
 
-                    if (value instanceof Promise) {
-                      value.then(resolved => {
-                        metadata[i].value = resolved
+                  if (page.description instanceof Promise) {
+                    page.description
+                      .then(description => {
+                        page.description = description
                         scheduleSendPage()
                       })
+                      .catch(err => {
+                        this.#logger.error(err)
+                        errors.push(pageError(err, 'description'))
+                        scheduleSendPage()
+                      })
+                  }
+                }
+
+                if (page.menuItems) {
+                  menuItems = page.menuItems.map(menuItem => {
+                    // if (
+                    //   'action' in menuItem &&
+                    //   typeof menuItem['action'] === 'function'
+                    // ) {
+                    //   const inlineAction = client.addInlineAction(menuItem.action)
+                    //   return {
+                    //     ...menuItem,
+                    //     inlineAction,
+                    //   }
+                    // }
+
+                    return menuItem
+                  })
+                }
+
+                if (page instanceof Basic) {
+                  const { metadata } = page
+                  if (metadata) {
+                    for (let i = 0; i < metadata.length; i++) {
+                      let { value } = metadata[i]
+                      if (typeof value === 'function') {
+                        try {
+                          value = value()
+                          metadata[i].value = value
+                        } catch (err) {
+                          this.#logger.error(err)
+                          const error = pageError(err, 'metadata')
+                          errors.push(error)
+                          metadata[i].value = null
+                          metadata[i].error = error.message
+                        }
+                      }
+
+                      if (value instanceof Promise) {
+                        value
+                          .then(resolved => {
+                            metadata[i].value = resolved
+                            scheduleSendPage()
+                          })
+                          .catch(err => {
+                            this.#logger.error(err)
+                            const error = pageError(err, 'metadata')
+                            errors.push(error)
+                            metadata[i].value = null
+                            metadata[i].error = error.message
+                            scheduleSendPage()
+                          })
+                      }
                     }
                   }
                 }
-              }
 
-              if (page.children) {
-                group(page.children).then(() => {
-                  this.#logger.debug(
-                    'Initial children render complete for pageKey',
-                    pageKey
-                  )
+                if (page.children) {
+                  group(page.children).then(() => {
+                    this.#logger.debug(
+                      'Initial children render complete for pageKey',
+                      pageKey
+                    )
+                  })
+                } else {
+                  scheduleSendPage()
+                }
+              })
+              .catch(async err => {
+                this.#logger.error(err)
+                errors.push(pageError(err))
+                const pageLayout: LayoutSchemaInput = {
+                  kind: 'BASIC',
+                  errors,
+                }
+                await this.#send('SEND_PAGE', {
+                  pageKey,
+                  page: JSON.stringify(pageLayout),
                 })
-              } else {
-                scheduleSendPage()
-              }
-            })
+              })
           })
 
           return {

@@ -29,8 +29,12 @@ export const DISPLAY_RENDER = z.object({
   kind: z.literal('RENDER'),
 })
 
-const buttonTheme = z.enum(['default', 'danger']).default('default').optional()
-export type ButtonTheme = z.infer<typeof buttonTheme>
+// `default` deprecated in 0.31.0
+const buttonTheme = z
+  .enum(['default', 'primary', 'secondary', 'danger'])
+  .default('primary')
+  .optional()
+export type ButtonTheme = 'primary' | 'secondary' | 'danger'
 
 export const IO_RENDER = z.object({
   id: z.string(),
@@ -188,6 +192,28 @@ export const tableRow = z
 export const menuItem = z.intersection(
   z.object({
     label: z.string(),
+    // `default` deprecated in 0.31.0
+    theme: z.enum(['default', 'danger']).optional(),
+  }),
+  z.union([
+    z.object({
+      action: z.string(),
+      params: serializableRecord.optional(),
+      disabled: z.boolean().optional(),
+    }),
+    z.object({
+      url: z.string(),
+      disabled: z.boolean().optional(),
+    }),
+    z.object({
+      disabled: z.literal(true),
+    }),
+  ])
+)
+
+export const buttonItem = z.intersection(
+  z.object({
+    label: z.string(),
     theme: buttonTheme,
   }),
   z.union([
@@ -267,6 +293,9 @@ export function resolvesImmediately(methodName: T_IO_METHOD_NAMES): boolean {
   return 'immediate' in ioSchema[methodName]
 }
 
+/**
+ * IMPORTANT: When adding any new DISPLAY methods, be sure to also add their method names to T_IO_DISPLAY_METHOD_NAMES below.
+ */
 export const ioSchema = {
   INPUT_TEXT: {
     props: z.object({
@@ -611,11 +640,14 @@ export type T_IO_Schema = typeof ioSchema
 export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
 export type T_IO_DISPLAY_METHOD_NAMES =
+  | 'DISPLAY_CODE'
   | 'DISPLAY_HEADING'
   | 'DISPLAY_MARKDOWN'
   | 'DISPLAY_LINK'
   | 'DISPLAY_OBJECT'
   | 'DISPLAY_TABLE'
+  | 'DISPLAY_IMAGE'
+  | 'DISPLAY_VIDEO'
 
 export type T_IO_INPUT_METHOD_NAMES = Exclude<
   T_IO_METHOD_NAMES,
