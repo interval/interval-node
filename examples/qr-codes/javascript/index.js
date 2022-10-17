@@ -4,7 +4,6 @@ import QRCode from 'qrcode';
 
 const interval = new Interval({
   apiKey: process.env.INTERVAL_KEY,
-  endpoint: 'ws://localhost:3000/websocket',
   actions: {
     generate_qr_code: async () => {
       const url = await io.input.url('URL for the QR code to link to', {
