@@ -301,7 +301,14 @@ export const table_custom: IntervalActionHandler = async io => {
     'zip',
   ].map(f => ({ label: f, value: f }))
 
-  const [rowsCount, fields, tableType, orientation] = await io.group([
+  const [
+    rowsCount,
+    fields,
+    tableType,
+    orientation,
+    minSelections,
+    maxSelections,
+  ] = await io.group([
     io.input.number('Number of rows', { defaultValue: 50 }),
     io.select.multiple('Fields', {
       options: options,
@@ -323,6 +330,16 @@ export const table_custom: IntervalActionHandler = async io => {
       helpText:
         'Warning: Vertical orientation is not supported for select tables; it will be ignored',
     }),
+    io.input
+      .number('Min selection', {
+        min: 0,
+      })
+      .optional(),
+    io.input
+      .number('Max selection', {
+        min: 0,
+      })
+      .optional(),
   ])
 
   const rows: { [key: string]: any }[] = []
@@ -378,8 +395,8 @@ export const table_custom: IntervalActionHandler = async io => {
   } else {
     const [selections] = await io.select.table('Select a person', {
       data: rows,
-      minSelections: 1,
-      maxSelections: 3,
+      minSelections,
+      maxSelections,
     })
     await io.display.object('Selected', { data: selections })
   }
