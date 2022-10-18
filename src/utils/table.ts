@@ -8,7 +8,10 @@ import Logger from '../classes/Logger'
 export const TABLE_DATA_BUFFER_SIZE = 500
 
 /**
- * Generates column headers from rows if no columns are provided.
+ * Generates column config from an array of tabular data.
+ * If custom columns aren't provided, the keys from `data` are used as headers.
+ *
+ * Returns an array of label/accessorKey OR label/renderCell.
  */
 export function columnsBuilder<Row extends z.infer<typeof tableRow>>(
   props: {

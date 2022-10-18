@@ -346,6 +346,56 @@ const interval = new Interval({
         data: { mySuperValue: data || 'No data' },
       })
     },
+    metadata: async (io, ctx) => {
+      await io.group([
+        io.display.metadata('', {
+          data: {
+            'Current user': ctx.user.email ?? 'No email',
+            Environment: ctx.environment,
+            'Action slug': ctx.action.slug,
+          },
+        }),
+        io.display.markdown(`## Custom columns`),
+        io.display.metadata('', {
+          data: {
+            id: 1,
+            firstName: 'John',
+            lastName: 'Doe',
+            email: 'john.doe@gmail.com',
+            createdAt: new Date(),
+          },
+          columns: [
+            'id',
+            {
+              label: 'Name',
+              renderCell: data => `${data.firstName} ${data.lastName}`,
+            },
+            {
+              accessorKey: 'email',
+              label: 'Email',
+            },
+            'createdAt',
+            {
+              label: 'Contact',
+              renderCell: data => ({
+                action: 'contact',
+                label: 'Contact',
+                params: { email: data.email },
+              }),
+            },
+          ],
+        }),
+        io.display.markdown(`## List view`),
+        io.display.metadata('', {
+          data: {
+            'Current user': ctx.user.email ?? 'No email',
+            Environment: ctx.environment,
+            'Action slug': ctx.action.slug,
+          },
+          layout: 'list',
+        }),
+      ])
+    },
     code: async () => {
       await io.group([
         io.input.text('Text input'),

@@ -189,6 +189,8 @@ export const tableRow = z
   // If no columns specified, we'll just serialize any nested objects.
   .or(z.record(z.any()))
 
+export const metadataObject = z.record(z.any())
+
 export const menuItem = z.intersection(
   z.object({
     label: z.string(),
@@ -585,6 +587,15 @@ export const ioSchema = {
     }),
     returns: z.null(),
   },
+  DISPLAY_METADATA: {
+    props: z.object({
+      columns: z.array(internalTableColumn),
+      data: z.array(internalTableRow),
+      layout: z.enum(['grid', 'list']).optional().default('grid'),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
   DISPLAY_PROGRESS_STEPS: {
     props: z.object({
       steps: z.object({
@@ -645,6 +656,7 @@ export type T_IO_DISPLAY_METHOD_NAMES =
   | 'DISPLAY_MARKDOWN'
   | 'DISPLAY_LINK'
   | 'DISPLAY_OBJECT'
+  | 'DISPLAY_METADATA'
   | 'DISPLAY_TABLE'
   | 'DISPLAY_IMAGE'
   | 'DISPLAY_VIDEO'
