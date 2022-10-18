@@ -387,12 +387,21 @@ const interval = new Interval({
         }),
         io.display.markdown(`## List view`),
         io.display.metadata('', {
+          layout: 'list',
           data: {
             'Current user': ctx.user.email ?? 'No email',
             Environment: ctx.environment,
             'Action slug': ctx.action.slug,
           },
-          layout: 'list',
+        }),
+        io.display.markdown(`## Card view`),
+        io.display.metadata('', {
+          layout: 'card',
+          data: {
+            Total: 117,
+            'New this week': 37,
+            'New today': 13,
+          },
         }),
       ])
     },

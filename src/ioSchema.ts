@@ -591,7 +591,7 @@ export const ioSchema = {
     props: z.object({
       columns: z.array(internalTableColumn),
       data: z.array(internalTableRow),
-      layout: z.enum(['grid', 'list']).optional().default('grid'),
+      layout: z.enum(['grid', 'list', 'card']).optional().default('grid'),
     }),
     state: z.null(),
     returns: z.null(),
