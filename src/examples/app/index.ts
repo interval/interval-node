@@ -26,12 +26,8 @@ const hello_app = new Router({
       ],
       menuItems: [
         {
-          label: 'Hello world',
-          action: 'hello_world',
-        },
-        {
-          label: 'Add user',
-          action: 'users/create',
+          label: 'External link',
+          url: 'https://google.com',
         },
         {
           label: 'Action link',
