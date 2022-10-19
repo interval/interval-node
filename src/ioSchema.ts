@@ -30,10 +30,7 @@ export const DISPLAY_RENDER = z.object({
 })
 
 // `default` deprecated in 0.31.0
-const buttonTheme = z
-  .enum(['default', 'primary', 'secondary', 'danger'])
-  .default('primary')
-  .optional()
+const buttonTheme = z.enum(['default', 'primary', 'secondary', 'danger'])
 export type ButtonTheme = 'primary' | 'secondary' | 'danger'
 
 export const IO_RENDER = z.object({
@@ -44,7 +41,7 @@ export const IO_RENDER = z.object({
   continueButton: z
     .object({
       label: z.string().optional(),
-      theme: buttonTheme,
+      theme: buttonTheme.optional(),
     })
     .optional(),
   kind: z.literal('RENDER'),
@@ -214,7 +211,7 @@ export const menuItem = z.intersection(
 export const buttonItem = z.intersection(
   z.object({
     label: z.string(),
-    theme: buttonTheme,
+    theme: buttonTheme.optional(),
   }),
   z.union([
     z.object({
@@ -329,7 +326,7 @@ const DISPLAY_SCHEMA = {
   DISPLAY_LINK: {
     props: z.intersection(
       z.object({
-        theme: buttonTheme,
+        theme: buttonTheme.optional(),
       }),
       z.union([
         z.object({
