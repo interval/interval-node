@@ -303,7 +303,11 @@ const DISPLAY_SCHEMA = {
     returns: z.null(),
   },
   DISPLAY_HEADING: {
-    props: z.object({}),
+    props: z.object({
+      level: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional(),
+      description: z.string().optional(),
+      menuItems: z.array(buttonItem).optional(),
+    }),
     state: z.null(),
     returns: z.null(),
   },
