@@ -373,7 +373,8 @@ const interval = new Interval({
       ])
     },
     videos: async () => {
-      await io.group([
+      const [url] = await io.group([
+        io.input.url('URL for video').optional(),
         io.display.video('Video via url', {
           url: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/The_Kid_scenes.ogv',
           size: 'large',
@@ -385,6 +386,13 @@ const interval = new Interval({
           size: 'large',
         }),
       ])
+
+      if (url) {
+        await io.display.video('Portrait video', {
+          url: url.toString(),
+          size: 'medium',
+        })
+      }
     },
     enter_a_number: async io => {
       const num = await io.input.number('Enter a number')
