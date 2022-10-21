@@ -39,6 +39,7 @@ export type {
 export interface InternalConfig {
   apiKey?: string
   routes?: IntervalRouteDefinitions
+  routesDirectory?: string
   // TODO: Mark as deprecated soon, remove soon afterward
   actions?: Record<string, IntervalActionDefinition>
   // TODO: Mark as deprecated soon, remove soon afterward

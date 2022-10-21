@@ -39,6 +39,7 @@ import type {
   IntervalPageStore,
   InternalButtonItem,
   PageError,
+  IntervalRouteDefinitions,
   IntervalPageHandler,
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
@@ -53,6 +54,7 @@ import {
   MetaItemsSchema,
   BasicLayoutConfig,
 } from './Layout'
+import loadRoutesFromFileSystem from '../utils/fileActionLoader'
 
 export const DEFAULT_WEBSOCKET_ENDPOINT = 'wss://interval.com/websocket'
 
@@ -140,7 +142,7 @@ export default class IntervalClient {
     this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
   }
 
-  #walkRoutes() {
+  async #walkRoutes() {
     const pageDefinitions: PageDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
     const actionHandlers = new Map<string, IntervalActionHandler>()
@@ -178,9 +180,28 @@ export default class IntervalClient {
       }
     }
 
+    let fileSystemRoutes: IntervalRouteDefinitions | undefined
+
+    if (this.#config.routesDirectory) {
+      try {
+        fileSystemRoutes = await loadRoutesFromFileSystem(
+          this.#config.routesDirectory,
+          this.#logger
+        )
+      } catch (err) {
+        this.#logger.error(
+          `Failed loading routes from filesystem at ${
+            this.#config.routesDirectory
+          }`,
+          err
+        )
+      }
+    }
+
     const routes = {
       ...this.#config.actions,
       ...this.#config.groups,
+      ...fileSystemRoutes,
       ...this.#config.routes,
     }
 
@@ -293,7 +314,7 @@ export default class IntervalClient {
   }
 
   async declareHost(httpHostId: string) {
-    this.#walkRoutes()
+    await this.#walkRoutes()
 
     const body: z.infer<typeof DECLARE_HOST['inputs']> = {
       httpHostId,
@@ -1169,7 +1190,7 @@ export default class IntervalClient {
     const isInitialInitialization = !this.#isInitialized
     this.#isInitialized = true
 
-    this.#walkRoutes()
+    await this.#walkRoutes()
 
     const response = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
