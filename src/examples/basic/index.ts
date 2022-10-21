@@ -1,6 +1,7 @@
 import Interval, { IOError, io, ctx } from '../../index'
 import IntervalClient from '../../classes/IntervalClient'
 import {
+  IntervalActionDefinition,
   IntervalActionHandler,
   NotificationDeliveryInstruction,
 } from '../../types'
@@ -11,7 +12,7 @@ import unauthorized from './unauthorized'
 import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
-import { Router } from '../../experimental'
+import { Page } from '../../experimental'
 
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
@@ -71,7 +72,7 @@ const prod = new Interval({
         const name = await io.input.text('Enter the name for a user')
         return { name }
       },
-    },
+    } as IntervalActionDefinition,
     enter_two_numbers: async io => {
       const num1 = await io.input.number('Enter a number')
 
@@ -1010,7 +1011,7 @@ const interval = new Interval({
 
       return 'All done!'
     },
-    tables: new Router({
+    tables: new Page({
       name: 'Tables',
       routes: table_actions,
     }),

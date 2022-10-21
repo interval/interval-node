@@ -1,5 +1,5 @@
 import { IntervalActionHandler } from '../..'
-import ExperimentalInterval, { Router, io } from '../../experimental'
+import ExperimentalInterval, { Page, io } from '../../experimental'
 
 const action: IntervalActionHandler = async () => {
   const message = await io.input.text('Hello?')
@@ -7,7 +7,7 @@ const action: IntervalActionHandler = async () => {
   return message
 }
 
-const devOnly = new Router({
+const devOnly = new Page({
   name: 'Dev-only',
   routes: {
     action,
@@ -20,7 +20,7 @@ const interval = new ExperimentalInterval({
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
     devOnly,
-    toRemove: new Router({
+    toRemove: new Page({
       name: 'To remove',
       routes: {
         action,
@@ -33,7 +33,7 @@ interval.routes.add('new_action', async () => {
   'Hello, dynamism!'
 })
 
-const nested = new Router({
+const nested = new Page({
   name: 'Nested',
   routes: {
     action,
@@ -44,7 +44,7 @@ const nested = new Router({
 
 nested.add(
   'more',
-  new Router({
+  new Page({
     name: 'More nested',
     routes: {
       action,
@@ -56,7 +56,7 @@ interval.routes.add('nested', nested)
 
 nested.add(
   'other',
-  new Router({
+  new Page({
     name: 'Other',
     routes: {
       action,
@@ -68,7 +68,7 @@ nested.add(
 interval.listen().then(() => {
   interval.routes.add(
     'new',
-    new Router({
+    new Page({
       name: 'New Group',
       routes: {
         action,

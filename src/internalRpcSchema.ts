@@ -55,15 +55,17 @@ export const ACTION_DEFINITION = z.object({
 
 export type ActionDefinition = z.infer<typeof ACTION_DEFINITION>
 
-export const ROUTER_DEFINITION = z.object({
+export const PAGE_DEFINITION = z.object({
   slug: z.string(),
   name: z.string(),
   description: z.string().optional(),
+  hasHandler: z.boolean().optional(),
+  // Older version of hasHandler, deprecated
   hasIndex: z.boolean().optional(),
   unlisted: z.boolean().optional(),
 })
 
-export type RouterDefinition = z.infer<typeof ROUTER_DEFINITION>
+export type PageDefinition = z.infer<typeof PAGE_DEFINITION>
 
 export const ENQUEUE_ACTION = {
   inputs: z.object({
@@ -139,7 +141,7 @@ export const DECLARE_HOST = {
   inputs: z.object({
     httpHostId: z.string(),
     actions: z.array(ACTION_DEFINITION),
-    groups: z.array(ROUTER_DEFINITION).optional(),
+    groups: z.array(PAGE_DEFINITION).optional(),
     sdkName: z.string(),
     sdkVersion: z.string(),
   }),
@@ -286,7 +288,7 @@ export const wsServerSchema = {
         }),
         z.object({
           actions: z.array(ACTION_DEFINITION),
-          groups: z.array(ROUTER_DEFINITION).optional(),
+          groups: z.array(PAGE_DEFINITION).optional(),
         }),
       ])
     ),

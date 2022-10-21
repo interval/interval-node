@@ -33,8 +33,10 @@ import type {
 } from './classes/IOPromise'
 import type IOError from './classes/IOError'
 import type TransactionLoadingState from './classes/TransactionLoadingState'
-import type { Router } from './experimental'
-import { BasicLayoutConfig } from './classes/Layout'
+import type { Layout } from './classes/Layout'
+import type { Page } from './experimental'
+import type { BasicLayoutConfig } from './classes/Layout'
+import type Action from './classes/Action'
 
 export type ActionCtx = Pick<
   z.infer<HostSchema['START_TRANSACTION']['inputs']>,
@@ -91,11 +93,17 @@ export interface ExplicitIntervalActionDefinition {
 export type IntervalActionDefinition =
   | IntervalActionHandler
   | ExplicitIntervalActionDefinition
+  | Action
 
-export type IntervalActionDefinitions = Record<
+export type IntervalRouteDefinitions = Record<
   string,
-  IntervalActionDefinition | Router
+  IntervalActionDefinition | Page
 >
+
+export type IntervalPageHandler = (
+  display: IO['display'],
+  ctx: PageCtx
+) => Promise<Layout>
 
 export type RequiredPropsIOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,

@@ -1,11 +1,6 @@
 import { faker } from '@faker-js/faker'
 import { IntervalActionHandler } from '../..'
-import ExperimentalInterval, {
-  Router,
-  io,
-  ctx,
-  Layout,
-} from '../../experimental'
+import ExperimentalInterval, { Page, io, ctx, Layout } from '../../experimental'
 
 const action: IntervalActionHandler = async () => {
   const message = await io.input.text('Hello?')
@@ -29,9 +24,9 @@ const editAction: IntervalActionHandler = async () => {
   return { firstName, lastName, email }
 }
 
-const usersGroup = new Router({
+const usersGroup = new Page({
   name: 'Users',
-  index: async () => {
+  handler: async () => {
     return new Layout.Basic({
       title: 'Users',
     })
@@ -46,9 +41,9 @@ const usersGroup = new Router({
       name: 'Edit user',
       handler: editAction,
     },
-    billing: new Router({
+    billing: new Page({
       name: 'Billing',
-      index: async () => {
+      handler: async () => {
         return new Layout.Basic({
           title: 'Billing',
         })
@@ -60,7 +55,7 @@ const usersGroup = new Router({
   },
 })
 
-const classesGroup = new Router({
+const classesGroup = new Page({
   name: 'Classes',
   routes: {
     index: action,

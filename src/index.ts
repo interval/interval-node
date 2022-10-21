@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 import Routes from './classes/Routes'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
-import ActionGroup from './classes/Router'
+import Page from './classes/Page'
 import { NOTIFY } from './internalRpcSchema'
 import { SerializableRecord } from './ioSchema'
 import type {
@@ -13,7 +13,7 @@ import type {
   IntervalActionHandler,
   IntervalActionStore,
   NotifyConfig,
-  IntervalActionDefinitions,
+  IntervalRouteDefinitions,
   IntervalPageStore,
   PageCtx,
   IntervalActionDefinition,
@@ -25,22 +25,24 @@ import IntervalClient, {
   actionLocalStorage,
   pageLocalStorage,
 } from './classes/IntervalClient'
+import Action from './classes/Action'
 
 export type {
   ActionCtx,
   ActionLogFn,
   IO,
   IntervalActionHandler,
+  IntervalActionDefinition,
   IntervalActionStore,
 }
 
 export interface InternalConfig {
   apiKey?: string
-  routes?: IntervalActionDefinitions
+  routes?: IntervalRouteDefinitions
   // TODO: Mark as deprecated soon, remove soon afterward
   actions?: Record<string, IntervalActionDefinition>
   // TODO: Mark as deprecated soon, remove soon afterward
-  groups?: Record<string, ActionGroup>
+  groups?: Record<string, Page>
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
@@ -227,4 +229,4 @@ export default class Interval {
   }
 }
 
-export { Interval, IOError, IntervalError }
+export { Interval, IOError, IntervalError, Action }

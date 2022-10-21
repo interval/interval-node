@@ -1,11 +1,11 @@
-import Interval, { Router, ctx, io, Layout } from '../../experimental'
+import Interval, { Page, ctx, io, Layout } from '../../experimental'
 import { sleep } from '../utils/helpers'
 import * as db from './db'
 
-const hello_app = new Router({
+const hello_app = new Page({
   name: 'App',
   description: 'This should have a description',
-  index: async () => {
+  handler: async () => {
     return new Layout.Basic({
       title: sleep(1000).then(() => 'Resource'),
       description: sleep(750).then(
@@ -73,9 +73,9 @@ const hello_app = new Router({
   },
 })
 
-const users = new Router({
+const users = new Page({
   name: 'Users',
-  index: async () => {
+  handler: async () => {
     const allUsers = db.getUsers()
 
     return new Layout.Basic({
@@ -173,9 +173,9 @@ const interval = new Interval({
   routes: {
     hello_app,
     users,
-    info: new Router({
+    info: new Page({
       name: 'Info',
-      async index() {
+      async handler() {
         return new Layout.Basic({
           title: 'Info',
           description:
@@ -205,7 +205,7 @@ const interval = new Interval({
         await io.display.markdown('Hello, world!')
       },
     },
-    unlisted_router: new Router({
+    unlisted_router: new Page({
       name: 'Unlisted',
       unlisted: true,
       actions: {

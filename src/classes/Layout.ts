@@ -1,11 +1,5 @@
 import { z } from 'zod'
-import {
-  primitiveValue,
-  Literal,
-  IO_RENDER,
-  menuItem,
-  buttonItem,
-} from '../ioSchema'
+import { primitiveValue, Literal, IO_RENDER, buttonItem } from '../ioSchema'
 import { AnyDisplayIOPromise, ButtonItem, PageError } from '../types'
 
 type EventualString =

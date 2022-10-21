@@ -18,7 +18,7 @@ import {
   CREATE_GHOST_MODE_ACCOUNT,
   DECLARE_HOST,
   ActionDefinition,
-  RouterDefinition,
+  PageDefinition,
 } from '../internalRpcSchema'
 import {
   ActionResultSchema,
@@ -37,14 +37,14 @@ import type {
   IntervalActionHandler,
   IntervalActionStore,
   IntervalPageStore,
-  InternalMenuItem,
   InternalButtonItem,
   PageError,
+  IntervalPageHandler,
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
 import localConfig from '../localConfig'
 import { Interval, InternalConfig, IntervalError } from '..'
-import Router from './Router'
+import Page from './Page'
 import {
   Layout,
   Basic,
@@ -92,9 +92,9 @@ export default class IntervalClient {
   #config: InternalConfig
 
   #actionDefinitions: ActionDefinition[] = []
-  #routerDefinitions: RouterDefinition[] = []
+  #pageDefinitions: PageDefinition[] = []
   #actionHandlers: Map<string, IntervalActionHandler> = new Map()
-  #pageHandlers: Map<string, NonNullable<Router['index']>> = new Map()
+  #pageHandlers: Map<string, IntervalPageHandler> = new Map()
 
   organization:
     | {
@@ -141,26 +141,26 @@ export default class IntervalClient {
   }
 
   #walkRoutes() {
-    const routerDefinitions: RouterDefinition[] = []
+    const pageDefinitions: PageDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
     const actionHandlers = new Map<string, IntervalActionHandler>()
-    const pageHandlers = new Map<string, NonNullable<Router['index']>>()
+    const pageHandlers = new Map<string, IntervalPageHandler>()
 
-    function walkRouter(groupSlug: string, router: Router) {
-      routerDefinitions.push({
+    function walkRouter(groupSlug: string, router: Page) {
+      pageDefinitions.push({
         slug: groupSlug,
         name: router.name,
         description: router.description,
-        hasIndex: !!router.index,
+        hasHandler: !!router.handler,
         unlisted: router.unlisted,
       })
 
-      if (router.index) {
-        pageHandlers.set(groupSlug, router.index)
+      if (router.handler) {
+        pageHandlers.set(groupSlug, router.handler)
       }
 
       for (const [slug, def] of Object.entries(router.routes)) {
-        if (def instanceof Router) {
+        if (def instanceof Page) {
           walkRouter(`${groupSlug}/${slug}`, def)
         } else {
           actionDefinitions.push({
@@ -186,7 +186,7 @@ export default class IntervalClient {
 
     if (routes) {
       for (const [slug, def] of Object.entries(routes)) {
-        if (def instanceof Router) {
+        if (def instanceof Page) {
           walkRouter(slug, def)
         } else {
           actionDefinitions.push({
@@ -199,7 +199,7 @@ export default class IntervalClient {
       }
     }
 
-    this.#routerDefinitions = routerDefinitions
+    this.#pageDefinitions = pageDefinitions
     this.#actionDefinitions = actionDefinitions
     this.#actionHandlers = actionHandlers
     this.#pageHandlers = pageHandlers
@@ -298,7 +298,7 @@ export default class IntervalClient {
     const body: z.infer<typeof DECLARE_HOST['inputs']> = {
       httpHostId,
       actions: this.#actionDefinitions,
-      groups: this.#routerDefinitions,
+      groups: this.#pageDefinitions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
     }
@@ -623,11 +623,9 @@ export default class IntervalClient {
           }
 
           const { pageKey } = inputs
-          const appHandler = this.#pageHandlers.get(inputs.page.slug)
+          const pageHandler = this.#pageHandlers.get(inputs.page.slug)
 
-          this.#log.debug(appHandler)
-
-          if (!appHandler) {
+          if (!pageHandler) {
             this.#log.debug('No app handler called', inputs.page.slug)
             return { type: 'ERROR' as const }
           }
@@ -799,7 +797,7 @@ export default class IntervalClient {
           }
 
           pageLocalStorage.run({ display, ctx }, () => {
-            appHandler(display, ctx)
+            pageHandler(display, ctx)
               .then(res => {
                 page = res
 
@@ -1176,7 +1174,7 @@ export default class IntervalClient {
     const response = await this.#send('INITIALIZE_HOST', {
       apiKey: this.#apiKey,
       actions: this.#actionDefinitions,
-      groups: this.#routerDefinitions,
+      groups: this.#pageDefinitions,
       sdkName: pkg.name,
       sdkVersion: pkg.version,
       requestId,

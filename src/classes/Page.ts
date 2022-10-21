@@ -1,33 +1,31 @@
 import { Evt } from 'evt'
 import {
-  PageCtx,
-  IO,
   IntervalActionDefinition,
-  IntervalActionDefinitions,
+  IntervalPageHandler,
+  IntervalRouteDefinitions,
 } from '../types'
-import { Layout } from './Layout'
 
-export interface RouterConfig {
+export interface PageConfig {
   name: string
   description?: string
   unlisted?: boolean
-  routes?: IntervalActionDefinitions
   actions?: Record<string, IntervalActionDefinition>
-  groups?: Record<string, Router>
-  index?: (display: IO['display'], ctx: PageCtx) => Promise<Layout>
+  groups?: Record<string, Page>
+  routes?: IntervalRouteDefinitions
+  handler?: IntervalPageHandler
 }
 
-export default class Router {
+export default class Page {
   name: string
   description?: string
   unlisted?: boolean
-  routes: IntervalActionDefinitions
-  index?: (display: IO['display'], ctx: PageCtx) => Promise<Layout>
+  routes: IntervalRouteDefinitions
+  handler?: IntervalPageHandler
 
   onChange: Evt<void>
   #groupChangeCtx = Evt.newCtx()
 
-  constructor(config: RouterConfig) {
+  constructor(config: PageConfig) {
     this.name = config.name
     this.description = config.description
     this.unlisted = config.unlisted
@@ -36,20 +34,20 @@ export default class Router {
       ...config.actions,
       ...config.groups,
     }
-    this.index = config.index
+    this.handler = config.handler
     this.onChange = new Evt()
 
     for (const actionOrGroup of Object.values(this.routes)) {
-      if (actionOrGroup instanceof Router) {
+      if (actionOrGroup instanceof Page) {
         actionOrGroup.onChange.attach(this.#groupChangeCtx, this.onChange.post)
       }
     }
   }
 
-  add(slug: string, route: IntervalActionDefinition | Router) {
+  add(slug: string, route: IntervalActionDefinition | Page) {
     this.routes[slug] = route
 
-    if (route instanceof Router) {
+    if (route instanceof Page) {
       route.onChange.attach(this.#groupChangeCtx, this.onChange.post)
     }
 
@@ -59,7 +57,7 @@ export default class Router {
   remove(slug: string) {
     const route = this.routes[slug]
     if (route) {
-      if (route instanceof Router) {
+      if (route instanceof Page) {
         route.onChange.detach(this.#groupChangeCtx)
       }
 

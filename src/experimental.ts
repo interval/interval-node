@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import type { IncomingMessage, ServerResponse } from 'http'
 import Interval, { io, ctx, InternalConfig, IntervalError } from '.'
 import IntervalClient from './classes/IntervalClient'
-import Router from './classes/Router'
+import Page from './classes/Page'
 import * as pkg from '../package.json'
 import { DECLARE_HOST } from './internalRpcSchema'
 import {
@@ -15,12 +15,9 @@ import {
 } from './utils/http'
 import Routes from './classes/Routes'
 import Logger from './classes/Logger'
+import Action from './classes/Action'
 import { IntervalActionDefinition } from './types'
 import { Basic } from './classes/Layout'
-
-export const Layout = {
-  Basic,
-}
 
 class ExperimentalInterval extends Interval {
   #groupChangeCtx = Evt.newCtx()
@@ -44,7 +41,7 @@ class ExperimentalInterval extends Interval {
 
     if (routes) {
       for (const group of Object.values(routes)) {
-        if (group instanceof Router) {
+        if (group instanceof Page) {
           group.onChange.attach(this.#groupChangeCtx, () => {
             this.client?.handleActionsChange(this.config)
           })
@@ -59,7 +56,7 @@ class ExperimentalInterval extends Interval {
   }
 
   // TODO: Mark as deprecated soon, remove soon afterward
-  addGroup(slug: string, group: Router) {
+  addGroup(slug: string, group: Page) {
     return this.routes.add(slug, group)
   }
 
@@ -272,12 +269,12 @@ export class ExperimentalRoutes extends Routes {
     this.#groupChangeCtx = ctx
   }
 
-  add(slug: string, route: IntervalActionDefinition | Router) {
+  add(slug: string, route: IntervalActionDefinition | Page) {
     if (!this.interval.config.routes) {
       this.interval.config.routes = {}
     }
 
-    if (route instanceof Router) {
+    if (route instanceof Page) {
       route.onChange.attach(this.#groupChangeCtx, () => {
         this.interval.client?.handleActionsChange(this.interval.config)
       })
@@ -295,7 +292,7 @@ export class ExperimentalRoutes extends Routes {
       const route = routes[slug]
       if (!route) continue
 
-      if (route instanceof Router) {
+      if (route instanceof Page) {
         route.onChange.detach(this.#groupChangeCtx)
       }
 
@@ -308,13 +305,19 @@ export class ExperimentalRoutes extends Routes {
 }
 
 export {
-  Router,
+  Page,
   // TODO: Mark as deprecated soon, remove soon afterward
-  Router as ActionGroup,
+  Page as ActionGroup,
+  Page as Router,
+  Action,
   io,
   ctx,
   IntervalError,
   ExperimentalInterval as Interval,
+}
+
+export const Layout = {
+  Basic,
 }
 
 export default ExperimentalInterval

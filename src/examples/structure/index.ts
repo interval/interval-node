@@ -1,19 +1,19 @@
-import Interval, { Router, ctx, io, Layout } from '../../experimental'
-import { IntervalActionDefinitions } from '../../types'
+import Interval, { Page, ctx, io, Layout } from '../../experimental'
+import { IntervalRouteDefinitions } from '../../types'
 import { sleep } from '../utils/helpers'
 import * as db from './db'
 
-const routes: IntervalActionDefinitions = {
+const routes: IntervalRouteDefinitions = {
   // root-level action
   hello_world: async () => {
     return 'Hello, world!'
   },
   // empty router
-  emptyRouter: new Router({
+  emptyRouter: new Page({
     name: 'Empty router',
   }),
   // router with actions but no index page
-  actionsOnly: new Router({
+  actionsOnly: new Page({
     name: 'Actions only',
     routes: {
       action_one: async () => {
@@ -25,9 +25,9 @@ const routes: IntervalActionDefinitions = {
     },
   }),
   // router with index page, no routes
-  indexOnly: new Router({
+  indexOnly: new Page({
     name: 'Index only',
-    async index() {
+    async handler() {
       return new Layout.Basic({
         title: 'Index only',
         children: [io.display.markdown('Hello, world!')],
@@ -35,9 +35,9 @@ const routes: IntervalActionDefinitions = {
     },
   }),
   // router with actions and a nested router with an index page
-  users: new Router({
+  users: new Page({
     name: 'Users',
-    async index() {
+    async handler() {
       const allUsers = db.getUsers()
 
       return new Layout.Basic({
@@ -86,9 +86,9 @@ const routes: IntervalActionDefinitions = {
           return { firstName, lastName, email }
         },
       },
-      subscriptions: new Router({
+      subscriptions: new Page({
         name: 'Subscriptions',
-        async index() {
+        async handler() {
           const data = db.getSubscriptions()
 
           return new Layout.Basic({
@@ -130,9 +130,9 @@ const routes: IntervalActionDefinitions = {
           },
         },
       }),
-      comments: new Router({
+      comments: new Page({
         name: 'Comments',
-        async index() {
+        async handler() {
           const data = db.getComments()
 
           return new Layout.Basic({
@@ -171,9 +171,9 @@ const routes: IntervalActionDefinitions = {
               return '👋'
             },
           },
-          nested: new Router({
+          nested: new Page({
             name: 'Nested L1',
-            async index() {
+            async handler() {
               return new Layout.Basic({})
             },
             routes: {
@@ -183,9 +183,9 @@ const routes: IntervalActionDefinitions = {
                   return '👋'
                 },
               },
-              nested_2: new Router({
+              nested_2: new Page({
                 name: 'Nested L2',
-                async index() {
+                async handler() {
                   return new Layout.Basic({})
                 },
                 routes: {
