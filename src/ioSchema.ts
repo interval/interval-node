@@ -191,7 +191,9 @@ export const tableRowValue = z.union([
         url: z.string(),
       })
       .optional(),
+    // Deprecated in favor of route
     action: z.string().optional(),
+    route: z.string().optional(),
     params: serializableRecord.optional(),
   }),
 ])
@@ -209,11 +211,21 @@ export const menuItem = z.intersection(
     theme: z.enum(['default', 'danger']).optional(),
   }),
   z.union([
-    z.object({
-      action: z.string(),
-      params: serializableRecord.optional(),
-      disabled: z.boolean().optional(),
-    }),
+    z.intersection(
+      z.object({
+        params: serializableRecord.optional(),
+        disabled: z.boolean().optional(),
+      }),
+      z.union([
+        z.object({
+          route: z.string(),
+        }),
+        z.object({
+          // deprecated in favor of `route`
+          action: z.string(),
+        }),
+      ])
+    ),
     z.object({
       url: z.string(),
       disabled: z.boolean().optional(),
@@ -230,11 +242,21 @@ export const buttonItem = z.intersection(
     theme: buttonTheme.optional(),
   }),
   z.union([
-    z.object({
-      action: z.string(),
-      params: serializableRecord.optional(),
-      disabled: z.boolean().optional(),
-    }),
+    z.intersection(
+      z.object({
+        params: serializableRecord.optional(),
+        disabled: z.boolean().optional(),
+      }),
+      z.union([
+        z.object({
+          route: z.string(),
+        }),
+        z.object({
+          // deprecated in favor of `route`
+          action: z.string(),
+        }),
+      ])
+    ),
     z.object({
       url: z.string(),
       disabled: z.boolean().optional(),
@@ -250,7 +272,7 @@ export const linkSchema = z.union([
     url: z.string(),
   }),
   z.object({
-    action: z.string(),
+    route: z.string(),
     params: serializableRecord.optional(),
   }),
 ])
@@ -318,6 +340,8 @@ export const metaItemSchema = z.object({
       url: z.string(),
     })
     .optional(),
+  route: z.string().optional(),
+  // Deprecated in favor of `route` above
   action: z.string().optional(),
   params: serializableRecord.optional(),
   error: z.string().nullish(),
@@ -372,6 +396,11 @@ const DISPLAY_SCHEMA = {
       z.union([
         z.object({
           href: z.string(),
+        }),
+        // deprecated in favor of `route` in linkSchema
+        z.object({
+          action: z.string(),
+          params: serializableRecord.optional(),
         }),
         linkSchema,
       ])

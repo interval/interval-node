@@ -257,7 +257,14 @@ export const wsServerSchema = {
       z.object({
         transactionId: z.string(),
       }),
-      linkSchema
+      z.union([
+        linkSchema,
+        // deprecated in favor of `route` from linkSchema
+        z.object({
+          action: z.string(),
+          params: serializableRecord.optional(),
+        }),
+      ])
     ),
     returns: z.boolean(),
   },

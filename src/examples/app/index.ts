@@ -35,7 +35,7 @@ const hello_app = new Page({
         },
         {
           label: 'Action link',
-          action: 'hello_app/hello_world',
+          route: 'hello_app/hello_world',
         },
         // {
         //   label: 'Inline action',
@@ -59,7 +59,7 @@ const hello_app = new Page({
           rowMenuItems: () => [
             {
               label: 'Hello',
-              action: 'hello_app/hello_world',
+              route: 'hello_app/hello_world',
             },
           ],
         }),
@@ -82,7 +82,7 @@ const hello_app = new Page({
           rowMenuItems: () => [
             {
               label: 'Hello',
-              action: 'hello_app/hello_world',
+              route: 'hello_app/hello_world',
             },
           ],
         }),
@@ -122,11 +122,11 @@ const users = new Page({
       menuItems: [
         {
           label: 'View funnel',
-          action: 'users/view_funnel',
+          route: 'users/view_funnel',
         },
         {
           label: 'Create user',
-          action: 'users/create',
+          route: 'users/create',
         },
       ],
       children: [
@@ -135,7 +135,7 @@ const users = new Page({
           rowMenuItems: row => [
             {
               label: 'Edit',
-              action: 'users/edit',
+              route: 'users/edit',
               params: { id: row.id },
             },
           ],
@@ -210,11 +210,11 @@ const interval = new Interval({
           menuItems: [
             {
               label: 'Reload',
-              action: 'info',
+              route: 'info',
             },
             {
               label: 'Add timestamp param',
-              action: 'info',
+              route: 'info',
               params: { timestamp: new Date().valueOf() },
             },
           ],

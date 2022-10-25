@@ -98,24 +98,24 @@ export const display_table: IntervalActionHandler = async io => {
     rowMenuItems: row => [
       {
         label: 'Edit',
-        action: 'edit_user',
+        route: 'edit_user',
         params: { email: row.email },
       },
       {
         label: 'Edit',
-        action: 'edit_user',
+        route: 'edit_user',
         params: { email: row.email },
         disabled: true,
       },
       {
         label: 'Delete',
-        action: 'delete_user',
+        route: 'delete_user',
         params: { email: row.email },
         theme: 'danger',
       },
       {
         label: 'Delete',
-        action: 'delete_user',
+        route: 'delete_user',
         params: { email: row.email },
         theme: 'danger',
         disabled: true,
@@ -223,7 +223,7 @@ export const async_table: IntervalActionHandler = async io => {
     rowMenuItems: row => [
       {
         label: 'Edit',
-        action: 'edit_user',
+        route: 'edit_user',
         params: { email: row.email },
       },
     ],
@@ -261,7 +261,7 @@ export const select_table: IntervalActionHandler = async io => {
     rowMenuItems: row => [
       {
         label: 'Edit',
-        action: 'edit_user',
+        route: 'edit_user',
         params: { email: row.email },
       },
     ],

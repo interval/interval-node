@@ -8,7 +8,7 @@ export default function displayLink(
         url: string
       }
     | {
-        action: string
+        route: string
         params?: SerializableRecord
       }
   )

@@ -16,6 +16,7 @@ import type {
   ButtonTheme,
   serializableRecord,
   ImageSize,
+  SerializableRecord,
 } from './ioSchema'
 import type { HostSchema } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
@@ -293,25 +294,32 @@ export type IOComponentDefinition<
   ) => Promise<T_IO_PROPS<MethodName>>
 }
 
-type DistributiveOmit<T, K extends keyof any> = T extends any
-  ? Omit<T, K>
-  : never
-
 export type InternalMenuItem = z.input<typeof menuItem>
-export type MenuItem = DistributiveOmit<InternalMenuItem, 'theme'> & {
+export type MenuItem = {
+  label: string
   theme?: 'danger'
-}
+} & (
+  | {
+      route: string
+      params?: SerializableRecord
+      disabled?: boolean
+    }
+  | {
+      url: string
+      disabled?: boolean
+    }
+  | { disabled: true }
+)
 
 export type InternalButtonItem = z.input<typeof buttonItem>
-export type ButtonItem = DistributiveOmit<InternalButtonItem, 'theme'> & {
+export type ButtonItem = {
+  label: string
   theme?: 'primary' | 'secondary' | 'danger'
-}
-// | {
-//     label: InternalMenuItem['label']
-//     theme?: InternalMenuItem['theme']
-//     action: IntervalActionHandler
-//     disabled?: boolean
-//   }
+} & (
+  | { route: string; params?: SerializableRecord; disabled?: boolean }
+  | { url: string; disabled?: boolean }
+  | { disabled: true }
+)
 
 export type ButtonConfig = {
   label?: string
@@ -335,7 +343,7 @@ export type TableColumnResult =
         height?: ImageSize
       } & ({ url: string } | { buffer: Buffer })
       url?: string
-      action?: string
+      route?: string
       params?: z.infer<typeof serializableRecord>
     }
   | TableCellValue
