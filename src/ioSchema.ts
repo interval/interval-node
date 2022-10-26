@@ -279,6 +279,17 @@ export const linkSchema = z.union([
 
 export type LinkProps = z.infer<typeof linkSchema>
 
+// TODO: Remove soon
+export const legacyLinkSchema = z.union([
+  linkSchema,
+  z.object({
+    action: z.string(),
+    params: serializableRecord.optional(),
+  }),
+])
+
+export type LegacyLinkProps = z.infer<typeof legacyLinkSchema>
+
 export const internalTableRow = z.object({
   key: z.string(),
   data: tableRow,
@@ -397,12 +408,7 @@ const DISPLAY_SCHEMA = {
         z.object({
           href: z.string(),
         }),
-        // deprecated in favor of `route` in linkSchema
-        z.object({
-          action: z.string(),
-          params: serializableRecord.optional(),
-        }),
-        linkSchema,
+        legacyLinkSchema,
       ])
     ),
     state: z.null(),

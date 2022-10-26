@@ -17,6 +17,7 @@ import type {
   serializableRecord,
   ImageSize,
   SerializableRecord,
+  LegacyLinkProps,
 } from './ioSchema'
 import type { HostSchema } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
@@ -218,7 +219,7 @@ export type ActionLogFn = (...args: any[]) => Promise<void>
 
 export type NotifyFn = (config: NotifyConfig) => Promise<void>
 
-export type RedirectFn = (props: LinkProps) => Promise<void>
+export type RedirectFn = (props: LegacyLinkProps) => Promise<void>
 
 export type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
 
@@ -304,6 +305,13 @@ export type MenuItem = {
       params?: SerializableRecord
       disabled?: boolean
     }
+  // Deprecated in favor of `route`
+  // TODO: Add TS deprecation soon
+  | {
+      action: string
+      params?: SerializableRecord
+      disabled?: boolean
+    }
   | {
       url: string
       disabled?: boolean
@@ -317,6 +325,9 @@ export type ButtonItem = {
   theme?: 'primary' | 'secondary' | 'danger'
 } & (
   | { route: string; params?: SerializableRecord; disabled?: boolean }
+  // Deprecated in favor of `route`
+  // TODO: Add TS deprecation soon
+  | { action: string; params?: SerializableRecord; disabled?: boolean }
   | { url: string; disabled?: boolean }
   | { disabled: true }
 )
@@ -344,6 +355,9 @@ export type TableColumnResult =
       } & ({ url: string } | { buffer: Buffer })
       url?: string
       route?: string
+      // Deprecated in favor of `route`
+      // TODO: Add TS deprecation soon
+      action?: string
       params?: z.infer<typeof serializableRecord>
     }
   | TableCellValue

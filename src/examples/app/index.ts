@@ -82,7 +82,7 @@ const hello_app = new Page({
           rowMenuItems: () => [
             {
               label: 'Hello',
-              route: 'hello_app/hello_world',
+              action: 'hello_app/hello_world',
             },
           ],
         }),

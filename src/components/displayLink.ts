@@ -11,6 +11,12 @@ export default function displayLink(
         route: string
         params?: SerializableRecord
       }
+    // deprecated in favor of `route`
+    // TODO: Add TS deprecated flag soon
+    | {
+        action: string
+        params?: SerializableRecord
+      }
   )
 ) {
   return {

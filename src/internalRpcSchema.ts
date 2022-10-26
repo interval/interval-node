@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   deserializableRecord,
+  legacyLinkSchema,
   linkSchema,
   serializableRecord,
 } from './ioSchema'
@@ -257,14 +258,7 @@ export const wsServerSchema = {
       z.object({
         transactionId: z.string(),
       }),
-      z.union([
-        linkSchema,
-        // deprecated in favor of `route` from linkSchema
-        z.object({
-          action: z.string(),
-          params: serializableRecord.optional(),
-        }),
-      ])
+      legacyLinkSchema
     ),
     returns: z.boolean(),
   },
