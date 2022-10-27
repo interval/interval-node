@@ -1,3 +1,4 @@
+import { T_IO_METHOD, T_IO_PROPS } from './../../ioSchema'
 import Interval, { IOError, io, ctx } from '../../index'
 import IntervalClient from '../../classes/IntervalClient'
 import {
@@ -347,36 +348,62 @@ const interval = new Interval({
       })
     },
     metadata: async (io, ctx) => {
-      const data = [
+      const data: T_IO_PROPS<'DISPLAY_METADATA'>['data'] = [
         {
-          label: 'ID',
-          value: 1,
+          label: 'Is true',
+          value: true,
         },
         {
-          label: 'Name',
-          value: 'John Doe',
+          label: 'Is false',
+          value: false,
         },
         {
-          label: 'Email',
-          value: 'john.doe@gmail.com',
-          url: 'mailto:john.doe@gmail.com',
+          label: 'Is null',
+          value: null,
+        },
+        {
+          label: 'Is empty string',
+          value: '',
+        },
+        {
+          label: 'Is long string',
+          value:
+            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed sit amet quam in lorem',
+        },
+        {
+          label: 'Is number 15',
+          value: 15,
+        },
+        {
+          label: 'Is string',
+          value: 'Hello',
         },
         {
           label: 'Action link',
           value: 'Click me',
           action: 'helloCurrentUser',
-          params: { message: 'Hi from metadata' },
+          params: { message: 'Hello from metadata!' },
+        },
+        {
+          label: 'Image',
+          value: 'Optional caption',
+          image: {
+            url: 'https://picsum.photos/200/300',
+            width: 'small',
+            height: 'small',
+          },
         },
       ]
 
       await io.group([
+        io.display.heading(`Grid view`),
         io.display.metadata('', { data }),
-        io.display.markdown(`## List view`),
+        io.display.heading(`List view`),
         io.display.metadata('', {
           layout: 'list',
           data,
         }),
-        io.display.markdown(`## Card view`),
+        io.display.heading(`Card view`),
         io.display.metadata('', {
           layout: 'card',
           data,
