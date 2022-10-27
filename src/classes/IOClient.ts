@@ -475,23 +475,32 @@ export class IOClient {
         }),
       },
       display: {
-        code: this.createIOMethod('DISPLAY_CODE'),
+        code: this.createIOMethod('DISPLAY_CODE', {
+          propsRequired: true,
+        }),
         heading: this.createIOMethod('DISPLAY_HEADING'),
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
         image: this.createIOMethod('DISPLAY_IMAGE', {
           componentDef: displayImage,
+          propsRequired: true,
         }),
-        metadata: this.createIOMethod('DISPLAY_METADATA'),
+        metadata: this.createIOMethod('DISPLAY_METADATA', {
+          propsRequired: true,
+        }),
         link: this.createIOMethod('DISPLAY_LINK', {
           componentDef: displayLink,
+          propsRequired: true,
         }),
-        object: this.createIOMethod('DISPLAY_OBJECT'),
+        object: this.createIOMethod('DISPLAY_OBJECT', {
+          propsRequired: true,
+        }),
         table: this.createIOMethod('DISPLAY_TABLE', {
           propsRequired: true,
           componentDef: displayTable(this.logger),
         }),
         video: this.createIOMethod('DISPLAY_VIDEO', {
           componentDef: displayVideo,
+          propsRequired: true,
         }),
       },
       experimental: {
