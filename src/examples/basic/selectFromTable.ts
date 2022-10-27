@@ -82,7 +82,7 @@ export const table_actions: IntervalActionHandler = async io => {
     rowMenuItems: row => [
       {
         label: 'Edit',
-        action: 'edit_user',
+        route: 'edit_user',
         params: { email: row.email },
       },
     ],

@@ -24,7 +24,7 @@ import {
   ActionResultSchema,
   IOFunctionReturnType,
   IO_RESPONSE,
-  LinkProps,
+  LegacyLinkProps,
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
 } from '../ioSchema'
@@ -1041,7 +1041,7 @@ export default class IntervalClient {
                 })
               },
             }),
-            redirect: (props: LinkProps) =>
+            redirect: (props: LegacyLinkProps) =>
               this.#sendRedirect(transactionId, props),
           }
 
@@ -1301,7 +1301,7 @@ export default class IntervalClient {
     })
   }
 
-  async #sendRedirect(transactionId: string, props: LinkProps) {
+  async #sendRedirect(transactionId: string, props: LegacyLinkProps) {
     const response = await this.#send('SEND_REDIRECT', {
       transactionId,
       ...props,

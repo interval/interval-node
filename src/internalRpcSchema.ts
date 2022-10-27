@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   deserializableRecord,
+  legacyLinkSchema,
   linkSchema,
   serializableRecord,
 } from './ioSchema'
@@ -257,7 +258,7 @@ export const wsServerSchema = {
       z.object({
         transactionId: z.string(),
       }),
-      linkSchema
+      legacyLinkSchema
     ),
     returns: z.boolean(),
   },

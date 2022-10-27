@@ -45,13 +45,13 @@ const actionLinks: IntervalActionHandler = async () => {
       url: 'https://example.com',
     }),
     io.display.link('Action link', {
-      action: 'helloCurrentUser',
+      route: 'helloCurrentUser',
       params: {
         message: 'From a button!',
       },
     }),
     io.display.link('This same action', {
-      action: 'actionLinks',
+      route: 'actionLinks',
       params: {
         prevActionAt: new Date().toISOString(),
       },
@@ -124,7 +124,7 @@ const prod = new Interval({
       const { workDone = false } = ctx.params
       if (!workDone) {
         await ctx.redirect({
-          action: 'perform_common_work',
+          route: 'perform_common_work',
         })
         startedWork = true
       }
@@ -142,7 +142,7 @@ const prod = new Interval({
       )
       await sleep(2000)
       await ctx.redirect({
-        action: 'perform_redirect_flow',
+        route: 'perform_redirect_flow',
         params: {
           workDone: true,
         },
@@ -404,6 +404,11 @@ const interval = new Interval({
           value: 'Click me',
           action: 'helloCurrentUser',
           params: { message: 'Hello from metadata!' },
+        },
+        {
+          label: 'External link',
+          value: 'Click me',
+          url: 'https://interval.com',
         },
         {
           label: 'Image',
@@ -1046,7 +1051,7 @@ const interval = new Interval({
       return { url: url.href }
     },
     redirect: async () => {
-      const [url, , action, paramsStr] = await io.group([
+      const [url, , route, paramsStr] = await io.group([
         io.input.url('Enter a URL').optional(),
         io.display.markdown('--- or ---'),
         io.input.text('Enter an action slug').optional(),
@@ -1060,7 +1065,7 @@ const interval = new Interval({
       let params = undefined
       if (url) {
         await ctx.redirect({ url: url.toString() })
-      } else if (action) {
+      } else if (route) {
         if (paramsStr) {
           try {
             params = JSON.parse(paramsStr)
@@ -1069,20 +1074,20 @@ const interval = new Interval({
           }
         }
 
-        await ctx.redirect({ action, params })
+        await ctx.redirect({ route, params })
       } else {
         throw new Error('Must enter either a URL or an action slug')
       }
 
       console.log({
         url,
-        action,
+        route,
         params,
       })
 
       return {
         url: url?.toString(),
-        action,
+        route,
         paramsStr,
       }
     },

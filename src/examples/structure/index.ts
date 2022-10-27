@@ -47,7 +47,7 @@ const routes: IntervalRouteDefinitions = {
         menuItems: [
           {
             label: 'Create user',
-            action: 'users/create',
+            route: 'users/create',
           },
         ],
         children: [
@@ -56,7 +56,7 @@ const routes: IntervalRouteDefinitions = {
             rowMenuItems: row => [
               {
                 label: 'Edit',
-                action: 'users/edit',
+                route: 'users/edit',
                 params: { id: row.id },
               },
             ],
@@ -99,12 +99,12 @@ const routes: IntervalRouteDefinitions = {
                 rowMenuItems: row => [
                   {
                     label: 'Edit',
-                    action: 'users/subscriptions/edit',
+                    route: 'users/subscriptions/edit',
                     params: { id: row.id },
                   },
                   {
                     label: 'Cancel',
-                    action: 'users/subscriptions/cancel',
+                    route: 'users/subscriptions/cancel',
                     theme: 'danger',
                     params: { id: row.id },
                   },
@@ -140,7 +140,7 @@ const routes: IntervalRouteDefinitions = {
             menuItems: [
               {
                 label: 'Create comment',
-                action: 'users/comments/create',
+                route: 'users/comments/create',
               },
             ],
             children: [
@@ -149,7 +149,7 @@ const routes: IntervalRouteDefinitions = {
                 rowMenuItems: row => [
                   {
                     label: 'Edit',
-                    action: 'users/comments/edit',
+                    route: 'users/comments/edit',
                     params: { id: row.id },
                   },
                 ],

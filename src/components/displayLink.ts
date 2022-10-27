@@ -8,6 +8,12 @@ export default function displayLink(
         url: string
       }
     | {
+        route: string
+        params?: SerializableRecord
+      }
+    // deprecated in favor of `route`
+    // TODO: Add TS deprecated flag soon
+    | {
         action: string
         params?: SerializableRecord
       }
