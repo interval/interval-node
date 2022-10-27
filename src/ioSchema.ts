@@ -148,48 +148,22 @@ export type SerializableRecord = z.infer<typeof serializableRecord>
 export const imageSize = z.enum(['thumbnail', 'small', 'medium', 'large'])
 export type ImageSize = z.infer<typeof imageSize>
 
-export const tableRowValue = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.null(),
-  z.date(),
-  z.undefined(),
-  z.bigint(),
-  z.object({
-    label: z.string().optional(),
-    value: z
-      .union([
-        z.string(),
-        z.number(),
-        z.boolean(),
-        z.null(),
-        z.date(),
-        z.undefined(),
-      ])
-      .optional(),
-    href: z.string().optional(),
-    url: z.string().optional(),
-    image: z
-      .object({
-        alt: z.string().optional(),
-        width: imageSize.optional(),
-        height: imageSize.optional(),
-        url: z.string(),
-      })
-      .optional(),
-    action: z.string().optional(),
-    params: serializableRecord.optional(),
-  }),
-])
-
-export const tableRow = z
-  .record(tableRowValue)
-  // Allow arbitrary objects/interfaces with specified column mappings.
-  // If no columns specified, we'll just serialize any nested objects.
-  .or(z.record(z.any()))
-
-export const metadataObject = z.record(z.any())
+// non-primitive display types such as links, images, etc.
+export const advancedPrimitive = z.object({
+  label: z.string().optional(),
+  href: z.string().optional(),
+  url: z.string().optional(),
+  image: z
+    .object({
+      alt: z.string().optional(),
+      width: imageSize.optional(),
+      height: imageSize.optional(),
+      url: z.string(),
+    })
+    .optional(),
+  action: z.string().optional(),
+  params: serializableRecord.optional(),
+})
 
 export const metadataItemValue = z.union([
   z.string(),
@@ -199,22 +173,42 @@ export const metadataItemValue = z.union([
   z.date(),
   z.undefined(),
   z.bigint(),
-  z.object({
-    label: z.string().optional(),
-    href: z.string().optional(),
-    url: z.string().optional(),
-    image: z
-      .object({
-        alt: z.string().optional(),
-        width: imageSize.optional(),
-        height: imageSize.optional(),
-        url: z.string(),
-      })
-      .optional(),
-    action: z.string().optional(),
-    params: serializableRecord.optional(),
-  }),
+  advancedPrimitive,
 ])
+
+export const tableRowValue = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.date(),
+  z.undefined(),
+  z.bigint(),
+  z.intersection(
+    advancedPrimitive,
+    // optionally include a value for sorting
+    z.object({
+      value: z
+        .union([
+          z.string(),
+          z.number(),
+          z.boolean(),
+          z.null(),
+          z.date(),
+          z.undefined(),
+        ])
+        .optional(),
+    })
+  ),
+])
+
+export const tableRow = z
+  .record(tableRowValue)
+  // Allow arbitrary objects/interfaces with specified column mappings.
+  // If no columns specified, we'll just serialize any nested objects.
+  .or(z.record(z.any()))
+
+export const metadataObject = z.record(z.any())
 
 export const menuItem = z.intersection(
   z.object({
