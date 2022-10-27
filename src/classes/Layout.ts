@@ -1,5 +1,11 @@
 import { z } from 'zod'
-import { primitiveValue, Literal, IO_RENDER, buttonItem } from '../ioSchema'
+import {
+  primitiveValue,
+  Literal,
+  IO_RENDER,
+  buttonItem,
+  metadataItemValue,
+} from '../ioSchema'
 import { AnyDisplayIOPromise, ButtonItem, PageError } from '../types'
 
 type EventualString =
@@ -57,7 +63,7 @@ export interface MetaItem {
 
 export const META_ITEM_SCHEMA = z.object({
   label: z.string(),
-  value: primitiveValue.or(z.bigint()).nullish(),
+  value: metadataItemValue,
   error: z.string().nullish(),
 })
 
