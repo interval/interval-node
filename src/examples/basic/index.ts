@@ -347,61 +347,43 @@ const interval = new Interval({
       })
     },
     metadata: async (io, ctx) => {
+      const data = [
+        {
+          label: 'ID',
+          value: 1,
+        },
+        {
+          label: 'Name',
+          value: 'John Doe',
+        },
+        {
+          label: 'Email',
+          value: {
+            label: 'john.doe@gmail.com',
+            url: 'mailto:john.doe@gmail.com',
+          },
+        },
+        {
+          label: 'Action link',
+          value: {
+            label: 'Click me',
+            action: 'helloCurrentUser',
+            params: { message: 'Hi from metadata' },
+          },
+        },
+      ]
+
       await io.group([
-        io.display.metadata('', {
-          data: {
-            'Current user': ctx.user.email ?? 'No email',
-            Environment: ctx.environment,
-            'Action slug': ctx.action.slug,
-          },
-        }),
-        io.display.markdown(`## Custom columns`),
-        io.display.metadata('', {
-          data: {
-            id: 1,
-            firstName: 'John',
-            lastName: 'Doe',
-            email: 'john.doe@gmail.com',
-            createdAt: new Date(),
-          },
-          columns: [
-            'id',
-            {
-              label: 'Name',
-              renderCell: data => `${data.firstName} ${data.lastName}`,
-            },
-            {
-              accessorKey: 'email',
-              label: 'Email',
-            },
-            'createdAt',
-            {
-              label: 'Contact',
-              renderCell: data => ({
-                action: 'contact',
-                label: 'Contact',
-                params: { email: data.email },
-              }),
-            },
-          ],
-        }),
+        io.display.metadata('', { data }),
         io.display.markdown(`## List view`),
         io.display.metadata('', {
           layout: 'list',
-          data: {
-            'Current user': ctx.user.email ?? 'No email',
-            Environment: ctx.environment,
-            'Action slug': ctx.action.slug,
-          },
+          data,
         }),
         io.display.markdown(`## Card view`),
         io.display.metadata('', {
           layout: 'card',
-          data: {
-            Total: 117,
-            'New this week': 37,
-            'New today': 13,
-          },
+          data,
         }),
       ])
     },

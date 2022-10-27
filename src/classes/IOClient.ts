@@ -29,7 +29,6 @@ import selectMultiple from '../components/selectMultiple'
 import displayLink from '../components/displayLink'
 import displayImage from '../components/displayImage'
 import displayVideo from '../components/displayVideo'
-import displayMetadata from '../components/displayMetadata'
 import urlInput from '../components/url'
 import { date, datetime } from '../components/inputDate'
 import { file } from '../components/upload'
@@ -482,10 +481,7 @@ export class IOClient {
         image: this.createIOMethod('DISPLAY_IMAGE', {
           componentDef: displayImage,
         }),
-        metadata: this.createIOMethod('DISPLAY_METADATA', {
-          propsRequired: true,
-          componentDef: displayMetadata(this.logger),
-        }),
+        metadata: this.createIOMethod('DISPLAY_METADATA'),
         link: this.createIOMethod('DISPLAY_LINK', {
           componentDef: displayLink,
         }),

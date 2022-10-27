@@ -191,6 +191,31 @@ export const tableRow = z
 
 export const metadataObject = z.record(z.any())
 
+export const metadataItemValue = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.date(),
+  z.undefined(),
+  z.bigint(),
+  z.object({
+    label: z.string().optional(),
+    href: z.string().optional(),
+    url: z.string().optional(),
+    image: z
+      .object({
+        alt: z.string().optional(),
+        width: imageSize.optional(),
+        height: imageSize.optional(),
+        url: z.string(),
+      })
+      .optional(),
+    action: z.string().optional(),
+    params: serializableRecord.optional(),
+  }),
+])
+
 export const menuItem = z.intersection(
   z.object({
     label: z.string(),
@@ -589,8 +614,12 @@ export const ioSchema = {
   },
   DISPLAY_METADATA: {
     props: z.object({
-      columns: z.array(internalTableColumn),
-      data: z.array(internalTableRow),
+      data: z.array(
+        z.object({
+          label: z.string(),
+          value: metadataItemValue,
+        })
+      ),
       layout: z.enum(['grid', 'list', 'card']).optional().default('grid'),
     }),
     state: z.null(),
