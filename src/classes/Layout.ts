@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { primitiveValue, Literal, IO_RENDER, buttonItem } from '../ioSchema'
+import { Literal, IO_RENDER, buttonItem, metaItemSchema } from '../ioSchema'
 import { AnyDisplayIOPromise, ButtonItem, PageError } from '../types'
 
 type EventualString =
@@ -43,9 +43,11 @@ export class Basic implements Layout {
   }
 }
 
+export type MetaItemSchema = z.infer<typeof metaItemSchema>
+
 export type MetaItemValue = Literal | bigint
 
-export interface MetaItem {
+export interface MetaItem extends Omit<MetaItemSchema, 'value' | 'error'> {
   label: string
   value:
     | MetaItemValue
@@ -55,17 +57,9 @@ export interface MetaItem {
   error?: string
 }
 
-export const META_ITEM_SCHEMA = z.object({
-  label: z.string(),
-  value: primitiveValue.or(z.bigint()).nullish(),
-  error: z.string().nullish(),
-})
-
-export type MetaItemSchema = z.infer<typeof META_ITEM_SCHEMA>
-
 // For superjson (de)serialization
 export const META_ITEMS_SCHEMA = z.object({
-  json: z.array(META_ITEM_SCHEMA),
+  json: z.array(metaItemSchema),
   meta: z.any(),
 })
 
@@ -96,3 +90,5 @@ export type LayoutSchema = z.infer<typeof LAYOUT_SCHEMA>
 export type LayoutSchemaInput = z.input<typeof LAYOUT_SCHEMA>
 export type BasicLayoutSchema = z.infer<typeof BASIC_LAYOUT_SCHEMA>
 export type BasicLayoutSchemaInput = z.input<typeof BASIC_LAYOUT_SCHEMA>
+
+export { metaItemSchema as META_ITEM_SCHEMA }

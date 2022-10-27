@@ -698,11 +698,11 @@ export default class IntervalClient {
               if (page.metadata) {
                 const items: MetaItemSchema[] = []
                 for (const pageItem of page.metadata) {
-                  let { label, value, error } = pageItem
+                  let { label, value, error, ...rest } = pageItem
                   if (typeof value === 'function' || value instanceof Promise) {
-                    items.push({ label })
+                    items.push({ ...rest, label })
                   } else {
-                    items.push({ label, value, error })
+                    items.push({ ...rest, label, value, error })
                   }
                 }
 

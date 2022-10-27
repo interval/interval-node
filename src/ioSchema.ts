@@ -309,6 +309,23 @@ export function resolvesImmediately(methodName: T_IO_METHOD_NAMES): boolean {
   return 'immediate' in ioSchema[methodName]
 }
 
+export const metaItemSchema = z.object({
+  label: z.string(),
+  value: primitiveValue.or(z.bigint()).nullish().optional(),
+  url: z.string().optional(),
+  image: z
+    .object({
+      alt: z.string().optional(),
+      width: imageSize.optional(),
+      height: imageSize.optional(),
+      url: z.string(),
+    })
+    .optional(),
+  action: z.string().optional(),
+  params: serializableRecord.optional(),
+  error: z.string().nullish(),
+})
+
 /**
  * IMPORTANT: When adding any new DISPLAY methods, be sure to also add their method names to T_IO_DISPLAY_METHOD_NAMES below.
  */
@@ -603,23 +620,7 @@ export const ioSchema = {
   },
   DISPLAY_METADATA: {
     props: z.object({
-      data: z.array(
-        z.object({
-          label: z.string(),
-          value: primitiveValue.or(z.bigint()).nullish().optional(),
-          url: z.string().optional(),
-          image: z
-            .object({
-              alt: z.string().optional(),
-              width: imageSize.optional(),
-              height: imageSize.optional(),
-              url: z.string(),
-            })
-            .optional(),
-          action: z.string().optional(),
-          params: serializableRecord.optional(),
-        })
-      ),
+      data: z.array(metaItemSchema),
       layout: z.enum(['grid', 'list', 'card']).optional().default('grid'),
     }),
     state: z.null(),

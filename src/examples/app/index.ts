@@ -12,8 +12,12 @@ const hello_app = new Page({
         () => 'This is an asynchronous description!'
       ),
       metadata: [
-        { label: 'Static', value: 3 },
-        { label: 'Function', value: () => 'result' },
+        { label: 'Static', value: 3, action: 'actionLinks' },
+        {
+          label: 'Function',
+          value: () => 'result',
+          url: 'https://interval.com',
+        },
         {
           label: 'Async function',
           value: async () => {
