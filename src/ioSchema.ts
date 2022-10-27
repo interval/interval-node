@@ -30,10 +30,7 @@ export const DISPLAY_RENDER = z.object({
 })
 
 // `default` deprecated in 0.31.0
-const buttonTheme = z
-  .enum(['default', 'primary', 'secondary', 'danger'])
-  .default('primary')
-  .optional()
+const buttonTheme = z.enum(['default', 'primary', 'secondary', 'danger'])
 export type ButtonTheme = 'primary' | 'secondary' | 'danger'
 
 export const IO_RENDER = z.object({
@@ -44,7 +41,7 @@ export const IO_RENDER = z.object({
   continueButton: z
     .object({
       label: z.string().optional(),
-      theme: buttonTheme,
+      theme: buttonTheme.optional(),
     })
     .optional(),
   kind: z.literal('RENDER'),
@@ -230,7 +227,7 @@ export const menuItem = z.intersection(
 export const buttonItem = z.intersection(
   z.object({
     label: z.string(),
-    theme: buttonTheme,
+    theme: buttonTheme.optional(),
   }),
   z.union([
     z.object({
@@ -326,10 +323,136 @@ export const metaItemSchema = z.object({
   error: z.string().nullish(),
 })
 
-/**
- * IMPORTANT: When adding any new DISPLAY methods, be sure to also add their method names to T_IO_DISPLAY_METHOD_NAMES below.
- */
-export const ioSchema = {
+const DISPLAY_SCHEMA = {
+  DISPLAY_CODE: {
+    props: z.object({
+      code: z.string(),
+      language: z.string().optional(),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_HEADING: {
+    props: z.object({
+      level: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional(),
+      description: z.string().optional(),
+      menuItems: z.array(buttonItem).optional(),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_METADATA: {
+    props: z.object({
+      data: z.array(metaItemSchema),
+      layout: z.enum(['grid', 'list', 'card']).optional().default('grid'),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_MARKDOWN: {
+    props: z.object({}),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_IMAGE: {
+    props: z.object({
+      alt: z.string().optional(),
+      width: imageSize.optional(),
+      height: imageSize.optional(),
+      url: z.string(),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_LINK: {
+    props: z.intersection(
+      z.object({
+        theme: buttonTheme.optional(),
+      }),
+      z.union([
+        z.object({
+          href: z.string(),
+        }),
+        linkSchema,
+      ])
+    ),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_OBJECT: {
+    props: z.object({
+      data: keyValueObject,
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_TABLE: {
+    props: z.object({
+      helpText: z.optional(z.string()),
+      columns: z.array(internalTableColumn),
+      data: z.array(internalTableRow),
+      orientation: z.enum(['vertical', 'horizontal']).default('horizontal'),
+      defaultPageSize: z.number().optional(),
+      //== private props
+      // added in v0.28, optional until required by all active versions
+      totalRecords: z.optional(z.number().int()),
+      isAsync: z.optional(z.boolean().default(false)),
+    }),
+    state: z.object({
+      queryTerm: z.string().optional(),
+      sortColumn: z.string().optional(),
+      sortDirection: z.enum(['asc', 'desc']).optional(),
+      offset: z.number().int().default(0),
+      pageSize: z.number().int(),
+    }),
+    returns: z.null(),
+  },
+  DISPLAY_PROGRESS_STEPS: {
+    props: z.object({
+      steps: z.object({
+        completed: z.number(),
+        total: z.number(),
+      }),
+      currentStep: z.string().optional(),
+      subTitle: z.string().optional(),
+    }),
+    state: z.null(),
+    returns: z.null(),
+    immediate: z.literal(true),
+  },
+  DISPLAY_PROGRESS_INDETERMINATE: {
+    props: z.object({}),
+    state: z.null(),
+    returns: z.null(),
+    immediate: z.literal(true),
+  },
+  DISPLAY_PROGRESS_THROUGH_LIST: {
+    props: z.object({
+      items: z.array(
+        z.object({
+          label: z.string(),
+          isComplete: z.boolean(),
+          resultDescription: z.union([z.null(), z.string()]),
+        })
+      ),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_VIDEO: {
+    props: z.object({
+      width: imageSize.optional(),
+      height: imageSize.optional(),
+      url: z.string(),
+      loop: z.boolean().optional(),
+      muted: z.boolean().optional(),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
+}
+
+const INPUT_SCHEMA = {
   INPUT_TEXT: {
     props: z.object({
       helpText: z.optional(z.string()),
@@ -547,128 +670,11 @@ export const ioSchema = {
     state: z.null(),
     returns: z.array(labelValue),
   },
-  DISPLAY_CODE: {
-    props: z.object({
-      code: z.string(),
-      language: z.string().optional(),
-    }),
-    state: z.null(),
-    returns: z.null(),
-  },
-  DISPLAY_HEADING: {
-    props: z.object({}),
-    state: z.null(),
-    returns: z.null(),
-  },
-  DISPLAY_MARKDOWN: {
-    props: z.object({}),
-    state: z.null(),
-    returns: z.null(),
-  },
-  DISPLAY_IMAGE: {
-    props: z.object({
-      alt: z.string().optional(),
-      width: imageSize.optional(),
-      height: imageSize.optional(),
-      url: z.string(),
-    }),
-    state: z.null(),
-    returns: z.null(),
-  },
-  DISPLAY_LINK: {
-    props: z.intersection(
-      z.object({
-        theme: buttonTheme,
-      }),
-      z.union([
-        z.object({
-          href: z.string(),
-        }),
-        linkSchema,
-      ])
-    ),
-    state: z.null(),
-    returns: z.null(),
-  },
-  DISPLAY_OBJECT: {
-    props: z.object({
-      data: keyValueObject,
-    }),
-    state: z.null(),
-    returns: z.null(),
-  },
-  DISPLAY_TABLE: {
-    props: z.object({
-      helpText: z.optional(z.string()),
-      columns: z.array(internalTableColumn),
-      data: z.array(internalTableRow),
-      orientation: z.enum(['vertical', 'horizontal']).default('horizontal'),
-      defaultPageSize: z.number().optional(),
-      //== private props
-      // added in v0.28, optional until required by all active versions
-      totalRecords: z.optional(z.number().int()),
-      isAsync: z.optional(z.boolean().default(false)),
-    }),
-    state: z.object({
-      queryTerm: z.string().optional(),
-      sortColumn: z.string().optional(),
-      sortDirection: z.enum(['asc', 'desc']).optional(),
-      offset: z.number().int().default(0),
-      pageSize: z.number().int(),
-    }),
-    returns: z.null(),
-  },
-  DISPLAY_METADATA: {
-    props: z.object({
-      data: z.array(metaItemSchema),
-      layout: z.enum(['grid', 'list', 'card']).optional().default('grid'),
-    }),
-    state: z.null(),
-    returns: z.null(),
-  },
-  DISPLAY_PROGRESS_STEPS: {
-    props: z.object({
-      steps: z.object({
-        completed: z.number(),
-        total: z.number(),
-      }),
-      currentStep: z.string().optional(),
-      subTitle: z.string().optional(),
-    }),
-    state: z.null(),
-    returns: z.null(),
-    immediate: z.literal(true),
-  },
-  DISPLAY_PROGRESS_INDETERMINATE: {
-    props: z.object({}),
-    state: z.null(),
-    returns: z.null(),
-    immediate: z.literal(true),
-  },
-  DISPLAY_PROGRESS_THROUGH_LIST: {
-    props: z.object({
-      items: z.array(
-        z.object({
-          label: z.string(),
-          isComplete: z.boolean(),
-          resultDescription: z.union([z.null(), z.string()]),
-        })
-      ),
-    }),
-    state: z.null(),
-    returns: z.null(),
-  },
-  DISPLAY_VIDEO: {
-    props: z.object({
-      width: imageSize.optional(),
-      height: imageSize.optional(),
-      url: z.string(),
-      loop: z.boolean().optional(),
-      muted: z.boolean().optional(),
-    }),
-    state: z.null(),
-    returns: z.null(),
-  },
+}
+
+export const ioSchema = {
+  ...DISPLAY_SCHEMA,
+  ...INPUT_SCHEMA,
 }
 
 export type IoMethod = {
@@ -680,21 +686,8 @@ export type IoMethod = {
 export type T_IO_Schema = typeof ioSchema
 export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
-export type T_IO_DISPLAY_METHOD_NAMES =
-  | 'DISPLAY_CODE'
-  | 'DISPLAY_HEADING'
-  | 'DISPLAY_MARKDOWN'
-  | 'DISPLAY_LINK'
-  | 'DISPLAY_OBJECT'
-  | 'DISPLAY_METADATA'
-  | 'DISPLAY_TABLE'
-  | 'DISPLAY_IMAGE'
-  | 'DISPLAY_VIDEO'
-
-export type T_IO_INPUT_METHOD_NAMES = Exclude<
-  T_IO_METHOD_NAMES,
-  T_IO_DISPLAY_METHOD_NAMES
->
+export type T_IO_DISPLAY_METHOD_NAMES = keyof typeof DISPLAY_SCHEMA
+export type T_IO_INPUT_METHOD_NAMES = keyof typeof INPUT_SCHEMA
 
 type T_Fields = 'props' | 'state' | 'returns'
 

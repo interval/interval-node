@@ -61,10 +61,29 @@ const hello_app = new Page({
               label: 'Hello',
               action: 'hello_app/hello_world',
             },
-            // {
-            //   label: 'Inline',
-            //   action: async () => {},
-            // },
+          ],
+        }),
+        io.display.heading('Section two', {
+          level: 3,
+          description: 'This table has the same data as the previous one.',
+          menuItems: [
+            {
+              label: 'Action link',
+              action: 'hello_app/hello_world',
+            },
+          ],
+        }),
+        io.display.table('', {
+          data: [
+            { a: 1, b: 2, c: 3 },
+            { a: 1, b: 2, c: 3 },
+            { a: 1, b: 2, c: 3 },
+          ],
+          rowMenuItems: () => [
+            {
+              label: 'Hello',
+              action: 'hello_app/hello_world',
+            },
           ],
         }),
       ],
