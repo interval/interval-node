@@ -157,6 +157,27 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
+    section_heading: async io => {
+      await io.group([
+        io.display.heading('Section heading', {
+          level: 2,
+          description: 'A section heading here',
+          menuItems: [
+            { label: 'Link', url: 'https://interval.com', theme: 'primary' },
+            { label: 'Danger', action: 'disabled_inputs', theme: 'danger' },
+          ],
+        }),
+        io.input.text('Text input'),
+        io.input.text('Multiline', {
+          multiline: true,
+        }),
+
+        io.display.heading('Sub-heading', {
+          level: 3,
+          description: 'A subsection',
+        }),
+      ])
+    },
     disabled_inputs: async io => {
       await io.group([
         io.display.heading('Here are a bunch of disabled inputs'),
