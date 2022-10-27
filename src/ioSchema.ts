@@ -151,7 +151,6 @@ export type ImageSize = z.infer<typeof imageSize>
 // non-primitive display types such as links, images, etc.
 export const advancedPrimitive = z.object({
   label: z.string().optional(),
-  href: z.string().optional(),
   url: z.string().optional(),
   image: z
     .object({
@@ -165,17 +164,6 @@ export const advancedPrimitive = z.object({
   params: serializableRecord.optional(),
 })
 
-export const metadataItemValue = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.null(),
-  z.date(),
-  z.undefined(),
-  z.bigint(),
-  advancedPrimitive,
-])
-
 export const tableRowValue = z.union([
   z.string(),
   z.number(),
@@ -184,22 +172,31 @@ export const tableRowValue = z.union([
   z.date(),
   z.undefined(),
   z.bigint(),
-  z.intersection(
-    advancedPrimitive,
-    // optionally include a value for sorting
-    z.object({
-      value: z
-        .union([
-          z.string(),
-          z.number(),
-          z.boolean(),
-          z.null(),
-          z.date(),
-          z.undefined(),
-        ])
-        .optional(),
-    })
-  ),
+  z.object({
+    label: z.string().optional(),
+    value: z
+      .union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.date(),
+        z.undefined(),
+      ])
+      .optional(),
+    href: z.string().optional(),
+    url: z.string().optional(),
+    image: z
+      .object({
+        alt: z.string().optional(),
+        width: imageSize.optional(),
+        height: imageSize.optional(),
+        url: z.string(),
+      })
+      .optional(),
+    action: z.string().optional(),
+    params: serializableRecord.optional(),
+  }),
 ])
 
 export const tableRow = z
@@ -207,8 +204,6 @@ export const tableRow = z
   // Allow arbitrary objects/interfaces with specified column mappings.
   // If no columns specified, we'll just serialize any nested objects.
   .or(z.record(z.any()))
-
-export const metadataObject = z.record(z.any())
 
 export const menuItem = z.intersection(
   z.object({
@@ -611,7 +606,18 @@ export const ioSchema = {
       data: z.array(
         z.object({
           label: z.string(),
-          value: metadataItemValue,
+          value: primitiveValue.or(z.bigint()).nullish().optional(),
+          url: z.string().optional(),
+          image: z
+            .object({
+              alt: z.string().optional(),
+              width: imageSize.optional(),
+              height: imageSize.optional(),
+              url: z.string(),
+            })
+            .optional(),
+          action: z.string().optional(),
+          params: serializableRecord.optional(),
         })
       ),
       layout: z.enum(['grid', 'list', 'card']).optional().default('grid'),

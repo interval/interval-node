@@ -358,18 +358,14 @@ const interval = new Interval({
         },
         {
           label: 'Email',
-          value: {
-            label: 'john.doe@gmail.com',
-            url: 'mailto:john.doe@gmail.com',
-          },
+          value: 'john.doe@gmail.com',
+          url: 'mailto:john.doe@gmail.com',
         },
         {
           label: 'Action link',
-          value: {
-            label: 'Click me',
-            action: 'helloCurrentUser',
-            params: { message: 'Hi from metadata' },
-          },
+          value: 'Click me',
+          action: 'helloCurrentUser',
+          params: { message: 'Hi from metadata' },
         },
       ]
 
