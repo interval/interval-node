@@ -676,14 +676,19 @@ const interval = new Interval({
       ctx.log(selected)
     },
     update_email_for_user: editEmailForUser,
-    enter_email_body: async io => {
-      const body = await io.input.richText('Enter email body', {
-        defaultValue: '<h2>Welcome to Interval!</h2><p>Enjoy your stay.</p>',
-        helpText: 'This will be sent to the user.',
-      })
+    richText: async io => {
+      const [to, body] = await io.group([
+        io.input.email('Email address'),
+        io.input.richText('Enter email body', {
+          defaultValue: '<h2>Welcome to Interval!</h2><p>Enjoy your stay.</p>',
+          helpText: 'This will be sent to the user.',
+        }),
+      ])
 
       await io.display.markdown(`
           ## You entered:
+
+          To: ${to}
 
           ~~~html
           ${body}
