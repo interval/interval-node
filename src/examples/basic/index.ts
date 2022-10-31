@@ -64,6 +64,12 @@ const prod = new Interval({
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
     actionLinks,
+    redirectWithoutWarningTest: async () => {
+      const text = await io.input.text('Edit text before navigating', {
+        defaultValue: 'Backspace me',
+      })
+      ctx.redirect({ action: 'actionLinks' })
+    },
     ImportUsers: {
       backgroundable: true,
       name: 'Import users',
