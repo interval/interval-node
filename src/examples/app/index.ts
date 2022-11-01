@@ -190,9 +190,11 @@ const users = new Page({
 })
 
 const interval = new Interval({
-  apiKey: 'alex_dev_Bku6kYZlyhyvkCO36W5HnpwtXACI1khse8SnZ9PuwsmqdRfe',
   logLevel: 'debug',
+  apiKey: 'alex_dev_Bku6kYZlyhyvkCO36W5HnpwtXACI1khse8SnZ9PuwsmqdRfe',
   endpoint: 'ws://localhost:3000/websocket',
+  // apiKey: 'jacob_dev_VZo5ilzcng5iTwuUakQ1z7U88rMKfmIQU1Xc7mnYRRNrFf7U',
+  // endpoint: 'wss://staging.interval.com/websocket',
   routes: {
     hello_app,
     users,

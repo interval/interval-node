@@ -7,7 +7,12 @@
     "url": "github:interval/interval-node"
   },
   "bugs": "https://github.com/interval/interval-node/issues",
-  "keywords": ["internal tool", "app", "ui", "ui builder"],
+  "keywords": [
+    "internal tool",
+    "app",
+    "ui",
+    "ui builder"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=12.17.0"
@@ -24,6 +29,7 @@
   "dependencies": {
     "cross-fetch": "^3.1.5",
     "evt": "^2.4.10",
+    "node-datachannel": "^0.4.0",
     "superjson": "^1.9.1",
     "uuid": "^9.0.0",
     "ws": "^8.4.1",

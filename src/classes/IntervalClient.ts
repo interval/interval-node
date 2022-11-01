@@ -5,7 +5,12 @@ import fetch from 'node-fetch'
 import * as superjson from 'superjson'
 import { JSONValue } from 'superjson/dist/types'
 import ISocket, { TimeoutError } from './ISocket'
-import { DuplexRPCClient, DuplexRPCHandlers } from './DuplexRPCClient'
+import type { DescriptionType } from 'node-datachannel'
+import {
+  DuplexRPCClient,
+  DuplexRPCHandlers,
+  MethodDef,
+} from './DuplexRPCClient'
 import IOError from './IOError'
 import Logger from './Logger'
 import {
@@ -18,12 +23,16 @@ import {
   ActionDefinition,
   PageDefinition,
   HostSchema,
+  ClientSchema,
+  WSServerSchema,
 } from '../internalRpcSchema'
 import {
   ActionResultSchema,
   IOFunctionReturnType,
   IO_RESPONSE,
   LegacyLinkProps,
+  requiresServer,
+  T_IO_METHOD_NAMES,
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
 } from '../ioSchema'
@@ -41,7 +50,8 @@ import type {
   IntervalRouteDefinitions,
   IntervalPageHandler,
 } from '../types'
-import TransactionLoadingState from '../classes/TransactionLoadingState'
+import type DataChannelConnection from './DataChannelConnection'
+import TransactionLoadingState from './TransactionLoadingState'
 import { Interval, InternalConfig, IntervalError } from '..'
 import Page from './Page'
 import {
@@ -260,7 +270,12 @@ export default class IntervalClient {
     string,
     [(output?: any) => void, (err?: any) => void]
   >()
+
   #ws: ISocket | undefined = undefined
+  #dccMap = new Map<string, DataChannelConnection>()
+  #peerIdMap = new Map<string, string>()
+  #peerIdToTransactionIdsMap = new Map<string, Set<string>>()
+
   #serverRpc:
     | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
     | undefined = undefined
@@ -312,7 +327,9 @@ export default class IntervalClient {
 
   private async initializeConnection() {
     await this.#createSocketConnection()
-    this.#createRPCClient()
+    this.#serverRpc = this.#createRPCClient({
+      canCall: wsServerSchema,
+    })
   }
 
   async respondToRequest(requestId: string) {
@@ -325,7 +342,10 @@ export default class IntervalClient {
     }
 
     if (!this.#serverRpc) {
-      this.#createRPCClient(requestId)
+      this.#serverRpc = this.#createRPCClient({
+        requestId,
+        canCall: wsServerSchema,
+      })
     }
 
     const result = new Promise((resolve, reject) => {
@@ -350,6 +370,12 @@ export default class IntervalClient {
       this.#ws.close()
       this.#ws = undefined
     }
+
+    for (const dcc of this.#dccMap.values()) {
+      dcc.ds?.close()
+      dcc.peer.close()
+    }
+    this.#dccMap.clear()
 
     this.#isConnected = false
   }
@@ -416,10 +442,16 @@ export default class IntervalClient {
   /**
    * Resends pending IO calls upon reconnection.
    */
-  async #resendPendingIOCalls() {
+  async #resendPendingIOCalls(resendToTransactionIds?: string[]) {
     if (!this.#isConnected) return
 
-    const toResend = new Map(this.#pendingIOCalls)
+    const toResend = resendToTransactionIds
+      ? new Map(
+          resendToTransactionIds
+            .map(id => [id, this.#pendingIOCalls.get(id)])
+            .filter(([, state]) => !!state) as [string, string][]
+        )
+      : new Map(this.#pendingIOCalls)
 
     while (toResend.size > 0) {
       await Promise.allSettled(
@@ -471,10 +503,16 @@ export default class IntervalClient {
   /**
    * Resends pending transaction loading states upon reconnection.
    */
-  async #resendTransactionLoadingStates() {
+  async #resendTransactionLoadingStates(resendToTransactionIds?: string[]) {
     if (!this.#isConnected) return
 
-    const toResend = new Map(this.#transactionLoadingStates)
+    const toResend = resendToTransactionIds
+      ? new Map(
+          resendToTransactionIds
+            .map(id => [id, this.#transactionLoadingStates.get(id)])
+            .filter(([, state]) => !!state) as [string, LoadingState][]
+        )
+      : new Map(this.#transactionLoadingStates)
 
     while (toResend.size > 0) {
       await Promise.allSettled(
@@ -638,13 +676,117 @@ export default class IntervalClient {
   #createRPCHandlers(requestId?: string): DuplexRPCHandlers<HostSchema> {
     const intervalClient = this
     return {
+      INITIALIZE_PEER_CONNECTION: async inputs => {
+        if (typeof window !== 'undefined') return
+
+        const { default: DataChannelConnection } = await import(
+          './DataChannelConnection'
+        )
+
+        this.#logger.debug('INITIALIZE_PEER_CONNECTION:', inputs)
+        switch (inputs.type) {
+          case 'offer': {
+            const dcc = new DataChannelConnection({
+              id: inputs.id,
+              send: inputs =>
+                this.#send('INITIALIZE_PEER_CONNECTION', inputs).catch(err => {
+                  this.#logger.debug(
+                    'Failed sending initialize peer connection',
+                    err
+                  )
+                }),
+              rpcConstructor: props => {
+                const rpc = this.#createRPCClient(props)
+                rpc.communicator.onOpen.attach(() => {
+                  const set = this.#peerIdToTransactionIdsMap.get(inputs.id)
+                  if (set) {
+                    this.#resendTransactionLoadingStates(
+                      Array.from(set.values())
+                    )
+                    this.#resendPendingIOCalls(Array.from(set.values()))
+                  }
+                })
+                return rpc
+              },
+            })
+            this.#dccMap.set(inputs.id, dcc)
+            dcc.peer.setRemoteDescription(
+              inputs.description,
+              inputs.type as DescriptionType
+            )
+            dcc.peer.onStateChange(state => {
+              this.#logger.debug('Peer state change:', state)
+              if (state === 'failed' || state === 'closed') {
+                this.#dccMap.delete(inputs.id)
+              }
+            })
+
+            break
+          }
+          case 'answer': {
+            const dcc = this.#dccMap.get(inputs.id)
+
+            if (dcc) {
+              dcc.peer.setRemoteDescription(
+                inputs.description,
+                inputs.type as DescriptionType
+              )
+            } else {
+              this.#logger.warn(
+                'INITIALIZE_PEER_CONNECTION:',
+                'DCC not found for id',
+                inputs.id
+              )
+            }
+            break
+          }
+          case 'candidate': {
+            const dcc = this.#dccMap.get(inputs.id)
+
+            if (dcc) {
+              dcc.peer.addRemoteCandidate(inputs.candidate, inputs.mid)
+            } else {
+              this.#logger.warn(
+                'INITIALIZE_PEER_CONNECTION',
+                'DCC not found for id',
+                inputs.id
+              )
+            }
+            break
+          }
+        }
+      },
       START_TRANSACTION: async inputs => {
         if (!intervalClient.organization) {
           intervalClient.#log.error('No organization defined')
           return
         }
 
-        const { action, transactionId } = inputs
+        const { action, transactionId, clientId } = inputs
+        const prevClientId = this.#peerIdMap.get(transactionId)
+
+        if (clientId && clientId !== prevClientId) {
+          this.#peerIdMap.set(transactionId, clientId)
+          let set = this.#peerIdToTransactionIdsMap.get(clientId)
+          if (!set) {
+            set = new Set()
+            this.#peerIdToTransactionIdsMap.set(clientId, set)
+          }
+          set.add(transactionId)
+        }
+
+        if (this.#ioResponseHandlers.has(transactionId)) {
+          this.#logger.debug('Transaction already started, not starting again')
+
+          if (clientId !== prevClientId) {
+            // only resend if is a new peer connection
+            this.#resendPendingIOCalls([transactionId])
+            this.#resendTransactionLoadingStates([transactionId])
+          }
+
+          return
+        }
+
         const actionHandler = intervalClient.#actionHandlers.get(action.slug)
 
         intervalClient.#log.debug(actionHandler)
@@ -666,10 +808,25 @@ export default class IntervalClient {
                 toRender: ioCall,
               })
             } else {
-              await intervalClient.#send('SEND_IO_CALL', {
-                transactionId,
-                ioCall,
-              })
+              let attemptPeerSend = true
+              for (const renderMethod of ioRenderInstruction.toRender) {
+                const methodName = renderMethod.methodName as T_IO_METHOD_NAMES
+                if (requiresServer(methodName)) {
+                  attemptPeerSend = false
+                  break
+                }
+              }
+
+              await intervalClient.#send(
+                'SEND_IO_CALL',
+                {
+                  transactionId,
+                  ioCall,
+                },
+                {
+                  attemptPeerSend,
+                }
+              )
             }
 
             intervalClient.#transactionLoadingStates.delete(transactionId)
@@ -700,7 +857,7 @@ export default class IntervalClient {
 
         const ctx: ActionCtx = {
           user: inputs.user,
-          // TODO: Remove intervalClient when all active SDKs support superjson
+          // TODO: Remove this when all active SDKs support superjson
           params: deserializeDates(params),
           environment: inputs.environment,
           organization: intervalClient.organization,
@@ -780,6 +937,7 @@ export default class IntervalClient {
               } else {
                 await intervalClient.#send('MARK_TRANSACTION_COMPLETE', {
                   transactionId,
+                  resultStatus: res.status,
                   result: JSON.stringify(res),
                 })
               }
@@ -839,6 +997,14 @@ export default class IntervalClient {
               for (const key of client.inlineActionKeys.values()) {
                 intervalClient.#actionHandlers.delete(key)
               }
+
+              const peerId = this.#peerIdMap.get(transactionId)
+              if (peerId) {
+                this.#peerIdMap.delete(transactionId)
+                this.#peerIdToTransactionIdsMap
+                  .get(peerId)
+                  ?.delete(transactionId)
+              }
             })
         }
 
@@ -882,8 +1048,12 @@ export default class IntervalClient {
           return { type: 'ERROR' as const }
         }
 
-        const { pageKey } = inputs
+        const { pageKey, clientId } = inputs
         const pageHandler = this.#pageHandlers.get(inputs.page.slug)
+
+        if (clientId) {
+          this.#peerIdMap.set(pageKey, clientId)
+        }
 
         if (!pageHandler) {
           this.#log.debug('No app handler called', inputs.page.slug)
@@ -1215,6 +1385,7 @@ export default class IntervalClient {
           this.#pageIOClients.delete(inputs.pageKey)
         }
 
+        this.#peerIdMap.delete(inputs.pageKey)
         this.#ioResponseHandlers.delete(inputs.pageKey)
       },
     }
@@ -1224,19 +1395,25 @@ export default class IntervalClient {
    * Creates the DuplexRPCClient responsible for sending
    * messages to Interval.
    */
-  #createRPCClient(requestId?: string) {
-    if (!this.#ws) {
-      throw new Error('ISocket not initialized')
+  #createRPCClient<CallerSchema extends MethodDef>({
+    communicator = this.#ws,
+    requestId,
+    canCall,
+  }: {
+    communicator?: ISocket
+    requestId?: string
+    canCall: CallerSchema
+  }) {
+    if (!communicator) {
+      throw new Error('Communicator not initialized')
     }
 
-    const serverRpc = new DuplexRPCClient({
-      communicator: this.#ws,
-      canCall: wsServerSchema,
+    return new DuplexRPCClient({
+      communicator,
+      canCall,
       canRespondTo: hostSchema,
       handlers: this.#createRPCHandlers(requestId),
     })
-
-    this.#serverRpc = serverRpc
   }
 
   /**
@@ -1309,15 +1486,200 @@ export default class IntervalClient {
     return response
   }
 
-  async #send<MethodName extends keyof typeof wsServerSchema>(
+  async #sendToClientPeer<MethodName extends keyof ClientSchema>(
+    rpc: NonNullable<DataChannelConnection['rpc']>,
     methodName: MethodName,
-    inputs: z.input<typeof wsServerSchema[MethodName]['inputs']>
+    inputs: z.input<ClientSchema[MethodName]['inputs']>
+  ) {
+    const NUM_P2P_TRIES = 3
+    for (let i = 0; i <= NUM_P2P_TRIES; i++) {
+      try {
+        return await rpc.send(methodName, inputs)
+      } catch (err) {
+        if (err instanceof TimeoutError) {
+          this.#log.debug(
+            `Peer RPC call timed out, retrying in ${Math.round(
+              this.#retryIntervalMs / 1000
+            )}s...`
+          )
+          this.#log.debug(err)
+          sleep(this.#retryIntervalMs)
+        } else {
+          throw err
+        }
+      }
+    }
+
+    throw new TimeoutError()
+  }
+
+  /**
+   * @returns undefined if was unsent, null if was sent but should send via server anyway,
+   * and true/false if was sent but should not send. This is obviously pretty bad code, should be fixed.
+   */
+  async #attemptPeerSend<MethodName extends keyof WSServerSchema>(
+    methodName: MethodName,
+    serverInputs: z.input<WSServerSchema[MethodName]['inputs']>
+  ): Promise<
+    z.input<WSServerSchema[MethodName]['returns']> | undefined | null
+  > {
+    const hostInstanceId = this.#ws?.id
+    let rpc: DataChannelConnection['rpc']
+    const sessionKey = serverInputs
+      ? 'transactionId' in serverInputs
+        ? serverInputs.transactionId
+        : 'pageKey' in serverInputs
+        ? serverInputs.pageKey
+        : undefined
+      : undefined
+
+    if (sessionKey) {
+      const key = this.#peerIdMap.get(sessionKey)
+      if (key) {
+        rpc = this.#dccMap.get(key)?.rpc
+      }
+    }
+
+    if (hostInstanceId && rpc) {
+      this.#logger.debug(
+        'Sending with peer connection',
+        methodName,
+        serverInputs
+      )
+
+      switch (methodName) {
+        case 'SEND_LOG': {
+          const inputs = serverInputs as z.input<
+            WSServerSchema['SEND_LOG']['inputs']
+          >
+
+          await this.#sendToClientPeer(rpc, 'LOG', {
+            ...inputs,
+            index: inputs.index as number,
+            timestamp: inputs.timestamp as number,
+          })
+          // send to backend too
+          return null
+        }
+        case 'SEND_PAGE': {
+          const inputs = serverInputs as z.input<
+            WSServerSchema['SEND_PAGE']['inputs']
+          >
+          return await this.#sendToClientPeer(rpc, 'RENDER_PAGE', {
+            ...inputs,
+            hostInstanceId,
+          })
+        }
+        case 'SEND_IO_CALL': {
+          const inputs = serverInputs as z.input<
+            WSServerSchema['SEND_IO_CALL']['inputs']
+          >
+          await this.#sendToClientPeer(rpc, 'RENDER', {
+            transactionId: inputs.transactionId,
+            toRender: inputs.ioCall,
+          })
+          // send to backend too
+          return null
+        }
+        case 'MARK_TRANSACTION_COMPLETE': {
+          const inputs = serverInputs as z.input<
+            WSServerSchema['MARK_TRANSACTION_COMPLETE']['inputs']
+          >
+          await this.#sendToClientPeer(rpc, 'TRANSACTION_COMPLETED', {
+            transactionId: inputs.transactionId,
+            resultStatus: inputs.resultStatus ?? 'SUCCESS',
+            result: inputs.result,
+          })
+
+          return null
+        }
+        case 'SEND_REDIRECT': {
+          const inputs = serverInputs as z.input<
+            WSServerSchema['SEND_REDIRECT']['inputs']
+          >
+
+          if ('url' in inputs) {
+            await this.#sendToClientPeer(rpc, 'REDIRECT', {
+              transactionId: inputs.transactionId,
+              url: inputs.url,
+            })
+          } else if ('route' in inputs) {
+            await this.#sendToClientPeer(rpc, 'REDIRECT', {
+              transactionId: inputs.transactionId,
+              route: inputs.route,
+              params: inputs.params,
+            })
+          } else {
+            await this.#sendToClientPeer(rpc, 'REDIRECT', {
+              transactionId: inputs.transactionId,
+              route: inputs.action,
+              params: inputs.params,
+            })
+          }
+
+          // send to backend too
+          return null
+        }
+        case 'SEND_LOADING_CALL': {
+          const inputs = serverInputs as z.input<
+            WSServerSchema['SEND_LOADING_CALL']['inputs']
+          >
+          await this.#sendToClientPeer(rpc, 'LOADING_STATE', {
+            ...inputs,
+          })
+          // send to backend too
+          return null
+        }
+        default:
+          this.#logger.debug(
+            'Unsupported peer method',
+            methodName,
+            'sending via server'
+          )
+      }
+    } else {
+      this.#logger.debug(
+        'No peer connection established, skipping',
+        methodName,
+        serverInputs
+      )
+    }
+
+    return undefined
+  }
+
+  async #send<MethodName extends keyof WSServerSchema>(
+    methodName: MethodName,
+    inputs: z.input<WSServerSchema[MethodName]['inputs']>,
+    { attemptPeerSend = true }: { attemptPeerSend?: boolean } = {}
   ) {
     if (!this.#serverRpc) throw new IntervalError('serverRpc not initialized')
 
+    let skipClientCall = false
+
+    console.log('#send ??')
+
+    try {
+      if (attemptPeerSend) {
+        const peerResponse = await this.#attemptPeerSend(methodName, inputs)
+
+        if (peerResponse != null) {
+          return peerResponse
+        } else if (peerResponse === null) {
+          skipClientCall = true
+        }
+      }
+    } catch (err) {
+      this.#logger.debug('Error from peer RPC', err)
+    }
+
     while (true) {
       try {
-        return await this.#serverRpc.send(methodName, inputs)
+        this.#logger.debug('Sending via server', methodName, inputs)
+        return await this.#serverRpc.send(methodName, {
+          ...inputs,
+          skipClientCall,
+        })
       } catch (err) {
         if (err instanceof TimeoutError) {
           this.#log.debug(

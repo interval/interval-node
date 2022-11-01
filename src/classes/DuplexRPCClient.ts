@@ -9,7 +9,7 @@ function generateId() {
   return count.toString()
 }
 
-interface MethodDef {
+export interface MethodDef {
   [key: string]: {
     inputs: z.ZodFirstPartySchemaTypes | z.ZodDiscriminatedUnion<any, any, any>
     returns: z.ZodFirstPartySchemaTypes | z.ZodDiscriminatedUnion<any, any, any>

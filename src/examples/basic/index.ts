@@ -1,4 +1,4 @@
-import { T_IO_METHOD, T_IO_PROPS } from './../../ioSchema'
+import { T_IO_PROPS } from './../../ioSchema'
 import Interval, { IOError, io, ctx } from '../../index'
 import IntervalClient from '../../classes/IntervalClient'
 import {
@@ -62,8 +62,33 @@ const actionLinks: IntervalActionHandler = async () => {
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3000/websocket',
+  logLevel: 'debug',
   routes: {
+    backgroundable: {
+      backgroundable: true,
+      handler: async () => {
+        const first = await io.input.text('First input')
+        const second = await io.input.text('Second input')
+
+        return { first, second }
+      },
+    },
     actionLinks,
+    helloCurrentUser: {
+      name: 'Hello, current user!',
+      description: '👋',
+      handler: async () => {
+        console.log(ctx.params)
+
+        let heading = `Hello, ${ctx.user.firstName} ${ctx.user.lastName}`
+
+        if (ctx.params.message) {
+          heading += ` (Message: ${ctx.params.message})`
+        }
+
+        return heading
+      },
+    },
     redirectWithoutWarningTest: async () => {
       const text = await io.input.text('Edit text before navigating', {
         defaultValue: 'Backspace me',
@@ -594,6 +619,11 @@ const interval = new Interval({
       )
 
       return { num1, num2, sum: num1 + num2 }
+    },
+    logs: async (_, ctx) => {
+      for (let i = 0; i < 10; i++) {
+        ctx.log('Log number', i)
+      }
     },
     logTest: async (io, ctx) => {
       ctx.log(new Date().toUTCString())

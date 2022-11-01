@@ -1,4 +1,5 @@
 import type { WebSocket as NodeWebSocket } from 'ws'
+import type { DataChannel } from 'node-datachannel'
 import { Evt } from 'evt'
 import { v4 } from 'uuid'
 import { z } from 'zod'
@@ -25,6 +26,102 @@ interface ISocketConfig {
   id?: string // manually specifying ids is helpful for debugging
 }
 
+export class DataChannelSocket {
+  dc: DataChannel | RTCDataChannel
+  #readyState: string = 'connecting'
+
+  constructor(dc: DataChannel | RTCDataChannel) {
+    this.dc = dc
+  }
+
+  public static OPEN = 'open' as const
+
+  get readyState(): string {
+    if ('readyState' in this.dc) {
+      return this.dc.readyState
+    }
+
+    return this.#readyState
+  }
+
+  get OPEN() {
+    return DataChannelSocket.OPEN
+  }
+
+  send(message: string) {
+    if ('sendMessage' in this.dc) {
+      // node
+      this.dc.sendMessage(message)
+    } else {
+      // web
+      this.dc.send(message)
+    }
+  }
+
+  close(code?: number, reason?: string) {
+    // TODO: Do something with codes?
+    this.#readyState = 'closing'
+    this.dc.close()
+  }
+
+  set onopen(cb: () => void) {
+    if ('onOpen' in this.dc) {
+      // node
+      this.dc.onOpen(cb)
+    } else {
+      // web
+      this.dc.onopen = cb
+    }
+  }
+
+  set onclose(cb: () => void) {
+    const handleClose = () => {
+      this.#readyState = 'closed'
+      cb()
+    }
+    if ('onClosed' in this.dc) {
+      // node
+      this.dc.onClosed(handleClose)
+    } else {
+      // web
+      this.dc.onclose = handleClose
+    }
+  }
+
+  set onerror(cb: (ev: ErrorEvent | Event) => void) {
+    if ('onError' in this.dc) {
+      // node
+      this.dc.onError((err: string) => {
+        // ??
+        cb(
+          new ErrorEvent('ErrorEvent', {
+            message: err,
+          })
+        )
+      })
+    } else {
+      // web
+      this.dc.onerror = cb
+    }
+  }
+
+  set onmessage(cb: (evt: MessageEvent) => void) {
+    if ('onMessage' in this.dc) {
+      // node
+      this.dc.onMessage((msg: string | Buffer) => {
+        cb(
+          new MessageEvent('MessageEvent', {
+            data: msg,
+          })
+        )
+      })
+    } else {
+      // web
+      this.dc.onmessage = cb
+    }
+  }
+}
+
 /**
  * A relatively thin wrapper around an underlying WebSocket connection. Can be thought of as a TCP layer on top of WebSockets,
  * ISockets send and expect `ACK` messages following receipt of a `MESSAGE` message containing the transmitted data.
@@ -42,7 +139,7 @@ interface ISocketConfig {
  * rejecting the `ping` Promise.
  */
 export default class ISocket {
-  private ws: WebSocket | NodeWebSocket
+  private ws: WebSocket | NodeWebSocket | DataChannelSocket
   private connectTimeout: number
   private sendTimeout: number
   private pingTimeout: number
@@ -132,7 +229,10 @@ export default class ISocket {
     return this.ws.close(code, reason)
   }
 
-  constructor(ws: WebSocket | NodeWebSocket, config?: ISocketConfig) {
+  constructor(
+    ws: WebSocket | NodeWebSocket | DataChannelSocket,
+    config?: ISocketConfig
+  ) {
     // this works but on("error") does not. No idea why ¯\_(ツ)_/¯
     // will emit "closed" regardless
     // this.ws.addEventListener('error', e => {
@@ -167,8 +267,8 @@ export default class ISocket {
       this.onOpen.post()
     }
 
-    this.ws.onclose = (ev: CloseEvent) => {
-      this.onClose.post([ev.code, ev.reason])
+    this.ws.onclose = (ev?: CloseEvent) => {
+      this.onClose.post([ev?.code ?? 0, ev?.reason ?? 'idk'])
     }
 
     this.ws.onerror = (ev: ErrorEvent | Event) => {
