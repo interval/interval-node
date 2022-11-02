@@ -111,11 +111,11 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     })
 
     // Immediately resolve any methods defined as immediate in schema
-    setImmediate(() => {
+    setTimeout(() => {
       if (resolvesImmediately(methodName) && this.resolver) {
         this.resolver(null)
       }
-    })
+    }, 0)
   }
 
   async handleValidation(

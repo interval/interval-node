@@ -22,8 +22,8 @@
     "dev": "run(){ yarn build:envoy && nodemon --watch src -e ts src/examples/${1:-basic}/index.ts; }; run"
   },
   "dependencies": {
+    "cross-fetch": "^3.1.5",
     "evt": "^1.10.2",
-    "node-fetch": "^2.0.0",
     "superjson": "^1.9.1",
     "uuid": "^8.3.2",
     "ws": "^8.4.1",

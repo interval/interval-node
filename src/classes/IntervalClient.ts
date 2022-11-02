@@ -2,7 +2,6 @@ import { z, ZodError } from 'zod'
 import { v4 } from 'uuid'
 import { WebSocket } from 'ws'
 import fetch from 'node-fetch'
-import { AsyncLocalStorage } from 'async_hooks'
 import * as superjson from 'superjson'
 import { JSONValue } from 'superjson/dist/types'
 import ISocket, { TimeoutError } from './ISocket'
@@ -43,7 +42,6 @@ import type {
   IntervalPageHandler,
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
-import localConfig from '../localConfig'
 import { Interval, InternalConfig, IntervalError } from '..'
 import Page from './Page'
 import {
@@ -54,7 +52,21 @@ import {
   MetaItemsSchema,
   BasicLayoutConfig,
 } from './Layout'
-import loadRoutesFromFileSystem from '../utils/fileActionLoader'
+
+let dynamicActionLocalStorage
+let dynamicPageLocalStorage
+if (typeof window === 'undefined') {
+  ;(async () => {
+    const { AsyncLocalStorage } = await import('async_hooks')
+    dynamicActionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
+    dynamicPageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
+  })()
+} else {
+  dynamicActionLocalStorage = null
+  dynamicPageLocalStorage = null
+}
+export const actionLocalStorage = dynamicActionLocalStorage
+export const pageLocalStorage = dynamicPageLocalStorage
 
 export const DEFAULT_WEBSOCKET_ENDPOINT = 'wss://interval.com/websocket'
 
@@ -74,13 +86,8 @@ interface SetupConfig {
   instanceId?: string
 }
 
-export const actionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
-
-export const pageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
-
 export default class IntervalClient {
   #interval: Interval
-  #ghostOrgId: string | undefined
   #apiKey: string | undefined
   #endpoint: string = DEFAULT_WEBSOCKET_ENDPOINT
   #httpEndpoint: string
@@ -182,8 +189,11 @@ export default class IntervalClient {
 
     let fileSystemRoutes: IntervalRouteDefinitions | undefined
 
-    if (this.#config.routesDirectory) {
+    if (typeof window === 'undefined' && this.#config.routesDirectory) {
       try {
+        const { default: loadRoutesFromFileSystem } = await import(
+          '../utils/fileActionLoader'
+        )
         fileSystemRoutes = await loadRoutesFromFileSystem(
           this.#config.routesDirectory,
           this.#logger
@@ -477,38 +487,6 @@ export default class IntervalClient {
     }
   }
 
-  async #findOrCreateGhostModeAccount() {
-    let config = await localConfig.get()
-
-    let ghostOrgId = config?.ghostOrgId
-
-    if (!ghostOrgId) {
-      const response = await fetch(
-        this.#httpEndpoint + '/api/auth/ghost/create',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-        .then(r => r.json())
-        .then(r => CREATE_GHOST_MODE_ACCOUNT.returns.parseAsync(r))
-        .catch(err => {
-          this.#log.debug(err)
-          throw new IntervalError('Received invalid API response.')
-        })
-
-      await localConfig.write({
-        ghostOrgId: response.ghostOrgId,
-      })
-
-      ghostOrgId = response.ghostOrgId
-    }
-
-    return ghostOrgId
-  }
-
   /**
    * Establishes the underlying ISocket connection to Interval.
    */
@@ -518,9 +496,6 @@ export default class IntervalClient {
     const headers: Record<string, string> = { 'x-instance-id': id }
     if (this.#apiKey) {
       headers['x-api-key'] = this.#apiKey
-    } else if (!this.#apiKey) {
-      this.#ghostOrgId = await this.#findOrCreateGhostModeAccount()
-      headers['x-ghost-org-id'] = this.#ghostOrgId
     }
 
     const ws = new ISocket(
@@ -817,7 +792,7 @@ export default class IntervalClient {
             }
           }
 
-          pageLocalStorage.run({ display, ctx }, () => {
+          const handlePage = () => {
             pageHandler(display, ctx)
               .then(res => {
                 page = res
@@ -945,7 +920,15 @@ export default class IntervalClient {
                   page: JSON.stringify(pageLayout),
                 })
               })
-          })
+          }
+
+          if (typeof window === 'undefined') {
+            dynamicPageLocalStorage.run({ display, ctx }, () => {
+              handlePage()
+            })
+          } else {
+            handlePage()
+          }
 
           return {
             type: 'SUCCESS' as const,
@@ -1047,7 +1030,7 @@ export default class IntervalClient {
 
           const { io } = client
 
-          actionLocalStorage.run({ io, ctx }, () => {
+          const handleAction = () => {
             actionHandler(client.io, ctx)
               .then(res => {
                 // Allow actions to return data even after being canceled
@@ -1140,7 +1123,15 @@ export default class IntervalClient {
                   this.#actionHandlers.delete(key)
                 }
               })
-          })
+          }
+
+          if (typeof window === 'undefined') {
+            dynamicActionLocalStorage.run({ io, ctx }, () => {
+              handleAction()
+            })
+          } else {
+            handleAction()
+          }
 
           return
         },

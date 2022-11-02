@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import fetch from 'node-fetch'
+import fetch from 'cross-fetch'
 import Routes from './classes/Routes'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
