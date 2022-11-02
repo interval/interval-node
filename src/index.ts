@@ -4,7 +4,8 @@ import Routes from './classes/Routes'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
 import Page from './classes/Page'
-import { NOTIFY } from './internalRpcSchema'
+import { NOTIFY, ClientSchema } from './internalRpcSchema'
+import { DuplexRPCHandlers } from './classes/DuplexRPCClient'
 import { SerializableRecord } from './ioSchema'
 import type {
   ActionCtx,
@@ -26,6 +27,12 @@ import IntervalClient, {
   pageLocalStorage,
 } from './classes/IntervalClient'
 import Action from './classes/Action'
+
+declare global {
+  interface Window {
+    clientHandlers: DuplexRPCHandlers<ClientSchema>
+  }
+}
 
 export type {
   ActionCtx,
@@ -185,6 +192,30 @@ export default class Interval {
   }
 
   async notify(config: NotifyConfig): Promise<void> {
+    if (
+      !config.transactionId &&
+      (this.#client?.environment === 'development' ||
+        (!this.#client?.environment && !this.#apiKey?.startsWith('live_')))
+    ) {
+      this.#log.warn(
+        'Calls to notify() outside of a transaction currently have no effect when Interval is instantiated with a development API key. Please use a live key to send notifications.'
+      )
+    }
+
+    if (typeof window !== 'undefined') {
+      window.clientHandlers.NOTIFY({
+        ...config,
+        transactionId: config.transactionId ?? 'demo',
+        deliveries: config.delivery || [
+          {
+            method: 'EMAIL',
+            to: 'demo@interval.com',
+          },
+        ],
+      })
+      return
+    }
+
     let body: z.infer<typeof NOTIFY['inputs']>
     try {
       body = NOTIFY.inputs.parse({
@@ -195,16 +226,6 @@ export default class Interval {
     } catch (err) {
       this.#logger.debug(err)
       throw new IntervalError('Invalid input.')
-    }
-
-    if (
-      !config.transactionId &&
-      (this.#client?.environment === 'development' ||
-        (!this.#client?.environment && !this.#apiKey?.startsWith('live_')))
-    ) {
-      this.#log.warn(
-        'Calls to notify() outside of a transaction currently have no effect when Interval is instantiated with a development API key. Please use a live key to send notifications.'
-      )
     }
 
     const response = await fetch(`${this.#httpEndpoint}/api/notify`, {
