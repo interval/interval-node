@@ -801,10 +801,17 @@ export default class IntervalClient {
         logger: this.#logger,
         send: async loadingState => {
           this.#transactionLoadingStates.set(transactionId, loadingState)
-          await this.#send('SEND_LOADING_CALL', {
-            transactionId,
-            ...loadingState,
-          })
+          if (typeof window === 'undefined') {
+            await this.#send('SEND_LOADING_CALL', {
+              transactionId,
+              ...loadingState,
+            })
+          } else {
+            await window.clientHandlers.LOADING_STATE({
+              transactionId,
+              ...loadingState,
+            })
+          }
         },
       }),
       redirect: (props: LegacyLinkProps) =>
