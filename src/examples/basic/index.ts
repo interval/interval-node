@@ -160,7 +160,7 @@ const prod = new Interval({
 prod.listen()
 
 const interval = new Interval({
-  apiKey: 'live_qmFanjtsm3ebFqv9iAq6RavYv29GjvceDiaB26rhFQdUORMs',
+  apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
@@ -494,17 +494,12 @@ const interval = new Interval({
     enter_a_number: async io => {
       const num = await io.input.number('Enter a number')
 
-      const biggerNum = await io.input.number(
+      await io.input.number(
         `Enter a second number that's greater than ${num}`,
         {
           min: num + 1,
         }
       )
-
-      return {
-        originalNumber: num,
-        difference: biggerNum - num,
-      }
     },
     enter_two_numbers: async io => {
       const num1 = await io.input.number('Enter a number')
