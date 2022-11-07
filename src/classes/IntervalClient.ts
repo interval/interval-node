@@ -1031,23 +1031,30 @@ export default class IntervalClient {
           }
         }
 
-        for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
-          try {
-            await this.#send('SEND_PAGE', {
-              pageKey,
-              page: JSON.stringify(pageLayout),
-            })
-            return
-          } catch (err) {
-            this.#logger.debug('Failed sending page', err)
-            this.#logger.debug('Retrying in', this.#retryIntervalMs)
-            await sleep(this.#retryIntervalMs)
+        if (typeof window === 'undefined') {
+          for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
+            try {
+              await this.#send('SEND_PAGE', {
+                pageKey,
+                page: JSON.stringify(pageLayout),
+              })
+              return
+            } catch (err) {
+              this.#logger.debug('Failed sending page', err)
+              this.#logger.debug('Retrying in', this.#retryIntervalMs)
+              await sleep(this.#retryIntervalMs)
+            }
           }
+          throw new IntervalError(
+            'Unsuccessful sending page, max retries exceeded.'
+          )
+        } else {
+          await window.clientHandlers.RENDER_PAGE({
+            pageKey,
+            page: JSON.stringify(pageLayout),
+            hostInstanceId: 'demo',
+          })
         }
-
-        throw new IntervalError(
-          'Unsuccessful sending page, max retries exceeded.'
-        )
       }
     }
 
