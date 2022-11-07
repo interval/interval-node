@@ -253,7 +253,7 @@ const interval = new Interval({
 interval.listen()
 
 const prod = new Interval({
-  apiKey: 'live_2GWllC5vZos49eR57DsfJdHcNI8LotBgUHGF7tRPzd4Qi7gf',
+  apiKey: 'live_arKSsqtp1R6Mf6w16jflF4ZDDtFC7LwBaKLDDne3MZUgGyev',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
