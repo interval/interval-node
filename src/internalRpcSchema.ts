@@ -174,7 +174,7 @@ export const wsServerSchema = {
       pageKey: z.string().optional(),
       pageSlug: z.string(),
       actionEnvironment,
-      organizationEnvironmentId: z.string().optional(),
+      envSlug: z.string().optional(),
       params: serializableRecord.optional(),
     }),
     returns: z.discriminatedUnion('type', [
