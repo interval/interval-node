@@ -727,7 +727,10 @@ export default class IntervalClient {
     return response
   }
 
-  #startTransaction = async (inputs, requestId?: string) => {
+  #startTransaction = async (
+    inputs: z.infer<HostSchema['START_TRANSACTION']['inputs']>,
+    requestId?: string
+  ) => {
     if (!this.organization) {
       this.#log.error('No organization defined')
       return
@@ -929,7 +932,9 @@ export default class IntervalClient {
     return
   }
 
-  #ioResponse = async inputs => {
+  #ioResponse = async (
+    inputs: z.infer<HostSchema['IO_RESPONSE']['inputs']>
+  ) => {
     this.#log.debug('got io response', inputs)
 
     try {
@@ -952,7 +957,9 @@ export default class IntervalClient {
     }
   }
 
-  #openPage = async inputs => {
+  #openPage = async (inputs: z.infer<HostSchema['OPEN_PAGE']['inputs']>) => {
+    console.log('open page', inputs)
+
     if (!this.organization) {
       this.#log.error('No organization defined')
       return { type: 'ERROR' as const }
@@ -1277,7 +1284,7 @@ export default class IntervalClient {
     }
   }
 
-  #closePage = async inputs => {
+  #closePage = async (inputs: z.infer<HostSchema['CLOSE_PAGE']['inputs']>) => {
     const client = this.#pageIOClients.get(inputs.pageKey)
     if (client) {
       for (const key of client.inlineActionKeys.values()) {
