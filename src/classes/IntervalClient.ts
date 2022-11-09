@@ -64,18 +64,23 @@ declare global {
   }
 }
 
-let dynamicActionLocalStorage
-let dynamicPageLocalStorage
-if (typeof window === 'undefined') {
-  ;(async () => {
-    const { AsyncLocalStorage } = await import('async_hooks')
-    dynamicActionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
-    dynamicPageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
-  })()
-} else {
-  dynamicActionLocalStorage = null
-  dynamicPageLocalStorage = null
-}
+import { AsyncLocalStorage } from 'async_hooks'
+const dynamicActionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
+const dynamicPageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
+// const dynamicActionLocalStorage = null
+// const dynamicPageLocalStorage = null
+
+// if (typeof window === 'undefined') {
+//   ;(async () => {
+//     const { AsyncLocalStorage } = await import('async_hooks')
+//     dynamicActionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
+//     dynamicPageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
+//   })()
+// } else {
+//   dynamicActionLocalStorage = null
+//   dynamicPageLocalStorage = null
+// }
+
 export const actionLocalStorage = dynamicActionLocalStorage
 export const pageLocalStorage = dynamicPageLocalStorage
 
