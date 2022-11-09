@@ -14,7 +14,6 @@ import {
   TRANSACTION_RESULT_SCHEMA_VERSION,
   ActionEnvironment,
   LoadingState,
-  CREATE_GHOST_MODE_ACCOUNT,
   DECLARE_HOST,
   ActionDefinition,
   PageDefinition,
@@ -64,25 +63,27 @@ declare global {
   }
 }
 
-import { AsyncLocalStorage } from 'async_hooks'
-const dynamicActionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
-const dynamicPageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
-// const dynamicActionLocalStorage = null
-// const dynamicPageLocalStorage = null
+import type { AsyncLocalStorage } from 'async_hooks'
+let actionLocalStorage: AsyncLocalStorage<IntervalActionStore> | undefined
+let pageLocalStorage: AsyncLocalStorage<IntervalPageStore> | undefined
 
-// if (typeof window === 'undefined') {
-//   ;(async () => {
-//     const { AsyncLocalStorage } = await import('async_hooks')
-//     dynamicActionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
-//     dynamicPageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
-//   })()
-// } else {
-//   dynamicActionLocalStorage = null
-//   dynamicPageLocalStorage = null
-// }
+async function initAsyncLocalStorage() {
+  try {
+    if (typeof window !== 'undefined') {
+      const {
+        default: { AsyncLocalStorage },
+      } = await import('async_hooks')
+      actionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
+      pageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
+    }
+  } catch (err) {
+    console.error('Failed initializing AsyncLocalStorage stores')
+  }
+}
 
-export const actionLocalStorage = dynamicActionLocalStorage
-export const pageLocalStorage = dynamicPageLocalStorage
+initAsyncLocalStorage()
+
+export { actionLocalStorage, pageLocalStorage }
 
 export const DEFAULT_WEBSOCKET_ENDPOINT = 'wss://interval.com/websocket'
 
@@ -926,8 +927,8 @@ export default class IntervalClient {
         })
     }
 
-    if (typeof window === 'undefined') {
-      dynamicActionLocalStorage.run({ io, ctx }, () => {
+    if (actionLocalStorage) {
+      actionLocalStorage.run({ io, ctx }, () => {
         handleAction()
       })
     } else {
@@ -1275,8 +1276,8 @@ export default class IntervalClient {
         })
     }
 
-    if (typeof window === 'undefined') {
-      dynamicPageLocalStorage.run({ display, ctx }, () => {
+    if (pageLocalStorage) {
+      pageLocalStorage.run({ display, ctx }, () => {
         handlePage()
       })
     } else {

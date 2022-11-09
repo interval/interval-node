@@ -66,7 +66,7 @@ export interface QueuedAction {
 }
 
 export function getActionStore(): IntervalActionStore {
-  const store = actionLocalStorage.getStore()
+  const store = actionLocalStorage?.getStore()
   if (!store) {
     throw new IntervalError(
       'Global io and ctx objects can only be used inside an IntervalActionHandler'
@@ -77,7 +77,7 @@ export function getActionStore(): IntervalActionStore {
 }
 
 export function getPageStore(): IntervalPageStore {
-  const store = pageLocalStorage.getStore()
+  const store = pageLocalStorage?.getStore()
   if (!store) {
     throw new IntervalError(
       'Global io and ctx objects can only be used inside an App'
