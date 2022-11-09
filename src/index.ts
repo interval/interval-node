@@ -4,7 +4,7 @@ import Routes from './classes/Routes'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
 import Page from './classes/Page'
-import { NOTIFY, ClientSchema } from './internalRpcSchema'
+import { NOTIFY, ClientSchema, HostSchema } from './internalRpcSchema'
 import { DuplexRPCHandlers } from './classes/DuplexRPCClient'
 import { SerializableRecord } from './ioSchema'
 import type {
@@ -27,12 +27,6 @@ import IntervalClient, {
   pageLocalStorage,
 } from './classes/IntervalClient'
 import Action from './classes/Action'
-
-declare global {
-  interface Window {
-    clientHandlers: DuplexRPCHandlers<ClientSchema>
-  }
-}
 
 export type {
   ActionCtx,
@@ -57,6 +51,12 @@ export interface InternalConfig {
   pingIntervalMs?: number
   closeUnresponsiveConnectionTimeoutMs?: number
   reinitializeBatchTimeoutMs?: number
+  /* @internal */ getClientHandlers?: () =>
+    | DuplexRPCHandlers<ClientSchema>
+    | undefined
+  /* @internal */ setHostHandlers?: (
+    handlers: DuplexRPCHandlers<HostSchema>
+  ) => void
 }
 
 export interface QueuedAction {
@@ -202,8 +202,9 @@ export default class Interval {
       )
     }
 
-    if (typeof window !== 'undefined') {
-      window.clientHandlers.NOTIFY({
+    const clientHandlers = this.config.getClientHandlers?.()
+    if (clientHandlers) {
+      clientHandlers.NOTIFY({
         ...config,
         transactionId: config.transactionId ?? 'demo',
         deliveries: config.delivery || [

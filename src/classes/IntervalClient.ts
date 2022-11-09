@@ -18,7 +18,6 @@ import {
   ActionDefinition,
   PageDefinition,
   HostSchema,
-  ClientSchema,
 } from '../internalRpcSchema'
 import {
   ActionResultSchema,
@@ -53,15 +52,6 @@ import {
   MetaItemsSchema,
   BasicLayoutConfig,
 } from './Layout'
-
-declare global {
-  interface Window {
-    clientHandlers: DuplexRPCHandlers<ClientSchema>
-  }
-  interface Window {
-    hostHandlers: DuplexRPCHandlers<HostSchema>
-  }
-}
 
 import type { AsyncLocalStorage } from 'async_hooks'
 let actionLocalStorage: AsyncLocalStorage<IntervalActionStore> | undefined
@@ -165,8 +155,8 @@ export default class IntervalClient {
 
     this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
 
-    if (typeof window !== 'undefined') {
-      window.hostHandlers = this.#createRPCHandlers()
+    if (config.setHostHandlers) {
+      config.setHostHandlers(this.#createRPCHandlers())
     }
   }
 
@@ -296,10 +286,7 @@ export default class IntervalClient {
   }
 
   async listen() {
-    if (typeof window === 'undefined') {
-      await this.initializeConnection()
-      await this.#initializeHost()
-    } else {
+    if (this.#config.setHostHandlers && this.#config.getClientHandlers) {
       // in browser demo mode, we don't need to initialize the connection
       this.organization = {
         name: 'Demo Organization',
@@ -316,6 +303,9 @@ export default class IntervalClient {
           `🔗 Connected! Access your actions within the demo dashboard nearby.`
         )
       }
+    } else {
+      await this.initializeConnection()
+      await this.#initializeHost()
     }
   }
 
@@ -663,15 +653,15 @@ export default class IntervalClient {
             const ioCall = JSON.stringify(ioRenderInstruction)
             intervalClient.#pendingIOCalls.set(transactionId, ioCall)
 
-            if (typeof window === 'undefined') {
+            if (this.#config.getClientHandlers) {
+              await this.#config.getClientHandlers()?.RENDER({
+                transactionId,
+                toRender: ioCall,
+              })
+            } else {
               await intervalClient.#send('SEND_IO_CALL', {
                 transactionId,
                 ioCall,
-              })
-            } else {
-              await window.clientHandlers.RENDER({
-                transactionId,
-                toRender: ioCall,
               })
             }
 
@@ -722,13 +712,13 @@ export default class IntervalClient {
                 transactionId,
                 loadingState
               )
-              if (typeof window === 'undefined') {
-                await intervalClient.#send('SEND_LOADING_CALL', {
+              if (this.#config.getClientHandlers) {
+                await this.#config.getClientHandlers()?.LOADING_STATE({
                   transactionId,
                   ...loadingState,
                 })
               } else {
-                await window.clientHandlers.LOADING_STATE({
+                await intervalClient.#send('SEND_LOADING_CALL', {
                   transactionId,
                   ...loadingState,
                 })
@@ -773,15 +763,15 @@ export default class IntervalClient {
               return result
             })
             .then(async (res: ActionResultSchema) => {
-              if (typeof window === 'undefined') {
-                await intervalClient.#send('MARK_TRANSACTION_COMPLETE', {
+              if (this.#config.getClientHandlers) {
+                this.#config.getClientHandlers()?.TRANSACTION_COMPLETED({
                   transactionId,
+                  resultStatus: res.status,
                   result: JSON.stringify(res),
                 })
               } else {
-                window.clientHandlers.TRANSACTION_COMPLETED({
+                await intervalClient.#send('MARK_TRANSACTION_COMPLETE', {
                   transactionId,
-                  resultStatus: res.status,
                   result: JSON.stringify(res),
                 })
               }
@@ -957,7 +947,13 @@ export default class IntervalClient {
               }
             }
 
-            if (typeof window === 'undefined') {
+            if (this.#config.getClientHandlers) {
+              await this.#config.getClientHandlers()?.RENDER_PAGE({
+                pageKey,
+                page: JSON.stringify(pageLayout),
+                hostInstanceId: 'demo',
+              })
+            } else {
               for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
                 try {
                   await this.#send('SEND_PAGE', {
@@ -974,12 +970,6 @@ export default class IntervalClient {
               throw new IntervalError(
                 'Unsuccessful sending page, max retries exceeded.'
               )
-            } else {
-              await window.clientHandlers.RENDER_PAGE({
-                pageKey,
-                page: JSON.stringify(pageLayout),
-                hostInstanceId: 'demo',
-              })
             }
           }
         }
@@ -1357,7 +1347,14 @@ export default class IntervalClient {
         '\n^ Warning: 10k logline character limit reached.\nTo avoid this error, try separating your data into multiple ctx.log() calls.'
     }
 
-    if (typeof window === 'undefined') {
+    if (this.#config.getClientHandlers) {
+      await this.#config.getClientHandlers()?.LOG({
+        transactionId,
+        data,
+        timestamp: new Date().valueOf(),
+        index,
+      })
+    } else {
       await this.#send('SEND_LOG', {
         transactionId,
         data,
@@ -1365,13 +1362,6 @@ export default class IntervalClient {
         timestamp: new Date().valueOf(),
       }).catch(err => {
         this.#logger.error('Failed sending log to Interval', err)
-      })
-    } else {
-      await window.clientHandlers.LOG({
-        transactionId,
-        data,
-        timestamp: new Date().valueOf(),
-        index,
       })
     }
   }
