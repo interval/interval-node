@@ -66,10 +66,16 @@ export interface QueuedAction {
 }
 
 export function getActionStore(): IntervalActionStore {
-  const store = actionLocalStorage?.getStore()
+  if (!actionLocalStorage) {
+    throw new IntervalError(
+      'Global io and ctx objects are only available in a Node.js context'
+    )
+  }
+
+  const store = actionLocalStorage.getStore()
   if (!store) {
     throw new IntervalError(
-      'Global io and ctx objects can only be used inside an IntervalActionHandler'
+      'Global io and ctx objects can only be used inside an Action'
     )
   }
 
@@ -77,10 +83,16 @@ export function getActionStore(): IntervalActionStore {
 }
 
 export function getPageStore(): IntervalPageStore {
-  const store = pageLocalStorage?.getStore()
+  if (!pageLocalStorage) {
+    throw new IntervalError(
+      'Global io and ctx objects are only available in a Node.js context'
+    )
+  }
+
+  const store = pageLocalStorage.getStore()
   if (!store) {
     throw new IntervalError(
-      'Global io and ctx objects can only be used inside an App'
+      'Global io and ctx objects can only be used inside a Page'
     )
   }
 
