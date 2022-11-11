@@ -1,4 +1,10 @@
-import type { T_IO_PROPS, T_IO_RETURNS, T_IO_STATE } from '../ioSchema'
+import type {
+  ImageSchema,
+  ImageSize,
+  T_IO_PROPS,
+  T_IO_RETURNS,
+  T_IO_STATE,
+} from '../ioSchema'
 import IOError from '../classes/IOError'
 
 type RenderResultDef =
@@ -9,6 +15,14 @@ type RenderResultDef =
   | {
       label: string | number | boolean | Date
       description?: string
+      image?: {
+        url: string
+        alt?: string
+        size?: ImageSize
+      }
+      /**
+       * @deprecated Deprecated in favor of `image.url`.
+       */
       imageUrl?: string
     }
 
