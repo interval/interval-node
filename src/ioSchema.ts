@@ -137,7 +137,9 @@ export type ImageSize = z.infer<typeof imageSize>
 export const imageSchema = z.object({
   alt: z.string().optional(),
   size: imageSize.optional(),
+  // deprecated/undocumented in 0.33.0
   width: imageSize.optional(),
+  // deprecated/undocumented in 0.33.0
   height: imageSize.optional(),
   url: z.string(),
 })

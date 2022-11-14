@@ -1,6 +1,5 @@
 import type {
   ImageSchema,
-  ImageSize,
   T_IO_PROPS,
   T_IO_RETURNS,
   T_IO_STATE,
@@ -15,11 +14,7 @@ type RenderResultDef =
   | {
       label: string | number | boolean | Date
       description?: string
-      image?: {
-        url: string
-        alt?: string
-        size?: ImageSize
-      }
+      image?: ImageSchema
       /**
        * @deprecated Deprecated in favor of `image.url`.
        */

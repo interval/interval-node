@@ -421,8 +421,7 @@ const interval = new Interval({
           value: 'Optional caption',
           image: {
             url: 'https://picsum.photos/200/300',
-            width: 'small',
-            height: 'small',
+            size: 'small',
           },
         },
       ]
