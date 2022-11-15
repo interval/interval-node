@@ -667,6 +667,7 @@ export default class IntervalClient {
 
             intervalClient.#transactionLoadingStates.delete(transactionId)
           },
+          isDemo: !!this.#config.getClientHandlers,
           // onAddInlineAction: handler => {
           //   const key = v4()
           //   intervalClient.#actionHandlers.set(key, handler)
@@ -1019,6 +1020,7 @@ export default class IntervalClient {
             renderInstruction = instruction
             scheduleSendPage()
           },
+          isDemo: !!this.#config.getClientHandlers,
           // onAddInlineAction: () => {
           //   const key = v4()
           //   this.#actionHandlers.set(key, handler)

@@ -52,6 +52,7 @@ import { IntervalError } from '..'
 interface ClientConfig {
   logger: Logger
   send: IORenderSender
+  isDemo?: boolean
   // onAddInlineAction: (handler: IntervalActionHandler) => string
 }
 
@@ -77,6 +78,7 @@ export type IOClientRenderValidator<
 export class IOClient {
   logger: Logger
   send: IORenderSender
+  isDemo: boolean
   // onAddInlineAction: (handler: IntervalActionHandler) => string
 
   onResponseHandler: ResponseHandlerFn | undefined
@@ -86,6 +88,7 @@ export class IOClient {
   constructor(config: ClientConfig) {
     this.logger = config.logger
     this.send = config.send
+    this.isDemo = !!config.isDemo
     // this.onAddInlineAction = config.onAddInlineAction
   }
 
@@ -413,11 +416,18 @@ export class IOClient {
     methodName: MethodName,
     {
       componentDef,
+      demoUnsupported = false,
     }: {
       componentDef?: IOComponentDefinition<MethodName, Props, Output>
+      demoUnsupported?: boolean
     } = {}
   ): ExclusiveIOComponentFunction<MethodName, Props, Output> {
     return (label: string, props?: Props) => {
+      if (demoUnsupported && this.isDemo) {
+        throw new IntervalError(
+          `The ${methodName} method isn't supported in demo mode`
+        )
+      }
       const promiseProps = this.getPromiseProps(methodName, props, componentDef)
       return new ExclusiveIOPromise({
         ...promiseProps,
@@ -438,8 +448,9 @@ export class IOClient {
       group: this.group.bind(this),
 
       confirm: this.createExclusiveIOMethod('CONFIRM'),
-      confirmIdentity: this.createExclusiveIOMethod('CONFIRM_IDENTITY'),
-
+      confirmIdentity: this.createExclusiveIOMethod('CONFIRM_IDENTITY', {
+        demoUnsupported: true,
+      }),
       search: this.createIOMethod('SEARCH', {
         propsRequired: true,
         componentDef: search,
