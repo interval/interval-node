@@ -2,7 +2,7 @@
  * Loads actions from the file system
  */
 import path from 'path'
-import fs, { stat } from 'fs/promises'
+import fs from 'fs/promises'
 
 import Action from '../classes/Action'
 import Page from '../classes/Page'
@@ -26,7 +26,7 @@ async function loadFolder(currentDirectory: string, logger: Logger) {
 
     const ext = path.extname(file)
     const slug = path.basename(file, ext || undefined)
-    if ((await stat(fullPath)).isDirectory()) {
+    if ((await fs.stat(fullPath)).isDirectory()) {
       const group = await loadFolder(path.join(currentDirectory, slug), logger)
       router.routes[slug] = group
     } else if (ext === '.ts' || ext === '.js') {
