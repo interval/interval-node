@@ -519,8 +519,13 @@ export default class IntervalClient {
     if (this.#apiKey) {
       headers['x-api-key'] = this.#apiKey
     } else if (!this.#apiKey) {
-      this.#ghostOrgId = await this.#findOrCreateGhostModeAccount()
-      headers['x-ghost-org-id'] = this.#ghostOrgId
+      try {
+        this.#ghostOrgId = await this.#findOrCreateGhostModeAccount()
+        headers['x-ghost-org-id'] = this.#ghostOrgId
+      } catch (err) {
+        this.#log.debug('Failed creating ghost mode account:', err)
+        // User-facing error will be shown when trying to connect below
+      }
     }
 
     const ws = new ISocket(
