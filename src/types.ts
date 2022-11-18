@@ -19,7 +19,7 @@ import type {
   SerializableRecord,
   LegacyLinkProps,
 } from './ioSchema'
-import type { HostSchema } from './internalRpcSchema'
+import type { AccessControlDefinition, HostSchema } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
 import type IOComponent from './classes/IOComponent'
 import type {
@@ -90,6 +90,7 @@ export interface ExplicitIntervalActionDefinition {
   unlisted?: boolean
   name?: string
   description?: string
+  accessControl?: AccessControlDefinition
 }
 
 export type IntervalActionDefinition =
@@ -194,11 +195,13 @@ export type ComponentsRenderer<
   components: Components,
   validator?: IOClientRenderValidator<Components>,
   continueButton?: ButtonConfig
-) => Promise<{
-  [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-    ? z.infer<Components[Idx]['schema']['returns']> | undefined
-    : Components[Idx]
-}>
+) => Promise<
+  {
+    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+      ? z.infer<Components[Idx]['schema']['returns']> | undefined
+      : Components[Idx]
+  }
+>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 

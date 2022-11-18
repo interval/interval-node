@@ -155,6 +155,7 @@ export default class IntervalClient {
         description: router.description,
         hasHandler: !!router.handler,
         unlisted: router.unlisted,
+        accessControl: router.accessControl,
       })
 
       if (router.handler) {

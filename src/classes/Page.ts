@@ -1,4 +1,5 @@
 import { Evt } from 'evt'
+import { AccessControlDefinition } from '../internalRpcSchema'
 import {
   IntervalActionDefinition,
   IntervalPageHandler,
@@ -13,6 +14,7 @@ export interface PageConfig {
   groups?: Record<string, Page>
   routes?: IntervalRouteDefinitions
   handler?: IntervalPageHandler
+  accessControl?: AccessControlDefinition
 }
 
 export default class Page {
@@ -21,6 +23,7 @@ export default class Page {
   unlisted?: boolean
   routes: IntervalRouteDefinitions
   handler?: IntervalPageHandler
+  accessControl?: AccessControlDefinition
 
   onChange: Evt<void>
   #groupChangeCtx = Evt.newCtx()
@@ -34,6 +37,7 @@ export default class Page {
       ...config.actions,
       ...config.groups,
     }
+    this.accessControl = config.accessControl
     this.handler = config.handler
     this.onChange = new Evt()
 

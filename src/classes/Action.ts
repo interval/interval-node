@@ -1,3 +1,4 @@
+import { AccessControlDefinition } from '../internalRpcSchema'
 import {
   ExplicitIntervalActionDefinition,
   IntervalActionDefinition,
@@ -10,6 +11,7 @@ export default class Action implements ExplicitIntervalActionDefinition {
   unlisted?: boolean
   name?: string
   description?: string
+  accessControl?: AccessControlDefinition
 
   constructor(
     def: ExplicitIntervalActionDefinition | IntervalActionDefinition
