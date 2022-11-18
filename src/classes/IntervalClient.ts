@@ -59,7 +59,7 @@ let pageLocalStorage: AsyncLocalStorage<IntervalPageStore> | undefined
 
 async function initAsyncLocalStorage() {
   try {
-    if (typeof window !== 'undefined') {
+    if (typeof window === 'undefined') {
       const {
         default: { AsyncLocalStorage },
       } = await import('async_hooks')
