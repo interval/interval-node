@@ -1369,6 +1369,12 @@ export default class IntervalClient {
   }
 
   async #sendRedirect(transactionId: string, props: LegacyLinkProps) {
+    if (this.#config.getClientHandlers) {
+      throw new IntervalError(
+        `The ctx.redirect method isn't supported in demo mode`
+      )
+    }
+
     const response = await this.#send('SEND_REDIRECT', {
       transactionId,
       ...props,
