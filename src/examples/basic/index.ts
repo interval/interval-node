@@ -154,40 +154,6 @@ const prod = new Interval({
         },
       })
     },
-    permissions: new Router({
-      name: 'Permissions',
-      routes: {
-        support: {
-          name: 'Support action',
-          description: 'This action can only be run by the Support team.',
-          handler: async () => {
-            return 'Hello, world!'
-          },
-          accessControl: {
-            teams: ['Support'],
-          },
-        },
-        organization: {
-          name: 'Organization action',
-          description: 'This action can be run by anyone in the organization.',
-          handler: async () => {
-            return 'Hello, world!'
-          },
-          accessControl: 'organization',
-        },
-        no_access: {
-          name: 'No-access action',
-          description:
-            "This action can't be run by anyone in the organization.",
-          handler: async () => {
-            return 'Hello, world!'
-          },
-          accessControl: {
-            teams: ['Engineers'],
-          },
-        },
-      },
-    }),
   },
 })
 
