@@ -34,7 +34,8 @@ const actions: Record<string, IntervalActionDefinition> = {
   },
   no_access: {
     name: 'No-access action',
-    description: "This action can't be run by anyone in the organization.",
+    description:
+      "This action can't be run by anyone in the organization except admins.",
     handler: async () => {
       return 'Hello, world!'
     },
