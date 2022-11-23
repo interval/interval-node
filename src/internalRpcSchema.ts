@@ -115,10 +115,10 @@ export const DEQUEUE_ACTION = {
 
 export const NOTIFY = {
   inputs: z.object({
-    transactionId: z.string(),
+    transactionId: z.string().optional(),
     message: z.string(),
     title: z.string().optional(),
-    deliveries: z.array(
+    deliveryInstructions: z.array(
       z.object({
         to: z.string(),
         method: z.enum(['EMAIL', 'SLACK']).optional(),

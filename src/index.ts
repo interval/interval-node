@@ -233,7 +233,7 @@ export default class Interval {
     try {
       body = NOTIFY.inputs.parse({
         ...config,
-        deliveries: config.delivery,
+        deliveryInstructions: config.delivery,
         createdAt: new Date().toISOString(),
       })
     } catch (err) {
