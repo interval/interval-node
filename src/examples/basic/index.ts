@@ -185,6 +185,70 @@ const interval = new Interval({
         }),
       ])
     },
+    spreadsheet: async io => {
+      const sheet = await io.experimental.spreadsheet('Enter records', {
+        columns: {
+          string: 'string',
+          optionalString: 'string?',
+          number: 'number',
+          boolean: 'boolean',
+        },
+      })
+
+      return sheet[0]
+    },
+    optional: async io => {
+      await io.input.text('Text').optional()
+      await io.input.email('Email').optional()
+      await io.input.number('Number').optional()
+      await io.input.richText('Rich text').optional()
+      await io.input.date('Date').optional()
+      await io.input.time('Time').optional()
+      await io.input.datetime('Datetime').optional()
+
+      await io.select
+        .single('Select single', {
+          options: [],
+        })
+        .optional()
+      await io.select
+        .single('Select multiple', {
+          options: [],
+        })
+        .optional()
+      await io
+        .search('Search', {
+          async onSearch() {
+            return []
+          },
+          renderResult: () => '',
+        })
+        .optional()
+
+      const date = await io.input.date('Date').optional()
+      const datetime = await io.input.datetime('Datetime').optional()
+      const table = await io.select
+        .table('Table', {
+          data: [
+            { a: 1, b: 2, c: 3 },
+            { a: 4, b: 5, c: 6 },
+            { a: 7, b: 8, c: 9 },
+          ],
+          minSelections: 1,
+          maxSelections: 1,
+        })
+        .optional()
+
+      await io.display.object('Date', {
+        data: date,
+      })
+
+      await io.display.object('Datetime', {
+        data: datetime,
+      })
+
+      return table?.[0]
+    },
     disabled_inputs: async io => {
       await io.group([
         io.display.heading('Here are a bunch of disabled inputs'),
