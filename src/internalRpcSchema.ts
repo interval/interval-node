@@ -48,7 +48,6 @@ export type LoadingState = z.input<typeof LOADING_STATE>
 export const ACCESS_CONTROL_DEFINITION = z.union([
   z.literal('organization'),
   z.object({
-    users: z.array(z.string()).optional(),
     teams: z.array(z.string()).optional(),
   }),
 ])
