@@ -30,7 +30,7 @@ import { IOClientRenderReturnValues } from './IOClient'
  */
 export class IOPromise<
   MethodName extends T_IO_METHOD_NAMES,
-  Props = T_IO_PROPS<MethodName>,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
 > {
   protected methodName: MethodName
@@ -106,13 +106,13 @@ export class IOPromise<
  */
 export class DisplayIOPromise<
   MethodName extends T_IO_DISPLAY_METHOD_NAMES,
-  Props = T_IO_PROPS<MethodName>,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
 > extends IOPromise<MethodName, Props, Output> {}
 
 export class InputIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
-  Props = T_IO_PROPS<MethodName>,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
 > extends IOPromise<MethodName, Props, Output> {
   get component() {
@@ -176,7 +176,7 @@ export class InputIOPromise<
  */
 export class OptionalIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
-  Props = T_IO_PROPS<MethodName>,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
 > extends InputIOPromise<MethodName, Props, Output | undefined> {
   then(
@@ -229,7 +229,7 @@ export class OptionalIOPromise<
  */
 export class ExclusiveIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
-  Props = T_IO_PROPS<MethodName>,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
 > extends IOPromise<MethodName, Props, Output> {
   get component() {

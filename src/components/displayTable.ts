@@ -13,7 +13,7 @@ import {
   columnsWithoutRender,
 } from '../utils/table'
 
-type PublicProps<Row> = Omit<
+type PublicProps<Row extends z.infer<typeof tableRow>> = Omit<
   T_IO_PROPS<'DISPLAY_TABLE'>,
   'data' | 'columns' | 'totalRecords' | 'isAsync'
 > & {

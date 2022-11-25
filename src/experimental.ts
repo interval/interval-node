@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Evt, VoidCtx } from 'evt'
+import { Evt, Ctx } from 'evt'
 import fetch from 'node-fetch'
 import type { IncomingMessage, ServerResponse } from 'http'
 import Interval, { io, ctx, InternalConfig, IntervalError } from '.'
@@ -256,10 +256,10 @@ class ExperimentalInterval extends Interval {
 }
 
 export class ExperimentalRoutes extends Routes {
-  #groupChangeCtx: VoidCtx
+  #groupChangeCtx: Ctx<void>
 
   constructor(
-    ctx: VoidCtx,
+    ctx: Ctx<void>,
     interval: Interval,
     endpoint: string,
     logger: Logger,
