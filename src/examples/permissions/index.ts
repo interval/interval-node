@@ -55,7 +55,7 @@ const actions: Record<string, IntervalActionDefinition> = {
 const routes: IntervalRouteDefinitions = {
   ...actions,
   engineersGroup: new Page({
-    name: 'Engineers group',
+    name: 'Engineers actions',
     description: 'Can only be seen and accessed by the Engineers group',
     accessControl: {
       teams: ['Engineers'],
@@ -74,16 +74,16 @@ const routes: IntervalRouteDefinitions = {
       action: actions['inherited'],
     },
   }),
-  nestedAccess: new Page({
-    name: 'Nested access',
+  mixedAccess: new Page({
+    name: 'Mixed access',
     description:
-      'Does not have access to this group, but has access to an action within the group',
+      'This is a support-only group, but engineers can access an action within it.',
     accessControl: {
       teams: ['Support'],
     },
     routes: {
       engAction: {
-        name: 'You can run this',
+        name: 'Engineers can run this',
         description: 'This action can only be run by the Engineers team.',
         accessControl: {
           teams: ['Engineers'],
@@ -93,7 +93,7 @@ const routes: IntervalRouteDefinitions = {
         },
       },
       supportAction: {
-        name: "You can't run this",
+        name: "Engineers can't run this",
         description: 'Inherits access from the group',
         handler: async () => {
           return 'Hello, world!'
@@ -104,7 +104,7 @@ const routes: IntervalRouteDefinitions = {
   deeplyNested: new Page({
     name: 'Deeply nested access',
     description:
-      'Does not have access to this group, but has access to an action within the group',
+      'Engineers do not have access to this group, but can access an action within the group',
     accessControl: {
       teams: ['Support'],
     },
