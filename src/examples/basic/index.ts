@@ -164,6 +164,24 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
+    two_searches: async io => {
+      const [r1, r2] = await io.group([
+        io.search('One', {
+          onSearch: async query => fakeDb.find(query),
+          renderResult: result => ({
+            label: `${result.first_name} ${result.last_name}`,
+          }),
+        }),
+        io.search('Two', {
+          onSearch: async query => fakeDb.find(query),
+          renderResult: result => ({
+            label: `${result.first_name} ${result.last_name}`,
+          }),
+        }),
+      ])
+
+      console.log({ r1, r2 })
+    },
     section_heading: async io => {
       await io.group([
         io.display.heading('Section heading', {
