@@ -1,5 +1,5 @@
 <a href="https://interval.com">
-  <img alt="Interval" width="100" height="100" style="border-radius: 6px;" src="interval-avatar.png">
+  <img alt="Interval" width="100" height="100" style="border-radius: 6px;" src="https://interval.com/img/readme-assets/interval-avatar.png">
 </a>
 
 # Interval Node.js SDK
@@ -50,7 +50,7 @@ With Interval, you do not need to:
 - Give Interval write access to your database (or give us _any_ of your credentials, for that matter).
 - Build web UIs with a drag-and-drop interface.
 
-<img alt="An image containing a code sample alongside a screenshot of the Interval app it generates." src="screenshot.png">
+<img alt="An image containing a code sample alongside a screenshot of the Interval app it generates." src="https://interval.com/img/readme-assets/screenshot.png">
 
 ## More about Interval
 
