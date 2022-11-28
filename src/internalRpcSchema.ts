@@ -329,6 +329,7 @@ export const clientSchema = {
     inputs: z.object({
       transactionId: z.string(),
       resultStatus: z.enum(['SUCCESS', 'FAILURE', 'CANCELED', 'REDIRECTED']),
+      result: z.string().optional(),
     }),
     returns: z.void().nullable(),
   },

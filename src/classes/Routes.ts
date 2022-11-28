@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import fetch from 'node-fetch'
+import fetch from 'cross-fetch'
 import * as superjson from 'superjson'
 import Logger from './Logger'
 import Interval, { IntervalError, QueuedAction } from '..'

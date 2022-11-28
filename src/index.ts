@@ -1,10 +1,11 @@
 import { z } from 'zod'
-import fetch from 'node-fetch'
+import fetch from 'cross-fetch'
 import Routes from './classes/Routes'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
 import Page from './classes/Page'
-import { NOTIFY } from './internalRpcSchema'
+import { NOTIFY, ClientSchema, HostSchema } from './internalRpcSchema'
+import { DuplexRPCHandlers } from './classes/DuplexRPCClient'
 import { SerializableRecord } from './ioSchema'
 import type {
   ActionCtx,
@@ -50,6 +51,12 @@ export interface InternalConfig {
   pingIntervalMs?: number
   closeUnresponsiveConnectionTimeoutMs?: number
   reinitializeBatchTimeoutMs?: number
+  /* @internal */ getClientHandlers?: () =>
+    | DuplexRPCHandlers<ClientSchema>
+    | undefined
+  /* @internal */ setHostHandlers?: (
+    handlers: DuplexRPCHandlers<HostSchema>
+  ) => void
 }
 
 export interface QueuedAction {
@@ -59,10 +66,16 @@ export interface QueuedAction {
 }
 
 export function getActionStore(): IntervalActionStore {
+  if (!actionLocalStorage) {
+    throw new IntervalError(
+      'Global io and ctx objects are only available in a Node.js context'
+    )
+  }
+
   const store = actionLocalStorage.getStore()
   if (!store) {
     throw new IntervalError(
-      'Global io and ctx objects can only be used inside an IntervalActionHandler'
+      'Global io and ctx objects can only be used inside an Action'
     )
   }
 
@@ -70,10 +83,16 @@ export function getActionStore(): IntervalActionStore {
 }
 
 export function getPageStore(): IntervalPageStore {
+  if (!pageLocalStorage) {
+    throw new IntervalError(
+      'Global io and ctx objects are only available in a Node.js context'
+    )
+  }
+
   const store = pageLocalStorage.getStore()
   if (!store) {
     throw new IntervalError(
-      'Global io and ctx objects can only be used inside an App'
+      'Global io and ctx objects can only be used inside a Page'
     )
   }
 
@@ -185,6 +204,31 @@ export default class Interval {
   }
 
   async notify(config: NotifyConfig): Promise<void> {
+    if (
+      !config.transactionId &&
+      (this.#client?.environment === 'development' ||
+        (!this.#client?.environment && !this.#apiKey?.startsWith('live_')))
+    ) {
+      this.#log.warn(
+        'Calls to notify() outside of a transaction currently have no effect when Interval is instantiated with a development API key. Please use a live key to send notifications.'
+      )
+    }
+
+    const clientHandlers = this.config.getClientHandlers?.()
+    if (clientHandlers) {
+      clientHandlers.NOTIFY({
+        ...config,
+        transactionId: config.transactionId ?? 'demo',
+        deliveries: config.delivery || [
+          {
+            method: 'EMAIL',
+            to: 'demo@interval.com',
+          },
+        ],
+      })
+      return
+    }
+
     let body: z.infer<typeof NOTIFY['inputs']>
     try {
       body = NOTIFY.inputs.parse({
@@ -195,16 +239,6 @@ export default class Interval {
     } catch (err) {
       this.#logger.debug(err)
       throw new IntervalError('Invalid input.')
-    }
-
-    if (
-      !config.transactionId &&
-      (this.#client?.environment === 'development' ||
-        (!this.#client?.environment && !this.#apiKey?.startsWith('live_')))
-    ) {
-      this.#log.warn(
-        'Calls to notify() outside of a transaction currently have no effect when Interval is instantiated with a development API key. Please use a live key to send notifications.'
-      )
     }
 
     const response = await fetch(`${this.#httpEndpoint}/api/notify`, {

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { Evt, Ctx } from 'evt'
-import fetch from 'node-fetch'
+import fetch from 'cross-fetch'
 import type { IncomingMessage, ServerResponse } from 'http'
 import Interval, { io, ctx, InternalConfig, IntervalError } from '.'
 import IntervalClient from './classes/IntervalClient'
