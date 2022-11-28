@@ -326,7 +326,7 @@ const interval = new Interval({
         }),
         io.input.date('Date input', { disabled: true }),
         io.input.time('Time input', { disabled: true }),
-        io.experimental.input.file('File input', { disabled: true }),
+        io.input.file('File input', { disabled: true }),
       ])
 
       return 'Done!'
@@ -1052,23 +1052,20 @@ const interval = new Interval({
       return { message: 'OK, notified!' }
     },
     upload: async (io, ctx) => {
-      const customDestinationFile = await io.experimental.input.file(
-        'Upload an image!',
-        {
-          helpText: 'Will be uploaded to the custom destination.',
-          allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
-          generatePresignedUrls: async ({ name }) => {
-            const urlSafeName = name.replace(/ /g, '-')
-            const path = `custom-endpoint/${new Date().getTime()}-${urlSafeName}`
+      const customDestinationFile = await io.input.file('Upload an image!', {
+        helpText: 'Will be uploaded to the custom destination.',
+        allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
+        generatePresignedUrls: async ({ name }) => {
+          const urlSafeName = name.replace(/ /g, '-')
+          const path = `custom-endpoint/${new Date().getTime()}-${urlSafeName}`
 
-            return generateS3Urls(path)
-          },
-        }
-      )
+          return generateS3Urls(path)
+        },
+      })
 
       console.log(await customDestinationFile.url())
 
-      const file = await io.experimental.input.file('Upload an image!', {
+      const file = await io.input.file('Upload an image!', {
         helpText:
           'Will be uploaded to Interval and expire after the action finishes running.',
         allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
