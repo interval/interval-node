@@ -6,12 +6,27 @@ import {
   serializableRecord,
 } from './ioSchema'
 
-export const DUPLEX_MESSAGE_SCHEMA = z.object({
-  id: z.string(),
-  methodName: z.string(),
-  data: z.any(),
-  kind: z.enum(['CALL', 'RESPONSE']),
-})
+export const DUPLEX_MESSAGE_SCHEMA = z.discriminatedUnion('kind', [
+  z.object({
+    id: z.string(),
+    kind: z.literal('CALL'),
+    methodName: z.string(),
+    data: z.any(),
+  }),
+  z.object({
+    id: z.string(),
+    kind: z.literal('RESPONSE'),
+    methodName: z.string(),
+    data: z.any(),
+  }),
+  z.object({
+    id: z.string(),
+    kind: z.literal('CALL_CHUNK'),
+    chunk: z.number(),
+    totalChunks: z.number(),
+    data: z.string(),
+  }),
+])
 
 export type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
 

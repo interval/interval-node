@@ -1,6 +1,7 @@
 import { z, ZodError } from 'zod'
 import type { DuplexMessage } from '../internalRpcSchema'
 import { DUPLEX_MESSAGE_SCHEMA } from '../internalRpcSchema'
+import IntervalError from './IntervalError'
 import ISocket from './ISocket'
 
 let count = 0
@@ -18,31 +19,6 @@ export interface MethodDef {
 
 type OnReplyFn = (anyObject: any) => void
 
-function packageResponse({
-  id,
-  methodName,
-  data,
-}: Omit<DuplexMessage, 'kind'>) {
-  const preparedResponseText: DuplexMessage = {
-    id: id,
-    kind: 'RESPONSE',
-    methodName: methodName,
-    data,
-  }
-  return JSON.stringify(preparedResponseText)
-}
-
-function packageCall({ id, methodName, data }: Omit<DuplexMessage, 'kind'>) {
-  const callerData: DuplexMessage = {
-    id,
-    kind: 'CALL',
-    data,
-    methodName: methodName as string, // ??
-  }
-
-  return JSON.stringify(callerData)
-}
-
 export type DuplexRPCHandlers<ResponderSchema extends MethodDef> = {
   [Property in keyof ResponderSchema]: (
     inputs: z.infer<ResponderSchema[Property]['inputs']>
@@ -57,6 +33,18 @@ interface CreateDuplexRPCClientProps<
   canCall: CallerSchema
   canRespondTo: ResponderSchema
   handlers: DuplexRPCHandlers<ResponderSchema>
+}
+
+function getSizeBytes(str: string): number {
+  if (typeof Blob !== 'undefined') {
+    return new Blob([str]).size
+  } else if (typeof Buffer !== 'undefined') {
+    return Buffer.from(str).byteLength
+  } else {
+    throw new IntervalError(
+      'Unsupported runtime, must have either Buffer or Blob global'
+    )
+  }
 }
 
 /**
@@ -82,6 +70,7 @@ export class DuplexRPCClient<
     ) => Promise<z.infer<ResponderSchema[Property]['returns']>>
   }
   pendingCalls = new Map<string, OnReplyFn>()
+  messageChunks = new Map<string, string[]>()
 
   constructor({
     communicator,
@@ -96,13 +85,78 @@ export class DuplexRPCClient<
     this.handlers = handlers
   }
 
+  private packageResponse({
+    id,
+    methodName,
+    data,
+  }: Omit<DuplexMessage & { kind: 'RESPONSE' }, 'kind'>) {
+    const preparedResponseText: DuplexMessage = {
+      id: id,
+      kind: 'RESPONSE',
+      methodName: methodName,
+      data,
+    }
+    return JSON.stringify(preparedResponseText)
+  }
+
+  private packageCall({
+    id,
+    methodName,
+    data,
+  }: Omit<DuplexMessage & { kind: 'CALL' }, 'kind'>): string | string[] {
+    const callerData: DuplexMessage = {
+      id,
+      kind: 'CALL',
+      data,
+      methodName: methodName as string, // ??
+    }
+
+    const totalData = JSON.stringify(callerData)
+    const totalSize = getSizeBytes(totalData)
+    const maxMessageSize = this.communicator.maxMessageSize
+    if (maxMessageSize === undefined || totalSize < maxMessageSize) {
+      return totalData
+    }
+
+    // console.debug('Chunking!')
+    // console.debug('Max size:', maxMessageSize)
+
+    let chunkStart = 0
+    const chunks: string[] = []
+
+    const MESSAGE_OVERHEAD_SIZE = 4096 // magic number from experimentation
+    while (chunkStart < totalData.length) {
+      const chunkEnd = chunkStart + maxMessageSize - MESSAGE_OVERHEAD_SIZE
+      chunks.push(totalData.substring(chunkStart, chunkEnd))
+      chunkStart = chunkEnd
+    }
+
+    const totalChunks = chunks.length
+    return chunks.map((data, chunk) => {
+      const chunkData: DuplexMessage = {
+        id,
+        kind: 'CALL_CHUNK',
+        totalChunks,
+        chunk,
+        data,
+      }
+
+      const chunkString = JSON.stringify(chunkData)
+
+      // console.debug('Data size:', getSizeBytes(data))
+      // console.debug('Chunk size:', getSizeBytes(chunkString))
+
+      return chunkString
+    })
+  }
+
   public setCommunicator(newCommunicator: ISocket): void {
     this.communicator.onMessage.detach()
     this.communicator = newCommunicator
     this.communicator.onMessage.attach(this.onmessage.bind(this))
   }
 
-  private handleReceivedResponse(parsed: DuplexMessage) {
+  private handleReceivedResponse(parsed: DuplexMessage & { kind: 'RESPONSE' }) {
     const onReplyFn = this.pendingCalls.get(parsed.id)
     if (!onReplyFn) return
 
@@ -110,7 +164,7 @@ export class DuplexRPCClient<
     this.pendingCalls.delete(parsed.id)
   }
 
-  private async handleReceivedCall(parsed: DuplexMessage) {
+  private async handleReceivedCall(parsed: DuplexMessage & { kind: 'CALL' }) {
     type MethodKeys = keyof typeof this.canRespondTo
 
     const methodName = parsed.methodName as MethodKeys
@@ -127,7 +181,7 @@ export class DuplexRPCClient<
 
     const returnValue = await handler(inputs)
 
-    const preparedResponseText = packageResponse({
+    const preparedResponseText = this.packageResponse({
       id: parsed.id,
       methodName: methodName as string, //??
       data: returnValue,
@@ -145,7 +199,32 @@ export class DuplexRPCClient<
   private async onmessage(data: unknown) {
     const txt = data as string
     try {
-      const inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
+      let inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
+
+      if (inputParsed.kind === 'CALL_CHUNK') {
+        let chunks = this.messageChunks.get(inputParsed.id)
+        if (!chunks) {
+          chunks = Array(inputParsed.totalChunks)
+          this.messageChunks.set(inputParsed.id, chunks)
+        }
+        chunks[inputParsed.chunk] = inputParsed.data
+        let complete = true
+        for (let i = 0; i < inputParsed.totalChunks; i++) {
+          complete = complete && !!chunks[i]
+        }
+        if (complete) {
+          const combinedData = chunks.join('')
+          try {
+            inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(combinedData))
+          } catch (err) {
+            console.error(
+              '[DuplexRPCClient] Failed reconstructing chunked call:',
+              err
+            )
+            throw err
+          }
+        }
+      }
 
       if (inputParsed.kind === 'CALL') {
         try {
@@ -164,9 +243,7 @@ export class DuplexRPCClient<
           }
           console.error(err)
         }
-      }
-
-      if (inputParsed.kind === 'RESPONSE') {
+      } else if (inputParsed.kind === 'RESPONSE') {
         try {
           this.handleReceivedResponse(inputParsed)
         } catch (err) {
@@ -191,13 +268,13 @@ export class DuplexRPCClient<
     }
   }
 
-  public send<MethodName extends keyof CallerSchema>(
+  public async send<MethodName extends keyof CallerSchema>(
     methodName: MethodName,
     inputs: z.input<CallerSchema[MethodName]['inputs']>
   ) {
     const id = generateId()
 
-    const msg = packageCall({
+    const msg = this.packageCall({
       id,
       data: inputs,
       methodName: methodName as string, // ??
@@ -216,9 +293,19 @@ export class DuplexRPCClient<
         }
       })
 
-      this.communicator.send(msg).catch(err => {
-        reject(err)
-      })
+      if (Array.isArray(msg)) {
+        Promise.all(
+          msg.map(chunk => {
+            this.communicator.send(chunk)
+          })
+        ).catch(err => {
+          reject(err)
+        })
+      } else {
+        this.communicator.send(msg).catch(err => {
+          reject(err)
+        })
+      }
     })
   }
 }

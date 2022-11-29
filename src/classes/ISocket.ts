@@ -58,6 +58,19 @@ export class DataChannelSocket {
     }
   }
 
+  get maxMessageSize(): number {
+    // This is unreliable, is the max size the other end supports but not necessarily what the originating end supports.
+    // Also it's not always implemented in browsers yet, for some reason.
+    //
+    // if ('maxMessageSize' in this.dc) {
+    //   return this.dc.maxMessageSize()
+    // }
+
+    // Firefox can support up to 1GB, but this is the safe lower-bound assumption for compatibility
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Using_data_channels#concerns_with_large_messages
+    return 16_000
+  }
+
   close(code?: number, reason?: string) {
     // TODO: Do something with codes?
     this.#readyState = 'closing'
@@ -154,6 +167,14 @@ export default class ISocket {
   id: string
 
   private pendingMessages = new Map<string, PendingMessage>()
+
+  get maxMessageSize(): number | undefined {
+    if ('maxMessageSize' in this.ws) {
+      return this.ws.maxMessageSize
+    }
+
+    return undefined
+  }
 
   /** Client **/
   /**
