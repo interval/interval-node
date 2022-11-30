@@ -374,6 +374,7 @@ export const wsServerSchema = {
             slug: z.string(),
           }),
           dashboardUrl: z.string(),
+          forcePeerMessages: z.boolean().optional(),
           sdkAlert: SDK_ALERT.nullish(),
           warnings: z.array(z.string()),
         }),

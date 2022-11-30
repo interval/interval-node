@@ -129,6 +129,7 @@ export default class IntervalClient {
       }
     | undefined
   environment: ActionEnvironment | undefined
+  #forcePeerMessages = false
 
   constructor(interval: Interval, config: InternalConfig) {
     this.#interval = interval
@@ -1474,6 +1475,7 @@ export default class IntervalClient {
 
       this.organization = response.organization
       this.environment = response.environment
+      this.#forcePeerMessages = response.forcePeerMessages ?? false
 
       if (isInitialInitialization) {
         this.#log.prod(
@@ -1524,7 +1526,7 @@ export default class IntervalClient {
     z.input<WSServerSchema[MethodName]['returns']> | undefined | null
   > {
     const hostInstanceId = this.#ws?.id
-    let rpc: DataChannelConnection['rpc']
+    let dcc: DataChannelConnection | undefined
     const sessionKey = serverInputs
       ? 'transactionId' in serverInputs
         ? serverInputs.transactionId
@@ -1536,11 +1538,11 @@ export default class IntervalClient {
     if (sessionKey) {
       const key = this.#peerIdMap.get(sessionKey)
       if (key) {
-        rpc = this.#dccMap.get(key)?.rpc
+        dcc = this.#dccMap.get(key)
       }
     }
 
-    if (hostInstanceId && rpc) {
+    if (hostInstanceId && dcc?.rpc) {
       this.#logger.debug(
         'Sending with peer connection',
         methodName,
@@ -1553,11 +1555,12 @@ export default class IntervalClient {
             WSServerSchema['SEND_LOG']['inputs']
           >
 
-          await this.#sendToClientPeer(rpc, 'LOG', {
+          await this.#sendToClientPeer(dcc.rpc, 'LOG', {
             ...inputs,
             index: inputs.index as number,
             timestamp: inputs.timestamp as number,
           })
+
           // send to backend too
           return null
         }
@@ -1565,7 +1568,7 @@ export default class IntervalClient {
           const inputs = serverInputs as z.input<
             WSServerSchema['SEND_PAGE']['inputs']
           >
-          return await this.#sendToClientPeer(rpc, 'RENDER_PAGE', {
+          return await this.#sendToClientPeer(dcc.rpc, 'RENDER_PAGE', {
             ...inputs,
             hostInstanceId,
           })
@@ -1574,23 +1577,29 @@ export default class IntervalClient {
           const inputs = serverInputs as z.input<
             WSServerSchema['SEND_IO_CALL']['inputs']
           >
-          await this.#sendToClientPeer(rpc, 'RENDER', {
+          const response = await this.#sendToClientPeer(dcc.rpc, 'RENDER', {
             transactionId: inputs.transactionId,
             toRender: inputs.ioCall,
           })
-          // send to backend too
-          return null
+
+          if (this.#forcePeerMessages) {
+            return response
+          } else {
+            // send to backend too
+            return null
+          }
         }
         case 'MARK_TRANSACTION_COMPLETE': {
           const inputs = serverInputs as z.input<
             WSServerSchema['MARK_TRANSACTION_COMPLETE']['inputs']
           >
-          await this.#sendToClientPeer(rpc, 'TRANSACTION_COMPLETED', {
+          await this.#sendToClientPeer(dcc.rpc, 'TRANSACTION_COMPLETED', {
             transactionId: inputs.transactionId,
             resultStatus: inputs.resultStatus ?? 'SUCCESS',
             result: inputs.result,
           })
 
+          // send to backend too
           return null
         }
         case 'SEND_REDIRECT': {
@@ -1599,18 +1608,18 @@ export default class IntervalClient {
           >
 
           if ('url' in inputs) {
-            await this.#sendToClientPeer(rpc, 'REDIRECT', {
+            await this.#sendToClientPeer(dcc.rpc, 'REDIRECT', {
               transactionId: inputs.transactionId,
               url: inputs.url,
             })
           } else if ('route' in inputs) {
-            await this.#sendToClientPeer(rpc, 'REDIRECT', {
+            await this.#sendToClientPeer(dcc.rpc, 'REDIRECT', {
               transactionId: inputs.transactionId,
               route: inputs.route,
               params: inputs.params,
             })
           } else {
-            await this.#sendToClientPeer(rpc, 'REDIRECT', {
+            await this.#sendToClientPeer(dcc.rpc, 'REDIRECT', {
               transactionId: inputs.transactionId,
               route: inputs.action,
               params: inputs.params,
@@ -1624,11 +1633,20 @@ export default class IntervalClient {
           const inputs = serverInputs as z.input<
             WSServerSchema['SEND_LOADING_CALL']['inputs']
           >
-          await this.#sendToClientPeer(rpc, 'LOADING_STATE', {
-            ...inputs,
-          })
-          // send to backend too
-          return null
+          const response = await this.#sendToClientPeer(
+            dcc.rpc,
+            'LOADING_STATE',
+            {
+              ...inputs,
+            }
+          )
+
+          if (this.#forcePeerMessages) {
+            return response
+          } else {
+            // send to backend too
+            return null
+          }
         }
         default:
           this.#logger.debug(
@@ -1638,11 +1656,15 @@ export default class IntervalClient {
           )
       }
     } else {
-      this.#logger.debug(
-        'No peer connection established, skipping',
-        methodName,
-        serverInputs
+      if (
+        this.#forcePeerMessages &&
+        ['SEND_LOADING_CALL', 'SEND_IO_CALL', 'SEND_PAGE'].includes(methodName)
       )
+        this.#logger.debug(
+          'No peer connection established, skipping',
+          methodName,
+          serverInputs
+        )
     }
 
     return undefined
@@ -1656,8 +1678,6 @@ export default class IntervalClient {
     if (!this.#serverRpc) throw new IntervalError('serverRpc not initialized')
 
     let skipClientCall = false
-
-    console.log('#send ??')
 
     try {
       if (attemptPeerSend) {
