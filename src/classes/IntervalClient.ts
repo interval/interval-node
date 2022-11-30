@@ -2,11 +2,10 @@ import { z, ZodError } from 'zod'
 import { v4 } from 'uuid'
 import { WebSocket } from 'ws'
 import fetch from 'node-fetch'
-import { AsyncLocalStorage } from 'async_hooks'
 import * as superjson from 'superjson'
 import { JSONValue } from 'superjson/dist/types'
 import ISocket, { TimeoutError } from './ISocket'
-import { DuplexRPCClient } from './DuplexRPCClient'
+import { DuplexRPCClient, DuplexRPCHandlers } from './DuplexRPCClient'
 import IOError from './IOError'
 import Logger from './Logger'
 import {
@@ -15,10 +14,10 @@ import {
   TRANSACTION_RESULT_SCHEMA_VERSION,
   ActionEnvironment,
   LoadingState,
-  CREATE_GHOST_MODE_ACCOUNT,
   DECLARE_HOST,
   ActionDefinition,
   PageDefinition,
+  HostSchema,
 } from '../internalRpcSchema'
 import {
   ActionResultSchema,
@@ -43,7 +42,6 @@ import type {
   IntervalPageHandler,
 } from '../types'
 import TransactionLoadingState from '../classes/TransactionLoadingState'
-import localConfig from '../localConfig'
 import { Interval, InternalConfig, IntervalError } from '..'
 import Page from './Page'
 import {
@@ -54,7 +52,28 @@ import {
   MetaItemsSchema,
   BasicLayoutConfig,
 } from './Layout'
-import loadRoutesFromFileSystem from '../utils/fileActionLoader'
+
+import type { AsyncLocalStorage } from 'async_hooks'
+let actionLocalStorage: AsyncLocalStorage<IntervalActionStore> | undefined
+let pageLocalStorage: AsyncLocalStorage<IntervalPageStore> | undefined
+
+async function initAsyncLocalStorage() {
+  try {
+    if (typeof window === 'undefined') {
+      const {
+        default: { AsyncLocalStorage },
+      } = await import('async_hooks')
+      actionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
+      pageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
+    }
+  } catch (err) {
+    console.error('Failed initializing AsyncLocalStorage stores')
+  }
+}
+
+initAsyncLocalStorage()
+
+export { actionLocalStorage, pageLocalStorage }
 
 export const DEFAULT_WEBSOCKET_ENDPOINT = 'wss://interval.com/websocket'
 
@@ -74,13 +93,8 @@ interface SetupConfig {
   instanceId?: string
 }
 
-export const actionLocalStorage = new AsyncLocalStorage<IntervalActionStore>()
-
-export const pageLocalStorage = new AsyncLocalStorage<IntervalPageStore>()
-
 export default class IntervalClient {
   #interval: Interval
-  #ghostOrgId: string | undefined
   #apiKey: string | undefined
   #endpoint: string = DEFAULT_WEBSOCKET_ENDPOINT
   #httpEndpoint: string
@@ -140,6 +154,10 @@ export default class IntervalClient {
     }
 
     this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
+
+    if (config.setHostHandlers) {
+      config.setHostHandlers(this.#createRPCHandlers())
+    }
   }
 
   async #walkRoutes() {
@@ -183,8 +201,11 @@ export default class IntervalClient {
 
     let fileSystemRoutes: IntervalRouteDefinitions | undefined
 
-    if (this.#config.routesDirectory) {
+    if (typeof window === 'undefined' && this.#config.routesDirectory) {
       try {
+        const { default: loadRoutesFromFileSystem } = await import(
+          '../utils/fileActionLoader'
+        )
         fileSystemRoutes = await loadRoutesFromFileSystem(
           this.#config.routesDirectory,
           this.#logger
@@ -266,8 +287,27 @@ export default class IntervalClient {
   }
 
   async listen() {
-    await this.initializeConnection()
-    await this.#initializeHost()
+    if (this.#config.setHostHandlers && this.#config.getClientHandlers) {
+      // in browser demo mode, we don't need to initialize the connection
+      this.organization = {
+        name: 'Demo Organization',
+        slug: 'demo',
+      }
+      this.environment = 'development'
+
+      await this.#walkRoutes()
+
+      const isInitialInitialization = !this.#isInitialized
+      this.#isInitialized = true
+      if (isInitialInitialization) {
+        this.#log.prod(
+          `🔗 Connected! Access your actions within the demo dashboard nearby.`
+        )
+      }
+    } else {
+      await this.initializeConnection()
+      await this.#initializeHost()
+    }
   }
 
   private async initializeConnection() {
@@ -478,38 +518,6 @@ export default class IntervalClient {
     }
   }
 
-  async #findOrCreateGhostModeAccount() {
-    let config = await localConfig.get()
-
-    let ghostOrgId = config?.ghostOrgId
-
-    if (!ghostOrgId) {
-      const response = await fetch(
-        this.#httpEndpoint + '/api/auth/ghost/create',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-        .then(r => r.json())
-        .then(r => CREATE_GHOST_MODE_ACCOUNT.returns.parseAsync(r))
-        .catch(err => {
-          this.#log.debug(err)
-          throw new IntervalError('Received invalid API response.')
-        })
-
-      await localConfig.write({
-        ghostOrgId: response.ghostOrgId,
-      })
-
-      ghostOrgId = response.ghostOrgId
-    }
-
-    return ghostOrgId
-  }
-
   /**
    * Establishes the underlying ISocket connection to Interval.
    */
@@ -519,14 +527,6 @@ export default class IntervalClient {
     const headers: Record<string, string> = { 'x-instance-id': id }
     if (this.#apiKey) {
       headers['x-api-key'] = this.#apiKey
-    } else if (!this.#apiKey) {
-      try {
-        this.#ghostOrgId = await this.#findOrCreateGhostModeAccount()
-        headers['x-ghost-org-id'] = this.#ghostOrgId
-      } catch (err) {
-        this.#log.debug('Failed creating ghost mode account:', err)
-        // User-facing error will be shown when trying to connect below
-      }
     }
 
     const ws = new ISocket(
@@ -629,99 +629,333 @@ export default class IntervalClient {
     await this.#initializeHost()
   }
 
-  /**
-   * Creates the DuplexRPCClient responsible for sending
-   * messages to Interval.
-   */
-  #createRPCClient(requestId?: string) {
-    if (!this.#ws) {
-      throw new Error('ISocket not initialized')
-    }
+  #createRPCHandlers(requestId?: string): DuplexRPCHandlers<HostSchema> {
+    const intervalClient = this
+    return {
+      START_TRANSACTION: async inputs => {
+        if (!intervalClient.organization) {
+          intervalClient.#log.error('No organization defined')
+          return
+        }
 
-    const serverRpc = new DuplexRPCClient({
-      communicator: this.#ws,
-      canCall: wsServerSchema,
-      canRespondTo: hostSchema,
-      handlers: {
-        OPEN_PAGE: async inputs => {
-          if (!this.organization) {
-            this.#log.error('No organization defined')
-            return { type: 'ERROR' as const }
-          }
+        const { action, transactionId } = inputs
+        const actionHandler = intervalClient.#actionHandlers.get(action.slug)
 
-          const { pageKey } = inputs
-          const pageHandler = this.#pageHandlers.get(inputs.page.slug)
+        intervalClient.#log.debug(actionHandler)
 
-          if (!pageHandler) {
-            this.#log.debug('No app handler called', inputs.page.slug)
-            return { type: 'ERROR' as const }
-          }
+        if (!actionHandler) {
+          intervalClient.#log.debug('No actionHandler called', action.slug)
+          return
+        }
 
-          let { params, paramsMeta } = inputs
+        const client = new IOClient({
+          logger: intervalClient.#logger,
+          send: async ioRenderInstruction => {
+            const ioCall = JSON.stringify(ioRenderInstruction)
+            intervalClient.#pendingIOCalls.set(transactionId, ioCall)
 
-          if (params && paramsMeta) {
-            params = superjson.deserialize({
-              json: params as JSONValue,
-              meta: paramsMeta,
+            if (this.#config.getClientHandlers) {
+              await this.#config.getClientHandlers()?.RENDER({
+                transactionId,
+                toRender: ioCall,
+              })
+            } else {
+              await intervalClient.#send('SEND_IO_CALL', {
+                transactionId,
+                ioCall,
+              })
+            }
+
+            intervalClient.#transactionLoadingStates.delete(transactionId)
+          },
+          isDemo: !!this.#config.getClientHandlers,
+          // onAddInlineAction: handler => {
+          //   const key = v4()
+          //   intervalClient.#actionHandlers.set(key, handler)
+          //   return key
+          // },
+        })
+
+        intervalClient.#ioResponseHandlers.set(
+          transactionId,
+          client.onResponse.bind(client)
+        )
+
+        // To maintain consistent ordering for logs despite network race conditions
+        let logIndex = 0
+        let { params, paramsMeta } = inputs
+
+        if (params && paramsMeta) {
+          params = superjson.deserialize({
+            json: params as JSONValue,
+            meta: paramsMeta,
+          })
+        }
+
+        const ctx: ActionCtx = {
+          user: inputs.user,
+          // TODO: Remove intervalClient when all active SDKs support superjson
+          params: deserializeDates(params),
+          environment: inputs.environment,
+          organization: intervalClient.organization,
+          action,
+          log: (...args) =>
+            intervalClient.#sendLog(transactionId, logIndex++, ...args),
+          notify: async config => {
+            await intervalClient.#interval.notify({
+              ...config,
+              transactionId: inputs.transactionId,
             })
-          }
-          const ctx: PageCtx = {
-            user: inputs.user,
-            params: deserializeDates(params),
-            environment: inputs.environment,
-            organization: this.organization,
-            page: inputs.page,
-          }
+          },
+          loading: new TransactionLoadingState({
+            logger: intervalClient.#logger,
+            send: async loadingState => {
+              intervalClient.#transactionLoadingStates.set(
+                transactionId,
+                loadingState
+              )
+              if (this.#config.getClientHandlers) {
+                await this.#config.getClientHandlers()?.LOADING_STATE({
+                  transactionId,
+                  ...loadingState,
+                })
+              } else {
+                await intervalClient.#send('SEND_LOADING_CALL', {
+                  transactionId,
+                  ...loadingState,
+                })
+              }
+            },
+          }),
+          redirect: (props: LegacyLinkProps) =>
+            intervalClient.#sendRedirect(transactionId, props),
+        }
 
-          let page: Layout
-          let menuItems: InternalButtonItem[] | undefined = undefined
-          let renderInstruction: T_IO_RENDER_INPUT | undefined = undefined
-          let errors: PageError[] = []
+        const { io } = client
 
-          const MAX_PAGE_RETRIES = 5
+        const handleAction = () => {
+          actionHandler(client.io, ctx)
+            .then(res => {
+              // Allow actions to return data even after being canceled
 
-          const sendPage = async () => {
-            if (page instanceof Basic) {
-              const pageLayout: LayoutSchemaInput = {
-                kind: 'BASIC',
-                title:
-                  page.title === undefined
-                    ? undefined
-                    : typeof page.title === 'string'
-                    ? page.title
-                    : null,
-                description:
-                  page.description === undefined
-                    ? undefined
-                    : typeof page.description === 'string'
-                    ? page.description
-                    : null,
-                menuItems,
-                children: renderInstruction,
-                errors,
+              const { json, meta } = superjson.serialize(res)
+              const result: ActionResultSchema = {
+                schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
+                status: 'SUCCESS',
+                data: (json as IOFunctionReturnType) ?? null,
+                meta,
               }
 
-              if (page.metadata) {
-                const items: MetaItemSchema[] = []
-                for (const pageItem of page.metadata) {
-                  let { label, value, error, ...rest } = pageItem
-                  if (typeof value === 'function' || value instanceof Promise) {
-                    items.push({ ...rest, label })
-                  } else {
-                    items.push({ ...rest, label, value, error })
-                  }
+              return result
+            })
+            .catch(err => {
+              // Action did not catch the cancellation error
+              if (err instanceof IOError && err.kind === 'CANCELED') throw err
+
+              intervalClient.#logger.error(err)
+
+              const result: ActionResultSchema = {
+                schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
+                status: 'FAILURE',
+                data: err.message
+                  ? { error: err.name, message: err.message }
+                  : null,
+              }
+
+              return result
+            })
+            .then(async (res: ActionResultSchema) => {
+              if (this.#config.getClientHandlers) {
+                this.#config.getClientHandlers()?.TRANSACTION_COMPLETED({
+                  transactionId,
+                  resultStatus: res.status,
+                  result: JSON.stringify(res),
+                })
+              } else {
+                await intervalClient.#send('MARK_TRANSACTION_COMPLETE', {
+                  transactionId,
+                  result: JSON.stringify(res),
+                })
+              }
+
+              if (requestId) {
+                const callbacks =
+                  intervalClient.#transactionCompleteCallbacks.get(requestId)
+                if (callbacks) {
+                  const [resolve] = callbacks
+                  resolve()
+                } else {
+                  intervalClient.#log.debug(
+                    'No transaction complete callbacks found for requestId',
+                    requestId
+                  )
                 }
+              }
+            })
+            .catch(err => {
+              if (err instanceof IOError) {
+                switch (err.kind) {
+                  case 'CANCELED':
+                    intervalClient.#log.prod(
+                      'Transaction canceled for action',
+                      action.slug
+                    )
+                    break
+                  case 'TRANSACTION_CLOSED':
+                    intervalClient.#log.prod(
+                      'Attempted to make IO call after transaction already closed in action',
+                      action.slug
+                    )
+                    break
+                }
+              } else {
+                intervalClient.#log.error('Error sending action response', err)
+              }
 
-                const { json, meta } = superjson.serialize(items)
+              if (requestId) {
+                const callbacks =
+                  intervalClient.#transactionCompleteCallbacks.get(requestId)
+                if (callbacks) {
+                  const [_, reject] = callbacks
+                  reject(err)
+                } else {
+                  intervalClient.#log.debug(
+                    'No transaction complete callbacks found for requestId',
+                    requestId
+                  )
+                }
+              }
+            })
+            .finally(() => {
+              intervalClient.#pendingIOCalls.delete(transactionId)
+              intervalClient.#transactionLoadingStates.delete(transactionId)
+              intervalClient.#ioResponseHandlers.delete(transactionId)
+              for (const key of client.inlineActionKeys.values()) {
+                intervalClient.#actionHandlers.delete(key)
+              }
+            })
+        }
 
-                if (json) {
-                  pageLayout.metadata = {
-                    json: json as MetaItemSchema[],
-                    meta,
-                  } as MetaItemsSchema
+        if (actionLocalStorage) {
+          actionLocalStorage.run({ io, ctx }, () => {
+            handleAction()
+          })
+        } else {
+          handleAction()
+        }
+
+        return
+      },
+      IO_RESPONSE: async inputs => {
+        this.#log.debug('got io response', inputs)
+
+        try {
+          const ioResp = IO_RESPONSE.parse(JSON.parse(inputs.value))
+          const replyHandler = this.#ioResponseHandlers.get(
+            ioResp.transactionId
+          )
+
+          if (!replyHandler) {
+            this.#log.debug('Missing reply handler for', inputs.transactionId)
+            return
+          }
+
+          replyHandler(ioResp)
+        } catch (err) {
+          if (err instanceof ZodError) {
+            this.#log.error('Received invalid IO response:', inputs)
+            this.#log.debug(err)
+          } else {
+            this.#log.error('Failed handling IO response:', err)
+          }
+        }
+      },
+      OPEN_PAGE: async inputs => {
+        if (!this.organization) {
+          this.#log.error('No organization defined')
+          return { type: 'ERROR' as const }
+        }
+
+        const { pageKey } = inputs
+        const pageHandler = this.#pageHandlers.get(inputs.page.slug)
+
+        if (!pageHandler) {
+          this.#log.debug('No app handler called', inputs.page.slug)
+          return { type: 'ERROR' as const }
+        }
+
+        let { params, paramsMeta } = inputs
+
+        if (params && paramsMeta) {
+          params = superjson.deserialize({
+            json: params as JSONValue,
+            meta: paramsMeta,
+          })
+        }
+        const ctx: PageCtx = {
+          user: inputs.user,
+          params: deserializeDates(params),
+          environment: inputs.environment,
+          organization: this.organization,
+          page: inputs.page,
+        }
+
+        let page: Layout
+        let menuItems: InternalButtonItem[] | undefined = undefined
+        let renderInstruction: T_IO_RENDER_INPUT | undefined = undefined
+        let errors: PageError[] = []
+
+        const MAX_PAGE_RETRIES = 5
+
+        const sendPage = async () => {
+          if (page instanceof Basic) {
+            const pageLayout: LayoutSchemaInput = {
+              kind: 'BASIC',
+              title:
+                page.title === undefined
+                  ? undefined
+                  : typeof page.title === 'string'
+                  ? page.title
+                  : null,
+              description:
+                page.description === undefined
+                  ? undefined
+                  : typeof page.description === 'string'
+                  ? page.description
+                  : null,
+              menuItems,
+              children: renderInstruction,
+              errors,
+            }
+
+            if (page.metadata) {
+              const items: MetaItemSchema[] = []
+              for (const pageItem of page.metadata) {
+                let { label, value, error } = pageItem
+                if (typeof value === 'function' || value instanceof Promise) {
+                  items.push({ label })
+                } else {
+                  items.push({ label, value, error })
                 }
               }
 
+              const { json, meta } = superjson.serialize(items)
+
+              if (json) {
+                pageLayout.metadata = {
+                  json: json as MetaItemSchema[],
+                  meta,
+                } as MetaItemsSchema
+              }
+            }
+
+            if (this.#config.getClientHandlers) {
+              await this.#config.getClientHandlers()?.RENDER_PAGE({
+                pageKey,
+                page: JSON.stringify(pageLayout),
+                hostInstanceId: 'demo',
+              })
+            } else {
               for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
                 try {
                   await this.#send('SEND_PAGE', {
@@ -735,446 +969,265 @@ export default class IntervalClient {
                   await sleep(this.#retryIntervalMs)
                 }
               }
-
               throw new IntervalError(
                 'Unsuccessful sending page, max retries exceeded.'
               )
             }
           }
+        }
 
-          // What follows is a pretty convoluted way to coalesce
-          // `scheduleSendPage` calls into non-clobbering/overlapping
-          // `sendPage `calls. This can probably be simplified but I
-          // can't think of a better way at the moment.
+        // What follows is a pretty convoluted way to coalesce
+        // `scheduleSendPage` calls into non-clobbering/overlapping
+        // `sendPage `calls. This can probably be simplified but I
+        // can't think of a better way at the moment.
 
-          // Tracks whether a send is currently in progress
-          let sendPagePromise: Promise<void> | null = null
+        // Tracks whether a send is currently in progress
+        let sendPagePromise: Promise<void> | null = null
 
-          // Keeps track of a brief timeout to coalesce rapid send calls
-          let pageSendTimeout: NodeJS.Timeout | null = null
+        // Keeps track of a brief timeout to coalesce rapid send calls
+        let pageSendTimeout: NodeJS.Timeout | null = null
 
-          // Tracks whether a new send needs to happen after the current one
-          let newPageScheduled = false
+        // Tracks whether a new send needs to happen after the current one
+        let newPageScheduled = false
 
-          const processSendPage = () => {
-            newPageScheduled = false
-            pageSendTimeout = null
-            sendPagePromise = sendPage()
-              .catch(err => {
-                this.#logger.error(
-                  `Failed sending page with key ${pageKey}`,
-                  err
-                )
-              })
-              .finally(() => {
-                sendPagePromise = null
+        const processSendPage = () => {
+          newPageScheduled = false
+          pageSendTimeout = null
+          sendPagePromise = sendPage()
+            .catch(err => {
+              this.#logger.error(`Failed sending page with key ${pageKey}`, err)
+            })
+            .finally(() => {
+              sendPagePromise = null
 
-                if (newPageScheduled) {
-                  scheduleSendPage()
-                }
-              })
-          }
-
-          const scheduleSendPage = () => {
-            newPageScheduled = true
-
-            if (sendPagePromise) return
-            if (pageSendTimeout) return
-
-            pageSendTimeout = setTimeout(processSendPage, 0)
-          }
-
-          const client = new IOClient({
-            logger: this.#logger,
-            send: async instruction => {
-              renderInstruction = instruction
-              scheduleSendPage()
-            },
-            // onAddInlineAction: () => {
-            //   const key = v4()
-            //   this.#actionHandlers.set(key, handler)
-            //   return key
-            // },
-          })
-
-          const {
-            io: { group, display },
-          } = client
-
-          this.#pageIOClients.set(pageKey, client)
-          this.#ioResponseHandlers.set(pageKey, client.onResponse.bind(client))
-
-          const pageError = (
-            error: unknown,
-            layoutKey?: keyof BasicLayoutConfig
-          ) => {
-            if (error instanceof Error) {
-              return {
-                layoutKey,
-                error: error.name,
-                message: error.message,
+              if (newPageScheduled) {
+                scheduleSendPage()
               }
-            } else {
-              return {
-                layoutKey,
-                error: 'Unknown error',
-                message: String(error),
-              }
+            })
+        }
+
+        const scheduleSendPage = () => {
+          newPageScheduled = true
+
+          if (sendPagePromise) return
+          if (pageSendTimeout) return
+
+          pageSendTimeout = setTimeout(processSendPage, 0)
+        }
+
+        const client = new IOClient({
+          logger: this.#logger,
+          send: async instruction => {
+            renderInstruction = instruction
+            scheduleSendPage()
+          },
+          isDemo: !!this.#config.getClientHandlers,
+          // onAddInlineAction: () => {
+          //   const key = v4()
+          //   this.#actionHandlers.set(key, handler)
+          //   return key
+          // },
+        })
+
+        const {
+          io: { group, display },
+        } = client
+
+        this.#pageIOClients.set(pageKey, client)
+        this.#ioResponseHandlers.set(pageKey, client.onResponse.bind(client))
+
+        const pageError = (
+          error: unknown,
+          layoutKey?: keyof BasicLayoutConfig
+        ) => {
+          if (error instanceof Error) {
+            return {
+              layoutKey,
+              error: error.name,
+              message: error.message,
+            }
+          } else {
+            return {
+              layoutKey,
+              error: 'Unknown error',
+              message: String(error),
             }
           }
+        }
 
-          pageLocalStorage.run({ display, ctx }, () => {
-            pageHandler(display, ctx)
-              .then(res => {
-                page = res
+        const handlePage = () => {
+          pageHandler(display, ctx)
+            .then(res => {
+              page = res
 
-                if (typeof page.title === 'function') {
-                  try {
-                    page.title = page.title()
-                  } catch (err) {
+              if (typeof page.title === 'function') {
+                try {
+                  page.title = page.title()
+                } catch (err) {
+                  this.#logger.error(err)
+                  errors.push(pageError(err, 'title'))
+                }
+              }
+
+              if (page.title instanceof Promise) {
+                page.title
+                  .then(title => {
+                    page.title = title
+                    scheduleSendPage()
+                  })
+                  .catch(err => {
                     this.#logger.error(err)
                     errors.push(pageError(err, 'title'))
+                    scheduleSendPage()
+                  })
+              }
+
+              if (page.description) {
+                if (typeof page.description === 'function') {
+                  try {
+                    page.description = page.description()
+                  } catch (err) {
+                    this.#logger.error(err)
+                    errors.push(pageError(err, 'description'))
                   }
                 }
 
-                if (page.title instanceof Promise) {
-                  page.title
-                    .then(title => {
-                      page.title = title
+                if (page.description instanceof Promise) {
+                  page.description
+                    .then(description => {
+                      page.description = description
                       scheduleSendPage()
                     })
                     .catch(err => {
                       this.#logger.error(err)
-                      errors.push(pageError(err, 'title'))
+                      errors.push(pageError(err, 'description'))
                       scheduleSendPage()
                     })
                 }
+              }
 
-                if (page.description) {
-                  if (typeof page.description === 'function') {
-                    try {
-                      page.description = page.description()
-                    } catch (err) {
-                      this.#logger.error(err)
-                      errors.push(pageError(err, 'description'))
-                    }
-                  }
+              if (page.menuItems) {
+                menuItems = page.menuItems.map(menuItem => {
+                  // if (
+                  //   'action' in menuItem &&
+                  //   typeof menuItem['action'] === 'function'
+                  // ) {
+                  //   const inlineAction = client.addInlineAction(menuItem.action)
+                  //   return {
+                  //     ...menuItem,
+                  //     inlineAction,
+                  //   }
+                  // }
 
-                  if (page.description instanceof Promise) {
-                    page.description
-                      .then(description => {
-                        page.description = description
-                        scheduleSendPage()
-                      })
-                      .catch(err => {
+                  return menuItem
+                })
+              }
+
+              if (page instanceof Basic) {
+                const { metadata } = page
+                if (metadata) {
+                  for (let i = 0; i < metadata.length; i++) {
+                    let { value } = metadata[i]
+                    if (typeof value === 'function') {
+                      try {
+                        value = value()
+                        metadata[i].value = value
+                      } catch (err) {
                         this.#logger.error(err)
-                        errors.push(pageError(err, 'description'))
-                        scheduleSendPage()
-                      })
-                  }
-                }
+                        const error = pageError(err, 'metadata')
+                        errors.push(error)
+                        metadata[i].value = null
+                        metadata[i].error = error.message
+                      }
+                    }
 
-                if (page.menuItems) {
-                  menuItems = page.menuItems.map(menuItem => {
-                    // if (
-                    //   'action' in menuItem &&
-                    //   typeof menuItem['action'] === 'function'
-                    // ) {
-                    //   const inlineAction = client.addInlineAction(menuItem.action)
-                    //   return {
-                    //     ...menuItem,
-                    //     inlineAction,
-                    //   }
-                    // }
-
-                    return menuItem
-                  })
-                }
-
-                if (page instanceof Basic) {
-                  const { metadata } = page
-                  if (metadata) {
-                    for (let i = 0; i < metadata.length; i++) {
-                      let { value } = metadata[i]
-                      if (typeof value === 'function') {
-                        try {
-                          value = value()
-                          metadata[i].value = value
-                        } catch (err) {
+                    if (value instanceof Promise) {
+                      value
+                        .then(resolved => {
+                          metadata[i].value = resolved
+                          scheduleSendPage()
+                        })
+                        .catch(err => {
                           this.#logger.error(err)
                           const error = pageError(err, 'metadata')
                           errors.push(error)
                           metadata[i].value = null
                           metadata[i].error = error.message
-                        }
-                      }
-
-                      if (value instanceof Promise) {
-                        value
-                          .then(resolved => {
-                            metadata[i].value = resolved
-                            scheduleSendPage()
-                          })
-                          .catch(err => {
-                            this.#logger.error(err)
-                            const error = pageError(err, 'metadata')
-                            errors.push(error)
-                            metadata[i].value = null
-                            metadata[i].error = error.message
-                            scheduleSendPage()
-                          })
-                      }
+                          scheduleSendPage()
+                        })
                     }
                   }
                 }
+              }
 
-                if (page.children) {
-                  group(page.children).then(() => {
-                    this.#logger.debug(
-                      'Initial children render complete for pageKey',
-                      pageKey
-                    )
-                  })
-                } else {
-                  scheduleSendPage()
-                }
-              })
-              .catch(async err => {
-                this.#logger.error(err)
-                errors.push(pageError(err))
-                const pageLayout: LayoutSchemaInput = {
-                  kind: 'BASIC',
-                  errors,
-                }
-                await this.#send('SEND_PAGE', {
-                  pageKey,
-                  page: JSON.stringify(pageLayout),
+              if (page.children) {
+                group(page.children).then(() => {
+                  this.#logger.debug(
+                    'Initial children render complete for pageKey',
+                    pageKey
+                  )
                 })
-              })
-          })
-
-          return {
-            type: 'SUCCESS' as const,
-            pageKey,
-          }
-        },
-        CLOSE_PAGE: async inputs => {
-          const client = this.#pageIOClients.get(inputs.pageKey)
-          if (client) {
-            for (const key of client.inlineActionKeys.values()) {
-              this.#actionHandlers.delete(key)
-            }
-
-            client.inlineActionKeys.clear()
-            this.#pageIOClients.delete(inputs.pageKey)
-          }
-
-          this.#ioResponseHandlers.delete(inputs.pageKey)
-        },
-        START_TRANSACTION: async inputs => {
-          if (!this.organization) {
-            this.#log.error('No organization defined')
-            return
-          }
-
-          const { action, transactionId } = inputs
-          const actionHandler = this.#actionHandlers.get(action.slug)
-
-          this.#log.debug(actionHandler)
-
-          if (!actionHandler) {
-            this.#log.debug('No actionHandler called', action.slug)
-            return
-          }
-
-          const client = new IOClient({
-            logger: this.#logger,
-            send: async ioRenderInstruction => {
-              const ioCall = JSON.stringify(ioRenderInstruction)
-              this.#pendingIOCalls.set(transactionId, ioCall)
-
-              await this.#send('SEND_IO_CALL', {
-                transactionId,
-                ioCall,
-              })
-
-              this.#transactionLoadingStates.delete(transactionId)
-            },
-            // onAddInlineAction: handler => {
-            //   const key = v4()
-            //   this.#actionHandlers.set(key, handler)
-            //   return key
-            // },
-          })
-
-          this.#ioResponseHandlers.set(
-            transactionId,
-            client.onResponse.bind(client)
-          )
-
-          // To maintain consistent ordering for logs despite network race conditions
-          let logIndex = 0
-          let { params, paramsMeta } = inputs
-
-          if (params && paramsMeta) {
-            params = superjson.deserialize({
-              json: params as JSONValue,
-              meta: paramsMeta,
+              } else {
+                scheduleSendPage()
+              }
             })
-          }
-
-          const ctx: ActionCtx = {
-            user: inputs.user,
-            // TODO: Remove this when all active SDKs support superjson
-            params: deserializeDates(params),
-            environment: inputs.environment,
-            organization: this.organization,
-            action,
-            log: (...args) => this.#sendLog(transactionId, logIndex++, ...args),
-            notify: async config => {
-              await this.#interval.notify({
-                ...config,
-                transactionId: inputs.transactionId,
+            .catch(async err => {
+              this.#logger.error(err)
+              errors.push(pageError(err))
+              const pageLayout: LayoutSchemaInput = {
+                kind: 'BASIC',
+                errors,
+              }
+              await this.#send('SEND_PAGE', {
+                pageKey,
+                page: JSON.stringify(pageLayout),
               })
-            },
-            loading: new TransactionLoadingState({
-              logger: this.#logger,
-              send: async loadingState => {
-                this.#transactionLoadingStates.set(transactionId, loadingState)
-                await this.#send('SEND_LOADING_CALL', {
-                  transactionId,
-                  ...loadingState,
-                })
-              },
-            }),
-            redirect: (props: LegacyLinkProps) =>
-              this.#sendRedirect(transactionId, props),
-          }
+            })
+        }
 
-          const { io } = client
-
-          actionLocalStorage.run({ io, ctx }, () => {
-            actionHandler(client.io, ctx)
-              .then(res => {
-                // Allow actions to return data even after being canceled
-
-                const { json, meta } = superjson.serialize(res)
-                const result: ActionResultSchema = {
-                  schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
-                  status: 'SUCCESS',
-                  data: (json as IOFunctionReturnType) ?? null,
-                  meta,
-                }
-
-                return result
-              })
-              .catch(err => {
-                // Action did not catch the cancellation error
-                if (err instanceof IOError && err.kind === 'CANCELED') throw err
-
-                this.#logger.error(err)
-
-                const result: ActionResultSchema = {
-                  schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
-                  status: 'FAILURE',
-                  data: err.message
-                    ? { error: err.name, message: err.message }
-                    : null,
-                }
-
-                return result
-              })
-              .then(async (res: ActionResultSchema) => {
-                await this.#send('MARK_TRANSACTION_COMPLETE', {
-                  transactionId,
-                  result: JSON.stringify(res),
-                })
-
-                if (requestId) {
-                  const callbacks =
-                    this.#transactionCompleteCallbacks.get(requestId)
-                  if (callbacks) {
-                    const [resolve] = callbacks
-                    resolve()
-                  } else {
-                    this.#log.debug(
-                      'No transaction complete callbacks found for requestId',
-                      requestId
-                    )
-                  }
-                }
-              })
-              .catch(err => {
-                if (err instanceof IOError) {
-                  switch (err.kind) {
-                    case 'CANCELED':
-                      this.#log.prod(
-                        'Transaction canceled for action',
-                        action.slug
-                      )
-                      break
-                    case 'TRANSACTION_CLOSED':
-                      this.#log.prod(
-                        'Attempted to make IO call after transaction already closed in action',
-                        action.slug
-                      )
-                      break
-                  }
-                } else {
-                  this.#log.error('Error sending action response', err)
-                }
-
-                if (requestId) {
-                  const callbacks =
-                    this.#transactionCompleteCallbacks.get(requestId)
-                  if (callbacks) {
-                    const [_, reject] = callbacks
-                    reject(err)
-                  } else {
-                    this.#log.debug(
-                      'No transaction complete callbacks found for requestId',
-                      requestId
-                    )
-                  }
-                }
-              })
-              .finally(() => {
-                this.#pendingIOCalls.delete(transactionId)
-                this.#transactionLoadingStates.delete(transactionId)
-                this.#ioResponseHandlers.delete(transactionId)
-                for (const key of client.inlineActionKeys.values()) {
-                  this.#actionHandlers.delete(key)
-                }
-              })
+        if (pageLocalStorage) {
+          pageLocalStorage.run({ display, ctx }, () => {
+            handlePage()
           })
+        } else {
+          handlePage()
+        }
 
-          return
-        },
-        IO_RESPONSE: async inputs => {
-          this.#log.debug('got io response', inputs)
-
-          try {
-            const ioResp = IO_RESPONSE.parse(JSON.parse(inputs.value))
-            const replyHandler = this.#ioResponseHandlers.get(
-              ioResp.transactionId
-            )
-
-            if (!replyHandler) {
-              this.#log.debug('Missing reply handler for', inputs.transactionId)
-              return
-            }
-
-            replyHandler(ioResp)
-          } catch (err) {
-            if (err instanceof ZodError) {
-              this.#log.error('Received invalid IO response:', inputs)
-              this.#log.debug(err)
-            } else {
-              this.#log.error('Failed handling IO response:', err)
-            }
-          }
-        },
+        return {
+          type: 'SUCCESS' as const,
+          pageKey,
+        }
       },
+      CLOSE_PAGE: async inputs => {
+        const client = this.#pageIOClients.get(inputs.pageKey)
+        if (client) {
+          for (const key of client.inlineActionKeys.values()) {
+            this.#actionHandlers.delete(key)
+          }
+
+          client.inlineActionKeys.clear()
+          this.#pageIOClients.delete(inputs.pageKey)
+        }
+
+        this.#ioResponseHandlers.delete(inputs.pageKey)
+      },
+    }
+  }
+
+  /**
+   * Creates the DuplexRPCClient responsible for sending
+   * messages to Interval.
+   */
+  #createRPCClient(requestId?: string) {
+    if (!this.#ws) {
+      throw new Error('ISocket not initialized')
+    }
+
+    const serverRpc = new DuplexRPCClient({
+      communicator: this.#ws,
+      canCall: wsServerSchema,
+      canRespondTo: hostSchema,
+      handlers: this.#createRPCHandlers(requestId),
     })
 
     this.#serverRpc = serverRpc
@@ -1297,17 +1350,32 @@ export default class IntervalClient {
         '\n^ Warning: 10k logline character limit reached.\nTo avoid this error, try separating your data into multiple ctx.log() calls.'
     }
 
-    await this.#send('SEND_LOG', {
-      transactionId,
-      data,
-      index,
-      timestamp: new Date().valueOf(),
-    }).catch(err => {
-      this.#logger.error('Failed sending log to Interval', err)
-    })
+    if (this.#config.getClientHandlers) {
+      await this.#config.getClientHandlers()?.LOG({
+        transactionId,
+        data,
+        timestamp: new Date().valueOf(),
+        index,
+      })
+    } else {
+      await this.#send('SEND_LOG', {
+        transactionId,
+        data,
+        index,
+        timestamp: new Date().valueOf(),
+      }).catch(err => {
+        this.#logger.error('Failed sending log to Interval', err)
+      })
+    }
   }
 
   async #sendRedirect(transactionId: string, props: LegacyLinkProps) {
+    if (this.#config.getClientHandlers) {
+      throw new IntervalError(
+        `The ctx.redirect method isn't supported in demo mode`
+      )
+    }
+
     const response = await this.#send('SEND_REDIRECT', {
       transactionId,
       ...props,

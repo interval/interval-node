@@ -111,11 +111,11 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     })
 
     // Immediately resolve any methods defined as immediate in schema
-    setImmediate(() => {
+    setTimeout(() => {
       if (resolvesImmediately(methodName) && this.resolver) {
         this.resolver(null)
       }
-    })
+    }, 0)
   }
 
   async handleValidation(
@@ -170,6 +170,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
           ...(await this.handleStateChange(parsedState)),
         }
       }
+      this.instance.state = parsedState
       if (parsedState !== null && !this.handleStateChange) {
         console.warn(
           'Received non-null state, but no method was defined to handle.'

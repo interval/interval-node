@@ -1,4 +1,9 @@
-import type { T_IO_PROPS, T_IO_RETURNS, T_IO_STATE } from '../ioSchema'
+import type {
+  ImageSchema,
+  T_IO_PROPS,
+  T_IO_RETURNS,
+  T_IO_STATE,
+} from '../ioSchema'
 import IOError from '../classes/IOError'
 
 type RenderResultDef =
@@ -9,6 +14,10 @@ type RenderResultDef =
   | {
       label: string | number | boolean | Date
       description?: string
+      image?: ImageSchema
+      /**
+       * @deprecated Deprecated in favor of `image.url`.
+       */
       imageUrl?: string
     }
 
@@ -28,10 +37,6 @@ export default function search<Result = any>({
   renderResult: (result: Result) => RenderResultDef
   onSearch: (query: string) => Promise<Result[]>
 }) {
-  // We maintain the last two batches of results to avoid race conditions regarding
-  // host-side searching and client-side selection.
-  // If this is too optimistic we can increase the number of remembered batches,
-  // but more batches means more host memory usage.
   let resultBatchIndex = 0
   let resultMap: Map<string, Result[]> = new Map([['0', initialResults]])
 
@@ -80,7 +85,6 @@ export default function search<Result = any>({
     async onStateChange(newState: T_IO_STATE<'SEARCH'>) {
       const results = await onSearch(newState.queryTerm)
 
-      resultMap.delete((resultBatchIndex - 1).toString())
       resultBatchIndex++
       const newIndex = resultBatchIndex.toString()
       resultMap.set(newIndex, results)

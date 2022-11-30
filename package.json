@@ -1,6 +1,6 @@
 {
   "name": "@interval/sdk",
-  "version": "0.33.0-dev",
+  "version": "0.34.0-dev",
   "homepage": "https://interval.com",
   "repository": {
     "type": "git",
@@ -22,8 +22,8 @@
     "dev": "run(){ yarn build:envoy && nodemon --watch src -e ts src/examples/${1:-basic}/index.ts; }; run"
   },
   "dependencies": {
+    "cross-fetch": "^3.1.5",
     "evt": "^2.4.10",
-    "node-fetch": "^2.0.0",
     "superjson": "^1.9.1",
     "uuid": "^9.0.0",
     "ws": "^8.4.1",

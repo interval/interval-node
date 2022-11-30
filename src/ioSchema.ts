@@ -100,17 +100,6 @@ export const labelValue = z
 
 export type LabelValue = z.infer<typeof labelValue>
 
-export const richSelectOption = z
-  .object({
-    label: primitiveValue,
-    value: primitiveValue,
-    description: z.string().nullish(),
-    imageUrl: z.string().nullish(),
-  })
-  .passthrough()
-
-export type RichSelectOption = z.infer<typeof richSelectOption>
-
 const keyValueObject: z.ZodSchema<KeyValue> = z.lazy(() =>
   z.union([
     objectLiteralSchema,
@@ -145,18 +134,34 @@ export type SerializableRecord = z.infer<typeof serializableRecord>
 export const imageSize = z.enum(['thumbnail', 'small', 'medium', 'large'])
 export type ImageSize = z.infer<typeof imageSize>
 
+export const imageSchema = z.object({
+  alt: z.string().optional(),
+  size: imageSize.optional(),
+  // deprecated/undocumented in 0.33.0
+  width: imageSize.optional(),
+  // deprecated/undocumented in 0.33.0
+  height: imageSize.optional(),
+  url: z.string(),
+})
+export type ImageSchema = z.infer<typeof imageSchema>
+
+export const richSelectOption = z
+  .object({
+    label: primitiveValue,
+    value: primitiveValue,
+    description: z.string().nullish(),
+    imageUrl: z.string().nullish(),
+    image: imageSchema.optional(),
+  })
+  .passthrough()
+
+export type RichSelectOption = z.infer<typeof richSelectOption>
+
 // non-primitive display types such as links, images, etc.
 export const advancedPrimitive = z.object({
   label: z.string().optional(),
   url: z.string().optional(),
-  image: z
-    .object({
-      alt: z.string().optional(),
-      width: imageSize.optional(),
-      height: imageSize.optional(),
-      url: z.string(),
-    })
-    .optional(),
+  image: imageSchema.optional(),
   action: z.string().optional(),
   params: serializableRecord.optional(),
 })
@@ -183,14 +188,7 @@ export const tableRowValue = z.union([
       .optional(),
     href: z.string().optional(),
     url: z.string().optional(),
-    image: z
-      .object({
-        alt: z.string().optional(),
-        width: imageSize.optional(),
-        height: imageSize.optional(),
-        url: z.string(),
-      })
-      .optional(),
+    image: imageSchema.optional(),
     // Deprecated in favor of route
     action: z.string().optional(),
     route: z.string().optional(),
@@ -343,14 +341,7 @@ export const metaItemSchema = z.object({
   label: z.string(),
   value: primitiveValue.or(z.bigint()).nullish().optional(),
   url: z.string().optional(),
-  image: z
-    .object({
-      alt: z.string().optional(),
-      width: imageSize.optional(),
-      height: imageSize.optional(),
-      url: z.string(),
-    })
-    .optional(),
+  image: imageSchema.optional(),
   route: z.string().optional(),
   // Deprecated in favor of `route` above
   action: z.string().optional(),
@@ -390,12 +381,7 @@ const DISPLAY_SCHEMA = {
     returns: z.null(),
   },
   DISPLAY_IMAGE: {
-    props: z.object({
-      alt: z.string().optional(),
-      width: imageSize.optional(),
-      height: imageSize.optional(),
-      url: z.string(),
-    }),
+    props: imageSchema,
     state: z.null(),
     returns: z.null(),
   },
@@ -627,6 +613,7 @@ const INPUT_SCHEMA = {
           label: primitiveValue,
           description: z.string().nullish(),
           imageUrl: z.string().nullish(),
+          image: imageSchema.optional(),
         })
       ),
       placeholder: z.optional(z.string()),
