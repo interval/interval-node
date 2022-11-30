@@ -5,7 +5,7 @@ import fetch from 'node-fetch'
 import * as superjson from 'superjson'
 import { JSONValue } from 'superjson/dist/types'
 import ISocket, { TimeoutError } from './ISocket'
-import type { DescriptionType } from 'node-datachannel'
+import type { DescriptionType, IceServer } from 'node-datachannel'
 import {
   DuplexRPCClient,
   DuplexRPCHandlers,
@@ -680,81 +680,91 @@ export default class IntervalClient {
       INITIALIZE_PEER_CONNECTION: async inputs => {
         if (typeof window !== 'undefined') return
 
-        const { default: DataChannelConnection } = await import(
-          './DataChannelConnection'
-        )
+        try {
+          this.#logger.debug('INITIALIZE_PEER_CONNECTION:', inputs)
+          switch (inputs.type) {
+            case 'offer': {
+              const { default: DataChannelConnection } = await import(
+                './DataChannelConnection'
+              )
 
-        this.#logger.debug('INITIALIZE_PEER_CONNECTION:', inputs)
-        switch (inputs.type) {
-          case 'offer': {
-            const dcc = new DataChannelConnection({
-              id: inputs.id,
-              send: inputs =>
-                this.#send('INITIALIZE_PEER_CONNECTION', inputs).catch(err => {
-                  this.#logger.debug(
-                    'Failed sending initialize peer connection',
-                    err
-                  )
-                }),
-              rpcConstructor: props => {
-                const rpc = this.#createRPCClient(props)
-                rpc.communicator.onOpen.attach(() => {
-                  const set = this.#peerIdToTransactionIdsMap.get(inputs.id)
-                  if (set) {
-                    this.#resendTransactionLoadingStates(
-                      Array.from(set.values())
-                    )
-                    this.#resendPendingIOCalls(Array.from(set.values()))
-                  }
-                })
-                return rpc
-              },
-            })
-            this.#dccMap.set(inputs.id, dcc)
-            dcc.peer.setRemoteDescription(
-              inputs.description,
-              inputs.type as DescriptionType
-            )
-            dcc.peer.onStateChange(state => {
-              this.#logger.debug('Peer state change:', state)
-              if (state === 'failed' || state === 'closed') {
-                this.#dccMap.delete(inputs.id)
-              }
-            })
+              const iceConfig = await this.#interval.fetchIceConfig()
 
-            break
-          }
-          case 'answer': {
-            const dcc = this.#dccMap.get(inputs.id)
-
-            if (dcc) {
+              const dcc = new DataChannelConnection({
+                id: inputs.id,
+                // TypeScript an enum and not a string, though they're equivalent
+                iceServers: iceConfig.iceServers as IceServer[],
+                send: inputs =>
+                  this.#send('INITIALIZE_PEER_CONNECTION', inputs).catch(
+                    err => {
+                      this.#logger.debug(
+                        'Failed sending initialize peer connection',
+                        err
+                      )
+                    }
+                  ),
+                rpcConstructor: props => {
+                  const rpc = this.#createRPCClient(props)
+                  rpc.communicator.onOpen.attach(() => {
+                    const set = this.#peerIdToTransactionIdsMap.get(inputs.id)
+                    if (set) {
+                      this.#resendTransactionLoadingStates(
+                        Array.from(set.values())
+                      )
+                      this.#resendPendingIOCalls(Array.from(set.values()))
+                    }
+                  })
+                  return rpc
+                },
+              })
+              this.#dccMap.set(inputs.id, dcc)
               dcc.peer.setRemoteDescription(
                 inputs.description,
                 inputs.type as DescriptionType
               )
-            } else {
-              this.#logger.warn(
-                'INITIALIZE_PEER_CONNECTION:',
-                'DCC not found for id',
-                inputs.id
-              )
-            }
-            break
-          }
-          case 'candidate': {
-            const dcc = this.#dccMap.get(inputs.id)
+              dcc.peer.onStateChange(state => {
+                this.#logger.debug('Peer state change:', state)
+                if (state === 'failed' || state === 'closed') {
+                  this.#dccMap.delete(inputs.id)
+                }
+              })
 
-            if (dcc) {
-              dcc.peer.addRemoteCandidate(inputs.candidate, inputs.mid)
-            } else {
-              this.#logger.warn(
-                'INITIALIZE_PEER_CONNECTION',
-                'DCC not found for id',
-                inputs.id
-              )
+              break
             }
-            break
+            case 'answer': {
+              const dcc = this.#dccMap.get(inputs.id)
+
+              if (dcc) {
+                dcc.peer.setRemoteDescription(
+                  inputs.description,
+                  inputs.type as DescriptionType
+                )
+              } else {
+                this.#logger.warn(
+                  'INITIALIZE_PEER_CONNECTION:',
+                  'DCC not found for id',
+                  inputs.id
+                )
+              }
+              break
+            }
+            case 'candidate': {
+              const dcc = this.#dccMap.get(inputs.id)
+
+              if (dcc) {
+                dcc.peer.addRemoteCandidate(inputs.candidate, inputs.mid)
+              } else {
+                this.#logger.warn(
+                  'INITIALIZE_PEER_CONNECTION',
+                  'DCC not found for id',
+                  inputs.id
+                )
+              }
+              break
+            }
           }
+        } catch (err) {
+          this.#logger.error('Failed initializing peer connection', err)
         }
       },
       START_TRANSACTION: async inputs => {

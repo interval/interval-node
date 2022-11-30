@@ -1,4 +1,4 @@
-import { PeerConnection } from 'node-datachannel'
+import { PeerConnection, IceServer } from 'node-datachannel'
 import type { DuplexRPCClient } from './DuplexRPCClient'
 import {
   HostSchema,
@@ -15,10 +15,12 @@ export default class DataChannelConnection {
 
   constructor({
     id,
+    iceServers,
     send,
     rpcConstructor,
   }: {
     id: string
+    iceServers: (string | IceServer)[]
     send: PeerConnectionInitializer
     rpcConstructor: (props: {
       communicator: ISocket
@@ -26,10 +28,7 @@ export default class DataChannelConnection {
     }) => DuplexRPCClient<ClientSchema, HostSchema>
   }) {
     this.peer = new PeerConnection(id, {
-      iceServers: [
-        'stun:stun.l.google.com:19302',
-        'stun:global.stun.twilio.com:3478',
-      ],
+      iceServers,
     })
     // For some reason these cause segfaults?
     // this.peer.onStateChange(state => {

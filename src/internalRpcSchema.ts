@@ -94,6 +94,24 @@ export const PAGE_DEFINITION = z.object({
 
 export type PageDefinition = z.infer<typeof PAGE_DEFINITION>
 
+export const ICE_SERVER = z.object({
+  url: z.string(),
+  urls: z.string(),
+  hostname: z.string(),
+  port: z.number(),
+  relayType: z.enum(['TurnUdp', 'TurnTcp', 'TurnTls']).optional(),
+  username: z.string().optional(),
+  credential: z.string().optional(),
+})
+
+export type IceServer = z.infer<typeof ICE_SERVER>
+
+export const ICE_CONFIG = z.object({
+  iceServers: z.array(ICE_SERVER),
+})
+
+export type IceConfig = z.infer<typeof ICE_CONFIG>
+
 export const ENQUEUE_ACTION = {
   inputs: z.object({
     slug: z.string(),

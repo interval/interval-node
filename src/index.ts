@@ -4,7 +4,13 @@ import Routes from './classes/Routes'
 import IOError from './classes/IOError'
 import Logger from './classes/Logger'
 import Page from './classes/Page'
-import { NOTIFY, ClientSchema, HostSchema } from './internalRpcSchema'
+import {
+  NOTIFY,
+  ClientSchema,
+  HostSchema,
+  ICE_CONFIG,
+  IceConfig,
+} from './internalRpcSchema'
 import { DuplexRPCHandlers } from './classes/DuplexRPCClient'
 import { SerializableRecord } from './ioSchema'
 import type {
@@ -201,6 +207,19 @@ export default class Interval {
 
   /* @internal */ get client() {
     return this.#client
+  }
+
+  async fetchIceConfig(): Promise<IceConfig> {
+    const response = await fetch(`${this.#httpEndpoint}/api/ice-config`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${this.#apiKey}`,
+      },
+    }).then(r => r.json())
+
+    const parsed = ICE_CONFIG.parse(response)
+
+    return parsed
   }
 
   async notify(config: NotifyConfig): Promise<void> {
