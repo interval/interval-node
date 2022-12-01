@@ -289,7 +289,7 @@ export default class ISocket {
     }
 
     this.ws.onclose = (ev?: CloseEvent) => {
-      this.onClose.post([ev?.code ?? 0, ev?.reason ?? 'idk'])
+      this.onClose.post([ev?.code ?? 0, ev?.reason ?? 'Unknown'])
     }
 
     this.ws.onerror = (ev: ErrorEvent | Event) => {
@@ -320,9 +320,11 @@ export default class ISocket {
         if (meta.data === 'authenticated') {
           this.isAuthenticated = true
           this.onAuthenticated.post()
-          return
+        } else if (meta.data === 'ping') {
+          // do nothing
+        } else {
+          this.onMessage.post(meta.data)
         }
-        this.onMessage.post(meta.data)
       }
     }
 
@@ -353,13 +355,6 @@ export default class ISocket {
   async ping() {
     if (this.isClosed) throw new NotConnectedError()
 
-    if (!('ping' in this.ws)) {
-      // Not supported in web client WebSocket
-      throw new Error(
-        'ping not supported in this underlying websocket connection'
-      )
-    }
-
     const ws = this.ws
     return new Promise<void>((resolve, reject) => {
       const pongTimeout = setTimeout(
@@ -377,11 +372,16 @@ export default class ISocket {
           resolve()
         },
       })
-      ws.ping(id, undefined, err => {
-        if (err) {
-          reject(err)
-        }
-      })
+
+      if ('ping' in ws) {
+        ws.ping(id, undefined, err => {
+          if (err) {
+            reject(err)
+          }
+        })
+      } else {
+        ws.send(JSON.stringify({ type: 'MESSAGE', id, data: 'ping' }))
+      }
     })
   }
 }
