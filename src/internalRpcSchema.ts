@@ -162,6 +162,7 @@ export const DECLARE_HOST = {
       type: z.literal('success'),
       invalidSlugs: z.array(z.string()),
       sdkAlert: SDK_ALERT.nullish(),
+      warnings: z.array(z.string()),
     }),
     z.object({
       type: z.literal('error'),
@@ -316,6 +317,7 @@ export const wsServerSchema = {
           }),
           dashboardUrl: z.string(),
           sdkAlert: SDK_ALERT.nullish(),
+          warnings: z.array(z.string()),
         }),
         z.object({
           type: z.literal('error'),

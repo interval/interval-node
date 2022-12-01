@@ -390,6 +390,10 @@ export default class IntervalClient {
       this.#log.handleSdkAlert(response.sdkAlert)
     }
 
+    if (response.warnings.length) {
+      this.#log.handleWarnings(response.warnings)
+    }
+
     if (response.invalidSlugs.length > 0) {
       this.#log.warn('[Interval]', '⚠ Invalid slugs detected:\n')
 
@@ -1281,6 +1285,10 @@ export default class IntervalClient {
         this.#log.warn(
           '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
         )
+      }
+
+      if (response.warnings.length) {
+        this.#log.handleWarnings(response.warnings)
       }
 
       this.organization = response.organization

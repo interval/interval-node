@@ -72,4 +72,16 @@ export default class Logger {
 
     console.log('')
   }
+
+  handleWarnings(warnings: string[]) {
+    console.log('')
+
+    const WARN_EMOJI = '\u26A0\uFE0F'
+
+    for (const warning of warnings) {
+      this.prod(`${WARN_EMOJI}\t${warning}`)
+    }
+
+    console.log('')
+  }
 }
