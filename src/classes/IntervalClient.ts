@@ -25,6 +25,7 @@ import {
   HostSchema,
   ClientSchema,
   WSServerSchema,
+  PeerCandidate,
 } from '../internalRpcSchema'
 import {
   ActionResultSchema,
@@ -274,6 +275,7 @@ export default class IntervalClient {
 
   #ws: ISocket | undefined = undefined
   #dccMap = new Map<string, DataChannelConnection>()
+  #pendingCandidatesMap = new Map<string, PeerCandidate[]>()
   #peerIdMap = new Map<string, string>()
   #peerIdToTransactionIdsMap = new Map<string, Set<string>>()
 
@@ -729,6 +731,19 @@ export default class IntervalClient {
                 }
               })
 
+              const pendingCandidates = this.#pendingCandidatesMap.get(
+                inputs.id
+              )
+              if (pendingCandidates) {
+                for (const candidate of pendingCandidates) {
+                  dcc.peer.addRemoteCandidate(
+                    candidate.candidate,
+                    candidate.mid
+                  )
+                }
+                this.#pendingCandidatesMap.delete(inputs.id)
+              }
+
               break
             }
             case 'answer': {
@@ -742,8 +757,8 @@ export default class IntervalClient {
               } else {
                 this.#logger.warn(
                   'INITIALIZE_PEER_CONNECTION:',
-                  'DCC not found for id',
-                  inputs.id
+                  'DCC not found for inputs',
+                  inputs
                 )
               }
               break
@@ -754,11 +769,14 @@ export default class IntervalClient {
               if (dcc) {
                 dcc.peer.addRemoteCandidate(inputs.candidate, inputs.mid)
               } else {
-                this.#logger.warn(
-                  'INITIALIZE_PEER_CONNECTION',
-                  'DCC not found for id',
+                let pendingCandidates = this.#pendingCandidatesMap.get(
                   inputs.id
                 )
+                if (!pendingCandidates) {
+                  pendingCandidates = []
+                  this.#pendingCandidatesMap.set(inputs.id, pendingCandidates)
+                }
+                pendingCandidates.push(inputs)
               }
               break
             }

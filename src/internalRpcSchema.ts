@@ -205,6 +205,15 @@ export const DECLARE_HOST = {
   ]),
 }
 
+const PEER_CANDIDATE = z.object({
+  type: z.literal('candidate'),
+  id: z.string(),
+  candidate: z.string(),
+  mid: z.string(),
+})
+
+export type PeerCandidate = z.infer<typeof PEER_CANDIDATE>
+
 const INITIALIZE_PEER_CONNECTION = {
   inputs: z.discriminatedUnion('type', [
     z.object({
@@ -217,12 +226,7 @@ const INITIALIZE_PEER_CONNECTION = {
       id: z.string(),
       description: z.string(),
     }),
-    z.object({
-      type: z.literal('candidate'),
-      id: z.string(),
-      candidate: z.string(),
-      mid: z.string(),
-    }),
+    PEER_CANDIDATE,
     z.object({
       type: z.literal('unspec'),
       id: z.string(),
