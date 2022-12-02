@@ -30,7 +30,7 @@ const actions: Record<string, IntervalActionDefinition> = {
       return 'Hello, world!'
     },
     // this is the default setting, just showing it here for clarity
-    access: 'organization',
+    access: 'entire-organization',
   },
   no_access: {
     name: 'No-access action',
