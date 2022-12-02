@@ -46,7 +46,7 @@ export type LoadingOptions = z.input<typeof LOADING_OPTIONS>
 export type LoadingState = z.input<typeof LOADING_STATE>
 
 export const ACCESS_CONTROL_DEFINITION = z.union([
-  z.literal('organization'),
+  z.literal('entire-organization'),
   z.object({
     teams: z.array(z.string()).optional(),
   }),
@@ -61,7 +61,7 @@ export const ACTION_DEFINITION = z.object({
   description: z.string().optional(),
   backgroundable: z.boolean().optional(),
   unlisted: z.boolean().optional(),
-  accessControl: ACCESS_CONTROL_DEFINITION.optional(),
+  access: ACCESS_CONTROL_DEFINITION.optional(),
 })
 
 export type ActionDefinition = z.infer<typeof ACTION_DEFINITION>
@@ -74,7 +74,7 @@ export const PAGE_DEFINITION = z.object({
   // Older version of hasHandler, deprecated
   hasIndex: z.boolean().optional(),
   unlisted: z.boolean().optional(),
-  accessControl: ACCESS_CONTROL_DEFINITION.optional(),
+  access: ACCESS_CONTROL_DEFINITION.optional(),
 })
 
 export type PageDefinition = z.infer<typeof PAGE_DEFINITION>

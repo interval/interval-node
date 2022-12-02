@@ -9,7 +9,7 @@ const actions: Record<string, IntervalActionDefinition> = {
     handler: async () => {
       return 'Hello, world!'
     },
-    accessControl: {
+    access: {
       teams: ['Engineers'],
     },
   },
@@ -19,7 +19,7 @@ const actions: Record<string, IntervalActionDefinition> = {
     handler: async () => {
       return 'Hello, world!'
     },
-    accessControl: {
+    access: {
       teams: ['Support'],
     },
   },
@@ -30,7 +30,7 @@ const actions: Record<string, IntervalActionDefinition> = {
       return 'Hello, world!'
     },
     // this is the default setting, just showing it here for clarity
-    accessControl: 'organization',
+    access: 'organization',
   },
   no_access: {
     name: 'No-access action',
@@ -39,7 +39,7 @@ const actions: Record<string, IntervalActionDefinition> = {
     handler: async () => {
       return 'Hello, world!'
     },
-    accessControl: {
+    access: {
       teams: [],
     },
   },
@@ -57,7 +57,7 @@ const routes: IntervalRouteDefinitions = {
   engineersGroup: new Page({
     name: 'Engineers actions',
     description: 'Can only be seen and accessed by the Engineers group',
-    accessControl: {
+    access: {
       teams: ['Engineers'],
     },
     routes: {
@@ -67,7 +67,7 @@ const routes: IntervalRouteDefinitions = {
   supportGroup: new Page({
     name: 'Support actions',
     description: 'Can only be seen and accessed by the Support group',
-    accessControl: {
+    access: {
       teams: ['Support'],
     },
     routes: {
@@ -78,7 +78,7 @@ const routes: IntervalRouteDefinitions = {
     name: 'Mixed access',
     description:
       'This is a support-only group, but engineers can access an action within it.',
-    accessControl: {
+    access: {
       teams: ['Support'],
     },
     handler: async () => {
@@ -91,7 +91,7 @@ const routes: IntervalRouteDefinitions = {
       engAction: {
         name: 'Engineers can run this',
         description: 'This action can only be run by the Engineers team.',
-        accessControl: {
+        access: {
           teams: ['Engineers'],
         },
         handler: async () => {
@@ -111,7 +111,7 @@ const routes: IntervalRouteDefinitions = {
     name: 'Deeply nested access',
     description:
       'Engineers do not have access to this group, but can access an action within the group',
-    accessControl: {
+    access: {
       teams: ['Support'],
     },
     routes: {

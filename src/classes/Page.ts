@@ -14,7 +14,7 @@ export interface PageConfig {
   groups?: Record<string, Page>
   routes?: IntervalRouteDefinitions
   handler?: IntervalPageHandler
-  accessControl?: AccessControlDefinition
+  access?: AccessControlDefinition
 }
 
 export default class Page {
@@ -23,7 +23,7 @@ export default class Page {
   unlisted?: boolean
   routes: IntervalRouteDefinitions
   handler?: IntervalPageHandler
-  accessControl?: AccessControlDefinition
+  access?: AccessControlDefinition
 
   onChange: Evt<void>
   #groupChangeCtx = Evt.newCtx()
@@ -37,7 +37,7 @@ export default class Page {
       ...config.actions,
       ...config.groups,
     }
-    this.accessControl = config.accessControl
+    this.access = config.access
     this.handler = config.handler
     this.onChange = new Evt()
 

@@ -90,7 +90,7 @@ export interface ExplicitIntervalActionDefinition {
   unlisted?: boolean
   name?: string
   description?: string
-  accessControl?: AccessControlDefinition
+  access?: AccessControlDefinition
 }
 
 export type IntervalActionDefinition =
@@ -195,13 +195,11 @@ export type ComponentsRenderer<
   components: Components,
   validator?: IOClientRenderValidator<Components>,
   continueButton?: ButtonConfig
-) => Promise<
-  {
-    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-      ? z.infer<Components[Idx]['schema']['returns']> | undefined
-      : Components[Idx]
-  }
->
+) => Promise<{
+  [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+    ? z.infer<Components[Idx]['schema']['returns']> | undefined
+    : Components[Idx]
+}>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 

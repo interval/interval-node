@@ -11,7 +11,7 @@ export default class Action implements ExplicitIntervalActionDefinition {
   unlisted?: boolean
   name?: string
   description?: string
-  accessControl?: AccessControlDefinition
+  access?: AccessControlDefinition
 
   constructor(
     def: ExplicitIntervalActionDefinition | IntervalActionDefinition
