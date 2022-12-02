@@ -391,7 +391,9 @@ export default class IntervalClient {
     }
 
     if (response.warnings.length) {
-      this.#log.handleWarnings(response.warnings)
+      for (const warning of response.warnings) {
+        this.#log.warn(warning)
+      }
     }
 
     if (response.invalidSlugs.length > 0) {
@@ -1288,7 +1290,9 @@ export default class IntervalClient {
       }
 
       if (response.warnings.length) {
-        this.#log.handleWarnings(response.warnings)
+        for (const warning of response.warnings) {
+          this.#log.warn(warning)
+        }
       }
 
       this.organization = response.organization
