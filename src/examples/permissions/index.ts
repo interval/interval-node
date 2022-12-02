@@ -105,6 +105,7 @@ const routes: IntervalRouteDefinitions = {
           return 'Hello, world!'
         },
       },
+      orgAction: actions.organization,
     },
   }),
   deeplyNested: new Page({
