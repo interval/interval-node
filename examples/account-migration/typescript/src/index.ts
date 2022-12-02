@@ -22,7 +22,7 @@ const interval = new Interval({
         }),
       });
 
-      const videosFile = await io.experimental.input.file('Select a file', {
+      const videosFile = await io.input.file('Select a file', {
         allowedExtensions: ['.json'],
       });
 

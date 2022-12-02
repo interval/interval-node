@@ -1,6 +1,6 @@
 const { Interval, io, ctx } = require('@interval/sdk');
 require('dotenv').config(); // loads environment variables from .env
-import QRCode from 'qrcode';
+const QRCode = require('qrcode');
 
 const interval = new Interval({
   apiKey: process.env.INTERVAL_KEY,
