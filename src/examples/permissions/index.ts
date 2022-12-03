@@ -10,7 +10,7 @@ const actions: Record<string, IntervalActionDefinition> = {
       return 'Hello, world!'
     },
     access: {
-      teams: ['Engineers'],
+      teams: ['engineers'],
     },
   },
   support: {
@@ -20,7 +20,7 @@ const actions: Record<string, IntervalActionDefinition> = {
       return 'Hello, world!'
     },
     access: {
-      teams: ['Support'],
+      teams: ['support'],
     },
   },
   organization: {
@@ -58,7 +58,7 @@ const routes: IntervalRouteDefinitions = {
     name: 'Engineers actions',
     description: 'Can only be seen and accessed by the Engineers group',
     access: {
-      teams: ['Engineers'],
+      teams: ['engineers'],
     },
     routes: {
       action: actions['inherited'],
@@ -68,7 +68,7 @@ const routes: IntervalRouteDefinitions = {
     name: 'Support actions',
     description: 'Can only be seen and accessed by the Support group',
     access: {
-      teams: ['Support'],
+      teams: ['support'],
     },
     routes: {
       action: actions['inherited'],
@@ -79,7 +79,7 @@ const routes: IntervalRouteDefinitions = {
     description:
       'This is a support-only group, but engineers can access an action within it.',
     access: {
-      teams: ['Support'],
+      teams: ['support'],
     },
     handler: async () => {
       return new Layout.Basic({
@@ -92,7 +92,7 @@ const routes: IntervalRouteDefinitions = {
         name: 'Engineers can run this',
         description: 'This action can only be run by the Engineers team.',
         access: {
-          teams: ['Engineers'],
+          teams: ['engineers'],
         },
         handler: async () => {
           return 'Hello, world!'
@@ -113,7 +113,7 @@ const routes: IntervalRouteDefinitions = {
     description:
       'Engineers do not have access to this group, but can access an action within the group',
     access: {
-      teams: ['Support'],
+      teams: ['support'],
     },
     routes: {
       level2: new Page({
