@@ -11,23 +11,6 @@ const hello_app = new Page({
       description: sleep(750).then(
         () => 'This is an asynchronous description!'
       ),
-      metadata: [
-        { label: 'Static', value: 3, action: 'actionLinks' },
-        {
-          label: 'Function',
-          value: () => 'result',
-          url: 'https://interval.com',
-        },
-        {
-          label: 'Async function',
-          value: async () => {
-            await sleep(1000)
-            throw new Error('Metadata error in an async function')
-            return '1 second'
-          },
-        },
-        { label: 'Promise', value: sleep(2000).then(() => 2000) },
-      ],
       menuItems: [
         {
           label: 'External link',
@@ -102,23 +85,6 @@ const users = new Page({
     const allUsers = db.getUsers()
 
     return new Layout({
-      // TODO: this should fallback to the group title if undefined, I think
-      title: 'Users',
-      metadata: [
-        { label: 'Total users', value: allUsers.length },
-        {
-          label: 'New today',
-          value: allUsers.filter(
-            u => u.createdAt.getTime() > Date.now() - 1000 * (60 * 60 * 24)
-          ).length,
-        },
-        {
-          label: 'New this week',
-          value: allUsers.filter(
-            u => u.createdAt.getTime() > Date.now() - 1000 * (60 * 60 * 24 * 7)
-          ).length,
-        },
-      ],
       menuItems: [
         {
           label: 'View funnel',
@@ -201,12 +167,7 @@ const interval = new Interval({
       async handler() {
         return new Layout({
           title: 'Info',
-          description:
-            'This is a text-only page. No children, just text. Metadata are params.',
-          metadata: Object.entries(ctx.params).map(([label, value]) => ({
-            label,
-            value,
-          })),
+          description: 'This is a text-only page. No children, just text.',
           menuItems: [
             {
               label: 'Reload',

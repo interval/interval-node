@@ -934,25 +934,10 @@ export default class IntervalClient {
               errors,
             }
 
-            if (page.metadata) {
-              const items: MetaItemSchema[] = []
-              for (const pageItem of page.metadata) {
-                let { label, value, error } = pageItem
-                if (typeof value === 'function' || value instanceof Promise) {
-                  items.push({ label })
-                } else {
-                  items.push({ label, value, error })
-                }
-              }
-
-              const { json, meta } = superjson.serialize(items)
-
-              if (json) {
-                pageLayout.metadata = {
-                  json: json as MetaItemSchema[],
-                  meta,
-                } as MetaItemsSchema
-              }
+            if ('metadata' in page) {
+              this.#logger.warn(
+                'The `metadata` property on `Layout` is deprecated. Please use `io.display.metadata` in the `children` array instead.'
+              )
             }
 
             if (this.#config.getClientHandlers) {
@@ -1129,41 +1114,10 @@ export default class IntervalClient {
                 })
               }
 
-              if (page instanceof BasicLayout) {
-                const { metadata } = page
-                if (metadata) {
-                  for (let i = 0; i < metadata.length; i++) {
-                    let { value } = metadata[i]
-                    if (typeof value === 'function') {
-                      try {
-                        value = value()
-                        metadata[i].value = value
-                      } catch (err) {
-                        this.#logger.error(err)
-                        const error = pageError(err, 'metadata')
-                        errors.push(error)
-                        metadata[i].value = null
-                        metadata[i].error = error.message
-                      }
-                    }
-
-                    if (value instanceof Promise) {
-                      value
-                        .then(resolved => {
-                          metadata[i].value = resolved
-                          scheduleSendPage()
-                        })
-                        .catch(err => {
-                          this.#logger.error(err)
-                          const error = pageError(err, 'metadata')
-                          errors.push(error)
-                          metadata[i].value = null
-                          metadata[i].error = error.message
-                          scheduleSendPage()
-                        })
-                    }
-                  }
-                }
+              if ('metadata' in page) {
+                this.#logger.warn(
+                  'The `metadata` property on `Layout` is deprecated. Please use `io.display.metadata` in the `children` array instead.'
+                )
               }
 
               if (page.children) {

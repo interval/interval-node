@@ -13,7 +13,6 @@ export interface BasicLayoutConfig {
   description?: EventualString
   children?: AnyDisplayIOPromise[]
   menuItems?: ButtonItem[]
-  metadata?: MetaItem[]
 }
 
 export interface Layout {
@@ -30,7 +29,6 @@ export class BasicLayout implements Layout {
   description?: EventualString
   children?: AnyDisplayIOPromise[]
   menuItems?: ButtonItem[]
-  metadata?: MetaItem[]
   errors?: PageError[]
 
   constructor(config: BasicLayoutConfig) {
@@ -38,7 +36,6 @@ export class BasicLayout implements Layout {
     this.description = config.description
     this.children = config.children
     this.menuItems = config.menuItems
-    this.metadata = config.metadata
     this.errors = []
   }
 }
