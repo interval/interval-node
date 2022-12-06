@@ -5,4 +5,3 @@ dist/
 prisma/dev.db
 prisma/dev.db-journal
 yarn-error.log
-yarn.lock
