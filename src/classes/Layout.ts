@@ -25,7 +25,7 @@ export interface Layout {
 }
 
 // Base class
-export class Basic implements Layout {
+export class BasicLayout implements Layout {
   title?: EventualString
   description?: EventualString
   children?: AnyDisplayIOPromise[]

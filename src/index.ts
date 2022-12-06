@@ -27,6 +27,7 @@ import IntervalClient, {
   pageLocalStorage,
 } from './classes/IntervalClient'
 import Action from './classes/Action'
+import { BasicLayout } from './classes/Layout'
 
 export type {
   ActionCtx,
@@ -264,4 +265,4 @@ export default class Interval {
   }
 }
 
-export { Interval, IOError, IntervalError, Action }
+export { Interval, IOError, IntervalError, Action, Page, BasicLayout as Layout }

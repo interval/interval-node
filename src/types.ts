@@ -36,7 +36,7 @@ import type {
 import type IOError from './classes/IOError'
 import type TransactionLoadingState from './classes/TransactionLoadingState'
 import type { Layout } from './classes/Layout'
-import type { Page } from './experimental'
+import type Page from './classes/Page'
 import type { BasicLayoutConfig } from './classes/Layout'
 import type Action from './classes/Action'
 

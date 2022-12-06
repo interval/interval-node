@@ -46,7 +46,7 @@ import { Interval, InternalConfig, IntervalError } from '..'
 import Page from './Page'
 import {
   Layout,
-  Basic,
+  BasicLayout,
   LayoutSchemaInput,
   MetaItemSchema,
   MetaItemsSchema,
@@ -914,7 +914,7 @@ export default class IntervalClient {
         const MAX_PAGE_RETRIES = 5
 
         const sendPage = async () => {
-          if (page instanceof Basic) {
+          if (page instanceof BasicLayout) {
             const pageLayout: LayoutSchemaInput = {
               kind: 'BASIC',
               title:
@@ -1129,7 +1129,7 @@ export default class IntervalClient {
                 })
               }
 
-              if (page instanceof Basic) {
+              if (page instanceof BasicLayout) {
                 const { metadata } = page
                 if (metadata) {
                   for (let i = 0; i < metadata.length; i++) {

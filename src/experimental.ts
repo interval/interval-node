@@ -17,7 +17,7 @@ import Routes from './classes/Routes'
 import Logger from './classes/Logger'
 import Action from './classes/Action'
 import { IntervalActionDefinition } from './types'
-import { Basic } from './classes/Layout'
+import { BasicLayout } from './classes/Layout'
 
 class ExperimentalInterval extends Interval {
   #groupChangeCtx = Evt.newCtx()
@@ -314,10 +314,7 @@ export {
   ctx,
   IntervalError,
   ExperimentalInterval as Interval,
-}
-
-export const Layout = {
-  Basic,
+  BasicLayout as Layout,
 }
 
 export default ExperimentalInterval

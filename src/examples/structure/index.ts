@@ -1,4 +1,4 @@
-import Interval, { Page, ctx, io, Layout } from '../../experimental'
+import Interval, { Page, ctx, io, Layout } from '../..'
 import { IntervalRouteDefinitions } from '../../types'
 import { sleep } from '../utils/helpers'
 import * as db from './db'
@@ -28,7 +28,7 @@ const routes: IntervalRouteDefinitions = {
   indexOnly: new Page({
     name: 'Index only',
     async handler() {
-      return new Layout.Basic({
+      return new Layout({
         title: 'Index only',
         children: [io.display.markdown('Hello, world!')],
       })
@@ -40,7 +40,7 @@ const routes: IntervalRouteDefinitions = {
     async handler() {
       const allUsers = db.getUsers()
 
-      return new Layout.Basic({
+      return new Layout({
         title: 'Users',
         description:
           'This is a multi-level router with multiple nested routers',
@@ -91,7 +91,7 @@ const routes: IntervalRouteDefinitions = {
         async handler() {
           const data = db.getSubscriptions()
 
-          return new Layout.Basic({
+          return new Layout({
             title: 'Subscriptions',
             children: [
               io.display.table('Subscriptions', {
@@ -135,7 +135,7 @@ const routes: IntervalRouteDefinitions = {
         async handler() {
           const data = db.getComments()
 
-          return new Layout.Basic({
+          return new Layout({
             title: 'Comments',
             menuItems: [
               {
@@ -174,7 +174,7 @@ const routes: IntervalRouteDefinitions = {
           nested: new Page({
             name: 'Nested L1',
             async handler() {
-              return new Layout.Basic({})
+              return new Layout({})
             },
             routes: {
               create: {
@@ -186,7 +186,7 @@ const routes: IntervalRouteDefinitions = {
               nested_2: new Page({
                 name: 'Nested L2',
                 async handler() {
-                  return new Layout.Basic({})
+                  return new Layout({})
                 },
                 routes: {
                   create: {

@@ -1,5 +1,5 @@
 import { T_IO_METHOD, T_IO_PROPS } from './../../ioSchema'
-import Interval, { IOError, io, ctx } from '../../index'
+import Interval, { IOError, io, ctx, Page } from '../../index'
 import IntervalClient from '../../classes/IntervalClient'
 import {
   IntervalActionDefinition,
@@ -13,7 +13,6 @@ import unauthorized from './unauthorized'
 import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
-import { Page, Router } from '../../experimental'
 
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([

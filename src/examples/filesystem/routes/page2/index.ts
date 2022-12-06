@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { io, Page, Layout } from '../../../../experimental'
+import { io, Page, Layout } from '../../../..'
 
 export default new Page({
   name: 'Default export Page',
@@ -9,7 +9,7 @@ export default new Page({
     inline: async () => 'Inline!',
   },
   handler: async () =>
-    new Layout.Basic({
+    new Layout({
       title: 'routes/page2/index.ts',
       children: [
         io.display.code("This file's source code", {

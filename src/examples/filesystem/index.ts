@@ -1,5 +1,5 @@
 import path from 'path'
-import Interval from '../../experimental'
+import Interval from '../..'
 
 const interval = new Interval({
   apiKey: 'alex_dev_Bku6kYZlyhyvkCO36W5HnpwtXACI1khse8SnZ9PuwsmqdRfe',

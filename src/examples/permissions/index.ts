@@ -1,5 +1,5 @@
 import { IntervalActionDefinition } from '@interval/sdk/src/types'
-import Interval, { Action, Layout, Page, io } from '../../experimental'
+import Interval, { Action, Layout, Page, io } from '../..'
 import { IntervalRouteDefinitions } from '../../types'
 
 const actions: Record<string, IntervalActionDefinition> = {
@@ -82,7 +82,7 @@ const routes: IntervalRouteDefinitions = {
       teams: ['support'],
     },
     handler: async () => {
-      return new Layout.Basic({
+      return new Layout({
         title: 'Mixed access handler',
         children: [io.display.markdown('')],
       })

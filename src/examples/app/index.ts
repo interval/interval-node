@@ -1,4 +1,4 @@
-import Interval, { Page, ctx, io, Layout } from '../../experimental'
+import Interval, { Page, ctx, io, Layout } from '../..'
 import { sleep } from '../utils/helpers'
 import * as db from './db'
 
@@ -6,7 +6,7 @@ const hello_app = new Page({
   name: 'App',
   description: 'This should have a description',
   handler: async () => {
-    return new Layout.Basic({
+    return new Layout({
       title: sleep(1000).then(() => 'Resource'),
       description: sleep(750).then(
         () => 'This is an asynchronous description!'
@@ -101,7 +101,7 @@ const users = new Page({
   handler: async () => {
     const allUsers = db.getUsers()
 
-    return new Layout.Basic({
+    return new Layout({
       // TODO: this should fallback to the group title if undefined, I think
       title: 'Users',
       metadata: [
@@ -199,7 +199,7 @@ const interval = new Interval({
     info: new Page({
       name: 'Info',
       async handler() {
-        return new Layout.Basic({
+        return new Layout({
           title: 'Info',
           description:
             'This is a text-only page. No children, just text. Metadata are params.',
