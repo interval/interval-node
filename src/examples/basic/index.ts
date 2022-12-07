@@ -622,7 +622,8 @@ const interval = new Interval({
     },
     logs: async (_, ctx) => {
       for (let i = 0; i < 10; i++) {
-        ctx.log('Log number', i)
+        await ctx.log('Log number', i)
+        await sleep(500)
       }
     },
     logTest: async (io, ctx) => {
