@@ -726,7 +726,11 @@ export default class IntervalClient {
               )
               dcc.peer.onStateChange(state => {
                 this.#logger.debug('Peer state change:', state)
-                if (state === 'failed' || state === 'closed') {
+                if (
+                  state === 'failed' ||
+                  state === 'closed' ||
+                  state === 'disconnected'
+                ) {
                   this.#dccMap.delete(inputs.id)
                 }
               })
