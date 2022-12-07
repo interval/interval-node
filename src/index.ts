@@ -28,6 +28,7 @@ import IntervalClient, {
 } from './classes/IntervalClient'
 import Action from './classes/Action'
 import { BasicLayout } from './classes/Layout'
+import { Evt } from 'evt'
 
 export type {
   ActionCtx,
@@ -146,6 +147,7 @@ export default class Interval {
   #client: IntervalClient | undefined
   #apiKey: string | undefined
   #httpEndpoint: string
+  #groupChangeCtx = Evt.newCtx()
   routes: Routes
 
   constructor(config: InternalConfig) {
@@ -156,12 +158,30 @@ export default class Interval {
     this.#httpEndpoint = getHttpEndpoint(
       config.endpoint ?? DEFAULT_WEBSOCKET_ENDPOINT
     )
+
     this.routes = new Routes(
+      this.#groupChangeCtx,
       this,
       this.#httpEndpoint,
       this.#logger,
       this.#apiKey
     )
+
+    const routes = {
+      ...this.config.actions,
+      ...this.config.groups,
+      ...this.config.routes,
+    }
+
+    if (routes) {
+      for (const group of Object.values(routes)) {
+        if (group instanceof Page) {
+          group.onChange.attach(this.#groupChangeCtx, () => {
+            this.client?.handleActionsChange(this.config)
+          })
+        }
+      }
+    }
   }
 
   // TODO: Mark as deprecated soon, remove soon afterward

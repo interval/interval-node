@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { Evt, Ctx } from 'evt'
 import fetch from 'cross-fetch'
 import type { IncomingMessage, ServerResponse } from 'http'
 import Interval, { io, ctx, InternalConfig, IntervalError } from '.'
@@ -13,56 +12,12 @@ import {
   LambdaRequestPayload,
   LambdaResponse,
 } from './utils/http'
-import Routes from './classes/Routes'
-import Logger from './classes/Logger'
 import Action from './classes/Action'
-import { IntervalActionDefinition } from './types'
 import { BasicLayout } from './classes/Layout'
 
 class ExperimentalInterval extends Interval {
-  #groupChangeCtx = Evt.newCtx()
-  routes: ExperimentalRoutes
-
   constructor(config: InternalConfig) {
     super(config)
-    this.routes = new ExperimentalRoutes(
-      this.#groupChangeCtx,
-      this,
-      this.httpEndpoint,
-      this.log,
-      this.apiKey
-    )
-
-    const routes = {
-      ...this.config.actions,
-      ...this.config.groups,
-      ...this.config.routes,
-    }
-
-    if (routes) {
-      for (const group of Object.values(routes)) {
-        if (group instanceof Page) {
-          group.onChange.attach(this.#groupChangeCtx, () => {
-            this.client?.handleActionsChange(this.config)
-          })
-        }
-      }
-    }
-  }
-
-  // TODO: Mark as deprecated soon, remove soon afterward
-  get actions(): ExperimentalRoutes {
-    return this.routes
-  }
-
-  // TODO: Mark as deprecated soon, remove soon afterward
-  addGroup(slug: string, group: Page) {
-    return this.routes.add(slug, group)
-  }
-
-  // TODO: Mark as deprecated soon, remove soon afterward
-  removeGroup(slug: string) {
-    return this.routes.remove(slug)
   }
 
   /*
@@ -251,55 +206,6 @@ class ExperimentalInterval extends Interval {
       if (response.invalidSlugs.length === slugs.length) {
         throw new IntervalError('No valid slugs provided')
       }
-    }
-  }
-}
-
-export class ExperimentalRoutes extends Routes {
-  #groupChangeCtx: Ctx<void>
-
-  constructor(
-    ctx: Ctx<void>,
-    interval: Interval,
-    endpoint: string,
-    logger: Logger,
-    apiKey?: string
-  ) {
-    super(interval, endpoint, logger, apiKey)
-    this.#groupChangeCtx = ctx
-  }
-
-  add(slug: string, route: IntervalActionDefinition | Page) {
-    if (!this.interval.config.routes) {
-      this.interval.config.routes = {}
-    }
-
-    if (route instanceof Page) {
-      route.onChange.attach(this.#groupChangeCtx, () => {
-        this.interval.client?.handleActionsChange(this.interval.config)
-      })
-    }
-
-    this.interval.config.routes[slug] = route
-    this.interval.client?.handleActionsChange(this.interval.config)
-  }
-
-  remove(slug: string) {
-    for (const key of ['routes', 'actions', 'groups'] as const) {
-      const routes = this.interval.config[key]
-
-      if (!routes) continue
-      const route = routes[slug]
-      if (!route) continue
-
-      if (route instanceof Page) {
-        route.onChange.detach(this.#groupChangeCtx)
-      }
-
-      delete routes[slug]
-
-      this.interval.client?.handleActionsChange(this.interval.config)
-      return
     }
   }
 }

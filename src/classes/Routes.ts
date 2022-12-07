@@ -2,8 +2,14 @@ import { z } from 'zod'
 import fetch from 'cross-fetch'
 import * as superjson from 'superjson'
 import Logger from './Logger'
-import Interval, { IntervalError, QueuedAction } from '..'
+import Interval, {
+  IntervalActionDefinition,
+  IntervalError,
+  Page,
+  QueuedAction,
+} from '..'
 import { ENQUEUE_ACTION, DEQUEUE_ACTION } from '../internalRpcSchema'
+import { Ctx } from 'evt'
 
 /**
  * This is effectively a namespace inside of Interval with a little bit of its own state.
@@ -13,8 +19,10 @@ export default class Routes {
   #logger: Logger
   #apiKey?: string
   #endpoint: string
+  #groupChangeCtx: Ctx<void>
 
   constructor(
+    ctx: Ctx<void>,
     interval: Interval,
     endpoint: string,
     logger: Logger,
@@ -24,6 +32,7 @@ export default class Routes {
     this.#apiKey = apiKey
     this.#logger = logger
     this.#endpoint = endpoint + '/api/actions'
+    this.#groupChangeCtx = ctx
   }
 
   #getAddress(path: string): string {
@@ -123,6 +132,40 @@ export default class Routes {
     return {
       ...rest,
       params,
+    }
+  }
+
+  add(slug: string, route: IntervalActionDefinition | Page) {
+    if (!this.interval.config.routes) {
+      this.interval.config.routes = {}
+    }
+
+    if (route instanceof Page) {
+      route.onChange.attach(this.#groupChangeCtx, () => {
+        this.interval.client?.handleActionsChange(this.interval.config)
+      })
+    }
+
+    this.interval.config.routes[slug] = route
+    this.interval.client?.handleActionsChange(this.interval.config)
+  }
+
+  remove(slug: string) {
+    for (const key of ['routes', 'actions', 'groups'] as const) {
+      const routes = this.interval.config[key]
+
+      if (!routes) continue
+      const route = routes[slug]
+      if (!route) continue
+
+      if (route instanceof Page) {
+        route.onChange.detach(this.#groupChangeCtx)
+      }
+
+      delete routes[slug]
+
+      this.interval.client?.handleActionsChange(this.interval.config)
+      return
     }
   }
 }
