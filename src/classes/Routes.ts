@@ -22,10 +22,10 @@ export default class Routes {
   #groupChangeCtx: Ctx<void>
 
   constructor(
-    ctx: Ctx<void>,
     interval: Interval,
     endpoint: string,
     logger: Logger,
+    ctx: Ctx<void>,
     apiKey?: string
   ) {
     this.interval = interval

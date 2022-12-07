@@ -160,10 +160,10 @@ export default class Interval {
     )
 
     this.routes = new Routes(
-      this.#groupChangeCtx,
       this,
       this.#httpEndpoint,
       this.#logger,
+      this.#groupChangeCtx,
       this.#apiKey
     )
 

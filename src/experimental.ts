@@ -16,10 +16,6 @@ import Action from './classes/Action'
 import { BasicLayout } from './classes/Layout'
 
 class ExperimentalInterval extends Interval {
-  constructor(config: InternalConfig) {
-    super(config)
-  }
-
   /*
    * Handle a serverless host endpoint request. Receives the deserialized request body object.
    */
