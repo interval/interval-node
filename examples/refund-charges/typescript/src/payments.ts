@@ -48,3 +48,15 @@ export async function refundCharge(id: string) {
     reason: 'requested_by_customer',
   });
 }
+
+export async function getRefunds() {
+  const refunds = await stripe.refunds.list({});
+
+  return refunds.data.map(refund => ({
+    id: refund.id,
+    amount: `$${(refund.amount / 100).toFixed(2)}`,
+    currency: refund.charge,
+    reason: refund.reason,
+    createdAt: new Date(refund.created * 1000),
+  }));
+}
