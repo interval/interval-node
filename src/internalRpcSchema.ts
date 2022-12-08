@@ -102,6 +102,7 @@ export const ICE_SERVER = z.object({
   relayType: z.enum(['TurnUdp', 'TurnTcp', 'TurnTls']).optional(),
   username: z.string().optional(),
   credential: z.string().optional(),
+  password: z.string().optional(),
 })
 
 export type IceServer = z.infer<typeof ICE_SERVER>
