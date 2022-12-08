@@ -6,7 +6,7 @@ import pixelmatch from 'pixelmatch';
 
 const interval = new Interval({
   apiKey: process.env.INTERVAL_KEY,
-  actions: {
+  routes: {
     webpage_comparison: async () => {
       const [_, baseUrl, compUrl] = await io.group([
         io.display.heading(

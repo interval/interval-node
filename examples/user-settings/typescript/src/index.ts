@@ -20,7 +20,7 @@ function resetUserPassword(user) {
 
 const interval = new Interval({
   apiKey: process.env.INTERVAL_KEY,
-  actions: {
+  routes: {
     user_settings: async () => {
       const user = await io.search('Search for user by name or email', {
         initialResults: users,

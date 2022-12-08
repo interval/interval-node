@@ -7,7 +7,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@interval/sdk": "^0.34.0",
+    "@interval/sdk": "^0.35.0",
     "dotenv": "^16.0.1",
     "pixelmatch": "^5.3.0",
     "pngjs": "^6.0.0",

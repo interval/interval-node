@@ -25,7 +25,7 @@ async function githubAPI(method, url, body = null) {
 
 const interval = new Interval({
   apiKey: process.env.INTERVAL_KEY,
-  actions: {
+  routes: {
     edit_github_issues: async () => {
       const repos = await githubAPI(
         'GET',

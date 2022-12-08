@@ -9,7 +9,7 @@ const {
 
 const interval = new Interval({
   apiKey: process.env.INTERVAL_KEY,
-  actions: {
+  routes: {
     import_videos: async () => {
       const user = await io.search('Select an account', {
         onSearch: query => {

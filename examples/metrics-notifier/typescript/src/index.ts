@@ -8,7 +8,7 @@ async function activeUsers() {
 
 const interval = new Interval({
   apiKey: process.env.INTERVAL_KEY,
-  actions: {
+  routes: {
     post_metrics: {
       handler: async () => {
         const count = await activeUsers();

@@ -4,7 +4,7 @@ import { getCharges, refundCharge } from './payments';
 
 const interval = new Interval({
   apiKey: process.env.INTERVAL_KEY,
-  actions: {
+  routes: {
     refund_user: async () => {
       const customerEmail = await io.input.email(
         'Email of the customer to refund:'
