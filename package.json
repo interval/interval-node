@@ -1,18 +1,13 @@
 {
   "name": "@interval/sdk",
-  "version": "0.35.0-dev",
+  "version": "0.35.0",
   "homepage": "https://interval.com",
   "repository": {
     "type": "git",
     "url": "github:interval/interval-node"
   },
   "bugs": "https://github.com/interval/interval-node/issues",
-  "keywords": [
-    "internal tool",
-    "app",
-    "ui",
-    "ui builder"
-  ],
+  "keywords": ["internal tool", "app", "ui", "ui builder"],
   "license": "MIT",
   "engines": {
     "node": ">=12.17.0"
