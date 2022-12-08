@@ -15,10 +15,10 @@
     "@faker-js/faker" "^6.3.1"
     stripe "^9.1.0"
 
-"@interval/sdk@^0.35.0":
-  version "0.35.0"
-  resolved "https://registry.yarnpkg.com/@interval/sdk/-/sdk-0.35.0.tgz#f45369cd0287f70c0d565e2e4e8ca9cdfc9f8859"
-  integrity sha512-DN+BWci+je2JtqwfaevHGr8IsAG/I+JVrmMXmsgSW/WOSqaGqilebh69JS/uzzsuND45LWLBULtVkIfCywIxUg==
+"@interval/sdk@^0.35.1":
+  version "0.35.1"
+  resolved "https://registry.yarnpkg.com/@interval/sdk/-/sdk-0.35.1.tgz#95d70a4d5f968114324d4aebb3a8018e21b4b3c7"
+  integrity sha512-gaTY/8F1XmdcBIJv07VMuH8mK/zps7SFmOmdX5oCc1YC8VCx5G1uxOSGgRTunbPVtBJRRFtsyrSlb7g28tU9Lw==
   dependencies:
     cross-fetch "^3.1.5"
     evt "^2.4.10"

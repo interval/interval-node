@@ -8,8 +8,8 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@interval/fake-stripe": "file:../../../../../fake-stripe/",
-    "@interval/sdk": "^0.35.0",
+    "@interval/fake-stripe": "^1.0.0",
+    "@interval/sdk": "^0.35.1",
     "dotenv": "^16.0.1"
   },
   "devDependencies": {
