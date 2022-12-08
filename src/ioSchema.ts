@@ -334,7 +334,13 @@ export type DateTimeObject = z.infer<typeof dateTimeObject>
  * will resolve immediately when awaited.
  */
 export function resolvesImmediately(methodName: T_IO_METHOD_NAMES): boolean {
-  return 'immediate' in ioSchema[methodName]
+  const schema = ioSchema[methodName]
+  return schema && 'immediate' in schema && schema.immediate
+}
+
+export function requiresServer(methodName: T_IO_METHOD_NAMES): boolean {
+  const schema = ioSchema[methodName]
+  return schema && 'requiresServer' in schema && schema.requiresServer
 }
 
 export const metaItemSchema = z.object({
@@ -439,13 +445,13 @@ const DISPLAY_SCHEMA = {
     }),
     state: z.null(),
     returns: z.null(),
-    immediate: z.literal(true),
+    immediate: true,
   },
   DISPLAY_PROGRESS_INDETERMINATE: {
     props: z.object({}),
     state: z.null(),
     returns: z.null(),
-    immediate: z.literal(true),
+    immediate: true,
   },
   DISPLAY_PROGRESS_THROUGH_LIST: {
     props: z.object({
@@ -638,6 +644,7 @@ const INPUT_SCHEMA = {
     state: z.null(),
     returns: z.boolean(),
     exclusive: z.literal(true),
+    requiresServer: true,
   },
   SELECT_TABLE: {
     props: z.object({

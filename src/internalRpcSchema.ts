@@ -6,12 +6,27 @@ import {
   serializableRecord,
 } from './ioSchema'
 
-export const DUPLEX_MESSAGE_SCHEMA = z.object({
-  id: z.string(),
-  methodName: z.string(),
-  data: z.any(),
-  kind: z.enum(['CALL', 'RESPONSE']),
-})
+export const DUPLEX_MESSAGE_SCHEMA = z.discriminatedUnion('kind', [
+  z.object({
+    id: z.string(),
+    kind: z.literal('CALL'),
+    methodName: z.string(),
+    data: z.any(),
+  }),
+  z.object({
+    id: z.string(),
+    kind: z.literal('RESPONSE'),
+    methodName: z.string(),
+    data: z.any(),
+  }),
+  z.object({
+    id: z.string(),
+    kind: z.literal('CALL_CHUNK'),
+    chunk: z.number(),
+    totalChunks: z.number(),
+    data: z.string(),
+  }),
+])
 
 export type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
 
@@ -78,6 +93,24 @@ export const PAGE_DEFINITION = z.object({
 })
 
 export type PageDefinition = z.infer<typeof PAGE_DEFINITION>
+
+export const ICE_SERVER = z.object({
+  url: z.string(),
+  urls: z.string(),
+  hostname: z.string(),
+  port: z.number(),
+  relayType: z.enum(['TurnUdp', 'TurnTcp', 'TurnTls']).optional(),
+  username: z.string().optional(),
+  credential: z.string().optional(),
+})
+
+export type IceServer = z.infer<typeof ICE_SERVER>
+
+export const ICE_CONFIG = z.object({
+  iceServers: z.array(ICE_SERVER),
+})
+
+export type IceConfig = z.infer<typeof ICE_CONFIG>
 
 export const ENQUEUE_ACTION = {
   inputs: z.object({
@@ -172,6 +205,44 @@ export const DECLARE_HOST = {
   ]),
 }
 
+const PEER_CANDIDATE = z.object({
+  type: z.literal('candidate'),
+  id: z.string(),
+  candidate: z.string(),
+  mid: z.string(),
+})
+
+export type PeerCandidate = z.infer<typeof PEER_CANDIDATE>
+
+const INITIALIZE_PEER_CONNECTION = {
+  inputs: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('offer'),
+      id: z.string(),
+      description: z.string(),
+    }),
+    z.object({
+      type: z.literal('answer'),
+      id: z.string(),
+      description: z.string(),
+    }),
+    PEER_CANDIDATE,
+    z.object({
+      type: z.literal('unspec'),
+      id: z.string(),
+    }),
+    z.object({
+      type: z.literal('pranswer'),
+      id: z.string(),
+    }),
+    z.object({
+      type: z.literal('rollback'),
+      id: z.string(),
+    }),
+  ]),
+  returns: z.void(),
+}
+
 export const wsServerSchema = {
   CONNECT_TO_TRANSACTION_AS_CLIENT: {
     inputs: z.object({
@@ -217,6 +288,7 @@ export const wsServerSchema = {
     inputs: z.object({
       transactionId: z.string(),
       ioCall: z.string(),
+      skipClientCall: z.boolean().optional(),
     }),
     returns: z.boolean(),
   },
@@ -234,6 +306,7 @@ export const wsServerSchema = {
       z.object({
         transactionId: z.string(),
         label: z.string().optional(),
+        skipClientCall: z.boolean().optional(),
       })
     ),
     returns: z.boolean(),
@@ -244,6 +317,7 @@ export const wsServerSchema = {
       data: z.string(),
       index: z.number().optional(),
       timestamp: z.number().optional(),
+      skipClientCall: z.boolean().optional(),
     }),
     returns: z.boolean(),
   },
@@ -269,6 +343,7 @@ export const wsServerSchema = {
     inputs: z.intersection(
       z.object({
         transactionId: z.string(),
+        skipClientCall: z.boolean().optional(),
       }),
       legacyLinkSchema
     ),
@@ -277,7 +352,11 @@ export const wsServerSchema = {
   MARK_TRANSACTION_COMPLETE: {
     inputs: z.object({
       transactionId: z.string(),
+      resultStatus: z
+        .enum(['SUCCESS', 'FAILURE', 'CANCELED', 'REDIRECTED'])
+        .optional(),
       result: z.string().optional(),
+      skipClientCall: z.boolean().optional(),
     }),
     returns: z.boolean(),
   },
@@ -285,6 +364,7 @@ export const wsServerSchema = {
     inputs: z.undefined(),
     returns: z.boolean(),
   },
+  INITIALIZE_PEER_CONNECTION,
   INITIALIZE_HOST: {
     inputs: z.intersection(
       z.object({
@@ -316,6 +396,7 @@ export const wsServerSchema = {
             slug: z.string(),
           }),
           dashboardUrl: z.string(),
+          forcePeerMessages: z.boolean().optional(),
           sdkAlert: SDK_ALERT.nullish(),
           warnings: z.array(z.string()),
         }),
@@ -415,6 +496,7 @@ export const clientSchema = {
     ),
     returns: z.boolean(),
   },
+  INITIALIZE_PEER_CONNECTION,
 }
 
 export type ClientSchema = typeof clientSchema
@@ -423,6 +505,7 @@ export const hostSchema = {
   OPEN_PAGE: {
     inputs: z.object({
       pageKey: z.string(),
+      clientId: z.string().optional(),
       page: z.object({
         slug: z.string(),
       }),
@@ -455,6 +538,7 @@ export const hostSchema = {
   START_TRANSACTION: {
     inputs: z.object({
       transactionId: z.string(),
+      clientId: z.string().optional(),
       // Actually slug, for backward compatibility
       // TODO: Remove breaking release, superfluous with slug below
       actionName: z.string(),
@@ -480,6 +564,11 @@ export const hostSchema = {
     }),
     returns: z.void().nullable(),
   },
+  INITIALIZE_PEER_CONNECTION,
 }
 
 export type HostSchema = typeof hostSchema
+
+export type PeerConnectionInitializer = (
+  inputs: z.infer<typeof INITIALIZE_PEER_CONNECTION['inputs']>
+) => Promise<z.infer<typeof INITIALIZE_PEER_CONNECTION['returns']>>
