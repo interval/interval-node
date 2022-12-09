@@ -1,38 +1,77 @@
-const { Interval, io, ctx } = require('@interval/sdk');
+const { Interval, Page, Layout, io, ctx } = require('@interval/sdk');
 require('dotenv').config(); // loads environment variables from .env
-const { getCharges, refundCharge } = require('./payments');
+const { getCharges, refundCharge, getRefunds } = require('./payments');
 
 const interval = new Interval({
   apiKey: process.env.INTERVAL_KEY,
-  actions: {
-    refund_user: async () => {
-      const customerEmail = await io.input.email(
-        'Email of the customer to refund:'
-      );
-      console.log('Email:', customerEmail);
-      const charges = await getCharges(customerEmail);
+  routes: {
+    refunds: new Page({
+      name: 'Refunds',
+      handler: async () => {
+        const refunds = await getRefunds();
 
-      const chargesToRefund = await io.select.table(
-        'Select one or more charges to refund',
-        {
-          data: charges,
-        }
-      );
+        return new Layout({
+          title: 'Refunds',
+          description: 'View and create refunds for our customers.',
+          menuItems: [
+            {
+              label: 'Create refund',
+              route: 'refunds/refund_user',
+            },
+          ],
+          children: [
+            io.display.metadata('', {
+              layout: 'card',
+              data: [
+                {
+                  label: 'Total refunds',
+                  value: refunds.length,
+                },
+              ],
+            }),
+            io.display.table('Refunds', {
+              data: refunds,
+            }),
+          ],
+        });
+      },
+      routes: {
+        refund_user: {
+          unlisted: true,
+          name: 'Create refund',
+          handler: async () => {
+            const customerEmail = await io.input.email(
+              'Email of the customer to refund:'
+            );
 
-      await ctx.loading.start({
-        title: 'Refunding charges',
-        // Because we specified `itemsInQueue`, Interval will render a progress bar versus an indeterminate loading indicator.
-        itemsInQueue: chargesToRefund.length,
-      });
+            console.log('Email:', customerEmail);
 
-      for (const charge of chargesToRefund) {
-        await refundCharge(charge.id);
-        await ctx.loading.completeOne();
-      }
+            const charges = await getCharges(customerEmail);
 
-      // Values returned from actions are automatically stored with Interval transaction logs
-      return { chargesRefunded: chargesToRefund.length };
-    },
+            const chargesToRefund = await io.select.table(
+              'Select one or more charges to refund',
+              {
+                data: charges,
+              }
+            );
+
+            await ctx.loading.start({
+              title: 'Refunding charges',
+              // Because we specified `itemsInQueue`, Interval will render a progress bar versus an indeterminate loading indicator.
+              itemsInQueue: chargesToRefund.length,
+            });
+
+            for (const charge of chargesToRefund) {
+              await refundCharge(charge.id);
+              await ctx.loading.completeOne();
+            }
+
+            // Values returned from actions are automatically stored with Interval transaction logs
+            return { chargesRefunded: chargesToRefund.length };
+          },
+        },
+      },
+    }),
   },
 });
 

@@ -7,8 +7,8 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@interval/fake-stripe": "^1.0.0",
-    "@interval/sdk": "^0.34.0",
+    "@interval/fake-stripe": "^1.1.0",
+    "@interval/sdk": "^0.35.1",
     "dotenv": "^16.0.1"
   },
   "devDependencies": {
