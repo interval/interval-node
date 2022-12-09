@@ -14,10 +14,10 @@
   resolved "https://registry.yarnpkg.com/@faker-js/faker/-/faker-6.3.1.tgz#1ae963dd40405450a2945408cba553e1afa3e0fb"
   integrity sha512-8YXBE2ZcU/pImVOHX7MWrSR/X5up7t6rPWZlk34RwZEcdr3ua6X+32pSd6XuOQRN+vbuvYNfA6iey8NbrjuMFQ==
 
-"@interval/fake-stripe@^1.0.0":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@interval/fake-stripe/-/fake-stripe-1.0.2.tgz#776df56dd2ff652aa248b772e20fba1fd11b1018"
-  integrity sha512-B7usiBYtwu8O3YxUMl6RSZVC2mDltUr/4/ImQD7N2HqC/Cl+LIGK0ozH1iTQD4A7Imqh1jBMQAFKliTVnUiNQg==
+"@interval/fake-stripe@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@interval/fake-stripe/-/fake-stripe-1.1.0.tgz#d480db8453ece740c2a2f210f05595415297bbd9"
+  integrity sha512-KXGxwyBhylDU33ZaH4efWKaYvasiJoWFjWn2cLb7jMh9rQsFFcjcVFJ60HM/ZJG57+hNPSk+fT3gL6at668yUA==
   dependencies:
     "@faker-js/faker" "^6.3.1"
     stripe "^9.1.0"
