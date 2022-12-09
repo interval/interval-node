@@ -3,9 +3,7 @@ import 'dotenv/config'; // loads environment variables from .env
 import { getCharges, refundCharge, getRefunds } from './payments';
 
 const interval = new Interval({
-  apiKey: 'ryan_dev_NT2O4q3jpj2FxMP3Ew60csbaEy8UG97KVKNoLaLkU6w7IlzS',
-  endpoint: 'ws://localhost:3000/websocket',
-
+  apiKey: process.env.INTERVAL_KEY,
   routes: {
     refunds: new Page({
       name: 'Refunds',
