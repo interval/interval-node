@@ -581,7 +581,12 @@ export default class IntervalClient {
         headers,
         followRedirects: true,
       }),
-      { id }
+      {
+        id,
+        connectTimeout: this.#config.connectTimeoutMs,
+        sendTimeout: this.#config.sendTimeoutMs,
+        pingTimeout: this.#config.pingTimeoutMs,
+      }
     )
 
     ws.onClose.attach(async ([code, reason]) => {
@@ -717,6 +722,11 @@ export default class IntervalClient {
                     }
                   })
                   return rpc
+                },
+                isocketConfig: {
+                  sendTimeout: this.#config.sendTimeoutMs,
+                  connectTimeout: this.#config.connectTimeoutMs,
+                  pingTimeout: this.#config.pingTimeoutMs,
                 },
               })
               this.#dccMap.set(inputs.id, dcc)
@@ -1400,6 +1410,7 @@ export default class IntervalClient {
       canCall,
       canRespondTo: hostSchema,
       handlers: this.#createRPCHandlers(requestId),
+      retryChunkIntervalMs: this.#config.retryChunkIntervalMs,
     })
   }
 

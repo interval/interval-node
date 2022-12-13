@@ -19,7 +19,7 @@ interface PendingMessage {
   onAckReceived: () => void
 }
 
-interface ISocketConfig {
+export interface ISocketConfig {
   connectTimeout?: number
   sendTimeout?: number
   pingTimeout?: number

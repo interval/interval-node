@@ -6,7 +6,7 @@ import {
   ClientSchema,
   clientSchema,
 } from '../internalRpcSchema'
-import ISocket, { DataChannelSocket } from './ISocket'
+import ISocket, { DataChannelSocket, ISocketConfig } from './ISocket'
 
 export default class DataChannelConnection {
   peer: PeerConnection
@@ -18,6 +18,7 @@ export default class DataChannelConnection {
     iceServers,
     send,
     rpcConstructor,
+    isocketConfig,
   }: {
     id: string
     iceServers: (string | IceServer)[]
@@ -26,6 +27,7 @@ export default class DataChannelConnection {
       communicator: ISocket
       canCall: ClientSchema
     }) => DuplexRPCClient<ClientSchema, HostSchema>
+    isocketConfig?: ISocketConfig
   }) {
     this.peer = new PeerConnection(id, {
       iceServers,
@@ -47,7 +49,7 @@ export default class DataChannelConnection {
       const ds = new DataChannelSocket(dc)
       this.ds = ds
 
-      const communicator = new ISocket(ds)
+      const communicator = new ISocket(ds, { id, ...isocketConfig })
 
       this.rpc = rpcConstructor({
         communicator,
