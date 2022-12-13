@@ -10,9 +10,9 @@
     "@jridgewell/trace-mapping" "0.3.9"
 
 "@interval/sdk@^0.35.1":
-  version "0.35.1"
-  resolved "https://registry.yarnpkg.com/@interval/sdk/-/sdk-0.35.1.tgz#95d70a4d5f968114324d4aebb3a8018e21b4b3c7"
-  integrity sha512-gaTY/8F1XmdcBIJv07VMuH8mK/zps7SFmOmdX5oCc1YC8VCx5G1uxOSGgRTunbPVtBJRRFtsyrSlb7g28tU9Lw==
+  version "0.35.2"
+  resolved "https://registry.yarnpkg.com/@interval/sdk/-/sdk-0.35.2.tgz#cce81c131a8478c22ddd3120ea3f65af06f13ebd"
+  integrity sha512-Oz/7cH+iWytfLzgsjHMxvvrZNOZv1diJaydqpmz66UBut5yydAbxcdQ8+XBCmODmo6weXC6+j/JBRCe6gu1G6Q==
   dependencies:
     cross-fetch "^3.1.5"
     evt "^2.4.10"
@@ -552,9 +552,9 @@ strip-json-comments@~2.0.1:
   integrity sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==
 
 superjson@^1.9.1:
-  version "1.11.0"
-  resolved "https://registry.yarnpkg.com/superjson/-/superjson-1.11.0.tgz#f6e2ae0d8fbac61c3fca09ab6739ac9678414d1b"
-  integrity sha512-6PfAg1FKhqkwWvPb2uXhH4MkMttdc17eJ91+Aoz4s1XUEDZFmLfFx/xVA3wgkPxAGy5dpozgGdK6V/n20Wj9yg==
+  version "1.12.0"
+  resolved "https://registry.yarnpkg.com/superjson/-/superjson-1.12.0.tgz#7b314b982bfebc5b8e56054b8528813fdda8fc7a"
+  integrity sha512-B4tefmFqj8KDShHi2br2rz0kBlUJuQHtxMCydEuHvooL+6EscROTNWRfOLMDxW1dS/daK2zZr3C3N9DU+jXATQ==
   dependencies:
     copy-anything "^3.0.2"
 
@@ -695,6 +695,6 @@ yn@3.1.1:
   integrity sha512-Ux4ygGWsu2c7isFWe8Yu1YluJmqVhxqK2cLXNQA5AcC3QfbGNpM7fu0Y8b/z16pXLnFxZYvWhd3fhBY9DLmC6Q==
 
 zod@^3.13.3:
-  version "3.19.1"
-  resolved "https://registry.yarnpkg.com/zod/-/zod-3.19.1.tgz#112f074a97b50bfc4772d4ad1576814bd8ac4473"
-  integrity sha512-LYjZsEDhCdYET9ikFu6dVPGp2YH9DegXjdJToSzD9rO6fy4qiRYFoyEYwps88OseJlPyl2NOe2iJuhEhL7IpEA==
+  version "3.20.2"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.20.2.tgz#068606642c8f51b3333981f91c0a8ab37dfc2807"
+  integrity sha512-1MzNQdAvO+54H+EaK5YpyEy0T+Ejo/7YLHS93G3RnYWh5gaotGHwGeN/ZO687qEDU2y4CdStQYXVHIgrUl5UVQ==
