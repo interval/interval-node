@@ -56,7 +56,12 @@ export interface InternalConfig {
   endpoint?: string
   logLevel?: 'prod' | 'debug'
   retryIntervalMs?: number
+  retryChunkIntervalMs?: number
   pingIntervalMs?: number
+  connectTimeoutMs?: number
+  sendTimeoutMs?: number
+  pingTimeoutMs?: number
+
   closeUnresponsiveConnectionTimeoutMs?: number
   reinitializeBatchTimeoutMs?: number
   /* @internal */ getClientHandlers?: () =>
