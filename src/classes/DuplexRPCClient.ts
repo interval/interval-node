@@ -1,8 +1,9 @@
 import { z, ZodError } from 'zod'
 import type { DuplexMessage } from '../internalRpcSchema'
 import { DUPLEX_MESSAGE_SCHEMA } from '../internalRpcSchema'
+import { sleep } from './IntervalClient'
 import IntervalError from './IntervalError'
-import ISocket from './ISocket'
+import ISocket, { TimeoutError } from './ISocket'
 
 let count = 0
 function generateId() {
@@ -33,6 +34,7 @@ interface CreateDuplexRPCClientProps<
   canCall: CallerSchema
   canRespondTo: ResponderSchema
   handlers: DuplexRPCHandlers<ResponderSchema>
+  retryChunkIntervalMs?: number
 }
 
 function getSizeBytes(str: string): number {
@@ -71,18 +73,24 @@ export class DuplexRPCClient<
   }
   pendingCalls = new Map<string, OnReplyFn>()
   messageChunks = new Map<string, string[]>()
+  #retryChunkIntervalMs: number = 100
 
   constructor({
     communicator,
     canCall,
     canRespondTo,
     handlers,
+    retryChunkIntervalMs,
   }: CreateDuplexRPCClientProps<CallerSchema, ResponderSchema>) {
     this.communicator = communicator
     this.communicator.onMessage.attach(this.onmessage.bind(this))
     this.canCall = canCall
     this.canRespondTo = canRespondTo
     this.handlers = handlers
+
+    if (retryChunkIntervalMs && retryChunkIntervalMs > 0) {
+      this.#retryChunkIntervalMs = retryChunkIntervalMs
+    }
   }
 
   private packageResponse({
@@ -294,12 +302,37 @@ export class DuplexRPCClient<
       })
 
       if (Array.isArray(msg)) {
-        Promise.all(
-          msg.map(chunk => {
-            this.communicator.send(chunk)
+        Promise.allSettled(
+          msg.map(async chunk => {
+            const NUM_TRIES_PER_CHUNK = 3
+
+            // If a chunk times out, retry it a few times
+            for (let i = 0; i <= NUM_TRIES_PER_CHUNK; i++) {
+              try {
+                return await this.communicator.send(chunk)
+              } catch (err) {
+                if (err instanceof TimeoutError) {
+                  // console.debug(
+                  //   `Chunk timed out, retrying in ${
+                  //     this.#retryChunkIntervalMs
+                  //   }ms...`
+                  // )
+                  await sleep(this.#retryChunkIntervalMs)
+                } else {
+                  throw err
+                }
+              }
+            }
+
+            throw new TimeoutError()
           })
-        ).catch(err => {
-          reject(err)
+        ).then(responses => {
+          // reject the first failed promise, if any
+          for (const response of responses) {
+            if (response.status === 'rejected') {
+              reject(response.reason)
+            }
+          }
         })
       } else {
         this.communicator.send(msg).catch(err => {
