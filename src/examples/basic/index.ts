@@ -1190,6 +1190,10 @@ const interval = new Interval({
         },
       })
 
+      await io.display.image('Uploaded image', {
+        url: await customDestinationFile.url(),
+      })
+
       console.log(await customDestinationFile.url())
 
       const file = await io.input.file('Upload an image!', {
@@ -1199,6 +1203,10 @@ const interval = new Interval({
       })
 
       console.log(file)
+
+      await io.display.image('Uploaded image', {
+        url: await file.url(),
+      })
 
       const { text, json, buffer, url, ...rest } = file
 
