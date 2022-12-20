@@ -1,5 +1,5 @@
 import { T_IO_PROPS } from './../../ioSchema'
-import Interval, { IOError, io, ctx, Page, Layout } from '../../index'
+import Interval, { IOError, io, ctx, Page } from '../../index'
 import IntervalClient from '../../classes/IntervalClient'
 import {
   IntervalActionDefinition,
@@ -13,7 +13,6 @@ import unauthorized from './unauthorized'
 import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
-import fakeUsers from '../utils/fakeUsers'
 
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
@@ -189,59 +188,6 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
-    big_table: new Page({
-      name: 'Big table',
-      handler: async () => {
-        const bigData = [
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-        ]
-
-        return new Layout({
-          children: [
-            io.display.table('Large table', {
-              data: bigData,
-              // These don't work, they're just here to make the payload bigger
-              rowMenuItems: row => [
-                {
-                  label: 'Browse app structure',
-                  action: 'organizations/app_structure',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Change slug',
-                  action: 'organizations/change_slug',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Enable SSO',
-                  action: 'organizations/create_org_sso',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Toggle feature flag',
-                  action: 'organizations/org_feature_flag',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Transfer owner',
-                  action: 'organizations/transfer_ownership',
-                  params: { org: row.email },
-                },
-              ],
-            }),
-          ],
-        })
-      },
-    }),
     two_searches: async io => {
       const [r1, r2] = await io.group([
         io.search('One', {

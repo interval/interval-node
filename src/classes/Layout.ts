@@ -62,6 +62,13 @@ export const META_ITEMS_SCHEMA = z.object({
 
 export type MetaItemsSchema = z.infer<typeof META_ITEMS_SCHEMA>
 
+export const LAYOUT_ERROR_SCHEMA = z.object({
+  layoutKey: z.string().optional(),
+  error: z.string(),
+  message: z.string(),
+  stack: z.string().optional(),
+})
+
 export const BASIC_LAYOUT_SCHEMA = z.object({
   kind: z.literal('BASIC'),
   title: z.string().nullish(),
@@ -69,15 +76,7 @@ export const BASIC_LAYOUT_SCHEMA = z.object({
   children: IO_RENDER.optional(),
   metadata: META_ITEMS_SCHEMA.optional(),
   menuItems: z.array(buttonItem).optional(),
-  errors: z
-    .array(
-      z.object({
-        layoutKey: z.string().optional(),
-        error: z.string(),
-        message: z.string(),
-      })
-    )
-    .optional(),
+  errors: z.array(LAYOUT_ERROR_SCHEMA).optional(),
 })
 
 // To be extended with z.discriminatedUnion when adding different pages
@@ -87,5 +86,6 @@ export type LayoutSchema = z.infer<typeof LAYOUT_SCHEMA>
 export type LayoutSchemaInput = z.input<typeof LAYOUT_SCHEMA>
 export type BasicLayoutSchema = z.infer<typeof BASIC_LAYOUT_SCHEMA>
 export type BasicLayoutSchemaInput = z.input<typeof BASIC_LAYOUT_SCHEMA>
+export type LayoutError = z.infer<typeof LAYOUT_ERROR_SCHEMA>
 
 export { metaItemSchema as META_ITEM_SCHEMA }
