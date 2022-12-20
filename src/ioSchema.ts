@@ -312,7 +312,6 @@ export const gridItem = z.object({
       alt: z.string().optional(),
       fit: z.enum(['cover', 'contain']).optional(),
       aspectRatio: z.number().optional(),
-      borderRadius: z.union([z.literal('100%'), z.number()]).optional(),
     })
     .nullable()
     .optional(),

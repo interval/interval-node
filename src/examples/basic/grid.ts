@@ -29,7 +29,6 @@ export const dogs = new Action({
         route: 'tables/display_table',
         image: {
           url: row.image,
-          borderRadius: '100%',
           aspectRatio: 1,
         },
         menu: [
@@ -161,7 +160,6 @@ export const music = new Action({
         image: {
           url: row.image,
           aspectRatio: 1,
-          borderRadius: 4,
         },
         url: 'https://open.spotify.com',
         menu: [
