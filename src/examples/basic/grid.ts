@@ -2,26 +2,22 @@ import { Action } from '@interval/sdk/src/experimental'
 import { IntervalActionHandler, io } from '../..'
 import { faker } from '@faker-js/faker'
 
-function generateRows(count: number, offset = 0) {
-  return Array(count)
-    .fill(null)
-    .map((_, i) => ({
-      id: offset + i,
-      name: faker.name.middleName(),
-      description: faker.animal.dog(),
-      image: faker.image.imageUrl(
-        480,
-        Math.random() < 0.25 ? 300 : 480,
-        'dog',
-        true
-      ),
-    }))
-}
-
 export const dogs = new Action({
   name: 'Dogs',
   handler: async () => {
-    const data = generateRows(50)
+    const data = Array(50)
+      .fill(null)
+      .map((_, i) => ({
+        id: i,
+        name: faker.name.middleName(),
+        description: faker.animal.dog(),
+        image: faker.image.imageUrl(
+          480,
+          Math.random() < 0.25 ? 300 : 480,
+          'dog',
+          true
+        ),
+      }))
 
     await io.display.grid('These dogs are good', {
       data,
@@ -49,16 +45,23 @@ export const dogs = new Action({
 export const tiktoks = new Action({
   name: 'Top TikToks today',
   handler: async io => {
-    const data = generateRows(50)
+    const data = Array(50)
+      .fill(null)
+      .map((_, i) => ({
+        id: i,
+        title: `video from ${faker.internet.userName()}`,
+        description: faker.date.past().toLocaleString(),
+        image: faker.image.animals(1080 / 4, 1920 / 4, true),
+      }))
 
     await io.display.grid('', {
       data,
       idealColumnWidth: 300,
       renderItem: row => ({
-        title: `video from ${faker.internet.userName()}`,
-        description: faker.date.past().toLocaleString(),
+        title: row.title,
+        description: row.description,
         image: {
-          url: faker.image.animals(1080 / 4, 1920 / 4, true),
+          url: row.image,
           aspectRatio: 9 / 16,
         },
         menu: [
@@ -67,6 +70,10 @@ export const tiktoks = new Action({
             route: 'tables/display_table',
             theme: 'danger',
           },
+          {
+            label: 'External link',
+            url: 'https://tiktok.com',
+          },
         ],
       }),
     })
@@ -74,20 +81,35 @@ export const tiktoks = new Action({
 })
 
 export const no_images: IntervalActionHandler = async io => {
-  const data = generateRows(50)
+  const data = Array(50)
+    .fill(null)
+    .map((_, i) => ({
+      id: i,
+      title: faker.commerce.productName(),
+      description: faker.commerce.price(100, 200, 0, '$'),
+    }))
 
   await io.display.grid('', {
     data,
     idealColumnWidth: 300,
-    renderItem: row => ({
-      title: faker.commerce.productName(),
-      description: faker.commerce.price(100, 200, 0, '$'),
-    }),
+    renderItem: row => row,
   })
 }
 
 export const only_images: IntervalActionHandler = async io => {
-  const data = generateRows(50)
+  const data = Array(50)
+    .fill(null)
+    .map((_, i) => ({
+      id: i,
+      name: faker.name.middleName(),
+      description: faker.animal.dog(),
+      image: faker.image.imageUrl(
+        480,
+        Math.random() < 0.25 ? 300 : 480,
+        'dog',
+        true
+      ),
+    }))
 
   await io.display.grid('', {
     data,
@@ -143,14 +165,26 @@ export const music = new Action({
 export const long_descriptions = new Action({
   name: 'Long descriptions',
   handler: async () => {
-    const data = generateRows(50)
+    const data = Array(50)
+      .fill(null)
+      .map((_, i) => ({
+        id: i,
+        name: faker.name.middleName(),
+        description: faker.lorem.paragraph(),
+        image: faker.image.imageUrl(
+          480,
+          Math.random() < 0.25 ? 300 : 480,
+          'dog',
+          true
+        ),
+      }))
 
     await io.display.grid('', {
       data,
       idealColumnWidth: 300,
       renderItem: row => ({
         title: row.name,
-        description: faker.lorem.paragraph(),
+        description: row.description,
         image: {
           url: row.image,
           aspectRatio: 4 / 3,
