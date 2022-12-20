@@ -26,6 +26,7 @@ import selectTable from '../components/selectTable'
 import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
+import displayGrid from '../components/displayGrid'
 import displayLink from '../components/displayLink'
 import displayImage from '../components/displayImage'
 import displayVideo from '../components/displayVideo'
@@ -513,6 +514,10 @@ export class IOClient {
         table: this.createIOMethod('DISPLAY_TABLE', {
           propsRequired: true,
           componentDef: displayTable(this.logger),
+        }),
+        grid: this.createIOMethod('DISPLAY_GRID', {
+          propsRequired: true,
+          componentDef: displayGrid(),
         }),
         video: this.createIOMethod('DISPLAY_VIDEO', {
           componentDef: displayVideo,

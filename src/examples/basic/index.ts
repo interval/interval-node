@@ -9,6 +9,7 @@ import {
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import * as table_actions from './table'
+import * as grid_actions from './grid'
 import unauthorized from './unauthorized'
 import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
@@ -1320,6 +1321,10 @@ const interval = new Interval({
     tables: new Page({
       name: 'Tables',
       routes: table_actions,
+    }),
+    grids: new Page({
+      name: 'Grids',
+      routes: grid_actions,
     }),
     confirm_identity: async () => {
       await io.input.text('Enter your name')

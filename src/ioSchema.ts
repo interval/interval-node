@@ -303,6 +303,34 @@ export const internalTableColumn = z.object({
   accessorKey: z.string().optional(),
 })
 
+export const gridItem = z.object({
+  title: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  image: z
+    .object({
+      url: z.string(),
+      alt: z.string().optional(),
+      fit: z.enum(['cover', 'contain']).optional(),
+      aspectRatio: z.number().optional(),
+      borderRadius: z.union([z.literal('100%'), z.number()]).optional(),
+    })
+    .nullable()
+    .optional(),
+  menu: z.array(menuItem).optional(),
+  url: z.string().optional(),
+  route: z.string().optional(),
+  params: serializableRecord.optional(),
+})
+
+export const internalGridItem = z.object({
+  data: gridItem,
+  key: z.string(),
+  filterValue: z.string().optional(),
+})
+
+export type GridItem = z.infer<typeof gridItem>
+export type InternalGridItem = z.infer<typeof internalGridItem>
+
 export const CURRENCIES = [
   'USD',
   'CAD',
@@ -411,6 +439,25 @@ const DISPLAY_SCHEMA = {
       data: keyValueObject,
     }),
     state: z.null(),
+    returns: z.null(),
+  },
+  DISPLAY_GRID: {
+    props: z.object({
+      data: z.array(internalGridItem),
+      idealColumnWidth: z.optional(z.number()),
+      defaultPageSize: z.number().optional(),
+      helpText: z.optional(z.string()),
+      //== private props
+      totalRecords: z.optional(z.number().int()),
+      isAsync: z.boolean().default(false),
+    }),
+    state: z.object({
+      queryTerm: z.string().optional(),
+      sortColumn: z.string().optional(),
+      sortDirection: z.enum(['asc', 'desc']).optional(),
+      offset: z.number().int().default(0),
+      pageSize: z.number().int(),
+    }),
     returns: z.null(),
   },
   DISPLAY_TABLE: {
