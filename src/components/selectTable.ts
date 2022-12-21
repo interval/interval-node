@@ -13,7 +13,7 @@ import {
 
 type PublicProps<Row> = Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
   data: Row[]
-  columns?: (TableColumn<Row> | string)[]
+  columns?: (TableColumn<Row> | (string & keyof Row))[]
   rowMenuItems?: (row: Row) => MenuItem[]
 }
 

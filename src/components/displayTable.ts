@@ -17,7 +17,7 @@ type PublicProps<Row extends z.infer<typeof tableRow>> = Omit<
   T_IO_PROPS<'DISPLAY_TABLE'>,
   'data' | 'columns' | 'totalRecords' | 'isAsync'
 > & {
-  columns?: (TableColumn<Row> | string)[]
+  columns?: (TableColumn<Row> | (string & keyof Row))[]
   rowMenuItems?: (row: Row) => MenuItem[]
 } & (
     | {
