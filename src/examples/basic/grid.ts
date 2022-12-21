@@ -252,7 +252,7 @@ export const async_grid: IntervalActionHandler = async io => {
       description: row.description,
     }),
     defaultPageSize: 30,
-    async getData({ queryTerm, sortColumn, sortDirection, offset, pageSize }) {
+    async getData({ queryTerm, offset, pageSize }) {
       let filteredData = allData.slice()
 
       if (queryTerm) {
@@ -262,25 +262,6 @@ export const async_grid: IntervalActionHandler = async io => {
           return (
             re.test(row.name) || re.test(row.email) || re.test(row.description)
           )
-        })
-      }
-
-      if (sortColumn && sortDirection) {
-        filteredData.sort((a, b) => {
-          if (sortDirection === 'desc') {
-            const temp = b
-            b = a
-            a = temp
-          }
-
-          if (!(sortColumn in a) || !(sortColumn in b)) return 0
-
-          const aVal = a[sortColumn as keyof typeof a]
-          const bVal = b[sortColumn as keyof typeof b]
-
-          if (aVal < bVal) return -1
-          if (aVal > bVal) return 1
-          return 0
         })
       }
 

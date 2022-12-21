@@ -60,13 +60,7 @@ export default function displayGrid() {
             data: initialData,
           })
 
-          const sorted = sortRows({
-            data: filtered,
-            column: newState.sortColumn ?? null,
-            direction: newState.sortDirection ?? null,
-          })
-
-          serializedData = sorted.slice(
+          serializedData = filtered.slice(
             newState.offset,
             newState.offset +
               Math.min(newState.pageSize * 3, TABLE_DATA_BUFFER_SIZE)

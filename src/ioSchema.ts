@@ -448,12 +448,10 @@ const DISPLAY_SCHEMA = {
       helpText: z.optional(z.string()),
       //== private props
       totalRecords: z.optional(z.number().int()),
-      isAsync: z.boolean().default(false),
+      isAsync: z.optional(z.boolean().default(false)),
     }),
     state: z.object({
       queryTerm: z.string().optional(),
-      sortColumn: z.string().optional(),
-      sortDirection: z.enum(['asc', 'desc']).optional(),
       offset: z.number().int().default(0),
       pageSize: z.number().int(),
     }),
