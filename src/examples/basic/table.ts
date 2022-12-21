@@ -120,6 +120,10 @@ export const display_table: IntervalActionHandler = async io => {
         theme: 'danger',
         disabled: true,
       },
+      {
+        label: 'External',
+        url: 'https://google.com',
+      },
     ],
   })
 }
