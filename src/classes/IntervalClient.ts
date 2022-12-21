@@ -958,12 +958,22 @@ export default class IntervalClient {
 
               intervalClient.#logger.error(err)
 
+              let data: IOFunctionReturnType = null
+              if (err instanceof Error) {
+                data = {
+                  error: err.name,
+                  message: err.message,
+                  cause:
+                    err.cause && err.cause instanceof Error
+                      ? `${err.cause.name}: ${err.cause.message}`
+                      : undefined,
+                }
+              }
+
               const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
                 status: 'FAILURE',
-                data: err.message
-                  ? { error: err.name, message: err.message }
-                  : null,
+                data,
               }
 
               return result

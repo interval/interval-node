@@ -239,13 +239,15 @@ export class IOClient {
             }
           } catch (err) {
             if (err instanceof Error) {
-              this.logger.error(err.message)
-              if (err.cause) {
-                if (err.cause instanceof Error) {
-                  this.logger.error(err.cause.message)
-                } else {
-                  this.logger.error(err.cause)
-                }
+              const errorCause = err.cause
+                ? err.cause instanceof Error
+                  ? err.cause.message
+                  : err.cause
+                : undefined
+              if (errorCause) {
+                this.logger.error(`${err.message}:`, errorCause)
+              } else {
+                this.logger.error(err.message)
               }
             } else {
               this.logger.error(err)
