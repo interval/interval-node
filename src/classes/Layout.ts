@@ -66,6 +66,7 @@ export const LAYOUT_ERROR_SCHEMA = z.object({
   layoutKey: z.string().optional(),
   error: z.string(),
   message: z.string(),
+  cause: z.string().optional(),
   stack: z.string().optional(),
 })
 

@@ -959,14 +959,14 @@ export default class IntervalClient {
               intervalClient.#logger.error(err)
 
               let data: IOFunctionReturnType = null
+              if (err instanceof IOError && err.cause) {
+                err = err.cause
+              }
+
               if (err instanceof Error) {
                 data = {
                   error: err.name,
                   message: err.message,
-                  cause:
-                    err.cause && err.cause instanceof Error
-                      ? `${err.cause.name}: ${err.cause.message}`
-                      : undefined,
                 }
               }
 
@@ -1257,6 +1257,10 @@ export default class IntervalClient {
               layoutKey,
               error: error.name,
               message: error.message,
+              cause:
+                error.cause && error.cause instanceof Error
+                  ? `${error.cause.name}: ${error.cause.message}`
+                  : undefined,
               // stack: error.stack,
             }
           } else {

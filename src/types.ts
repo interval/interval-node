@@ -195,11 +195,13 @@ export type ComponentsRenderer<
   components: Components,
   validator?: IOClientRenderValidator<Components>,
   continueButton?: ButtonConfig
-) => Promise<{
-  [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-    ? z.infer<Components[Idx]['schema']['returns']> | undefined
-    : Components[Idx]
-}>
+) => Promise<
+  {
+    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+      ? z.infer<Components[Idx]['schema']['returns']> | undefined
+      : Components[Idx]
+  }
+>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 
@@ -379,5 +381,6 @@ export type TableColumn<Row> = {
 export type PageError = {
   error: string
   message: string
+  cause?: string
   layoutKey?: keyof BasicLayoutConfig
 }
