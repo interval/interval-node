@@ -75,7 +75,7 @@ export default class TransactionLoadingState {
   async completeOne() {
     if (!this.#state || !this.#state.itemsInQueue) {
       this.#logger.warn(
-        'Please call `loading.start` with `itemsInQueue` before `loading.completeOne`, failing to do so does nothing.'
+        'Please call `loading.start` with `itemsInQueue` before `loading.completeOne`, nothing to complete.'
       )
       return
     }

@@ -471,7 +471,7 @@ export default class IntervalClient {
             })
             .catch(async err => {
               if (err instanceof IOError) {
-                this.#logger.error(
+                this.#logger.warn(
                   'Failed resending pending IO call: ',
                   err.kind
                 )
@@ -532,7 +532,7 @@ export default class IntervalClient {
             })
             .catch(async err => {
               if (err instanceof IOError) {
-                this.#logger.error(
+                this.#logger.warn(
                   'Failed resending transaction loading state: ',
                   err.kind
                 )
@@ -653,14 +653,14 @@ export default class IntervalClient {
       } catch (err) {
         this.#logger.warn('Pong not received in time')
         if (!(err instanceof TimeoutError)) {
-          this.#logger.error(err)
+          this.#logger.warn(err)
         }
 
         if (
           lastSuccessfulPing.getTime() <
           new Date().getTime() - this.#closeUnresponsiveConnectionTimeoutMs
         ) {
-          this.#logger.error(
+          this.#logger.warn(
             'No pong received in last three minutes, closing connection to Interval and retrying...'
           )
           if (this.#pingIntervalHandle) {
@@ -767,7 +767,7 @@ export default class IntervalClient {
                   inputs.type as DescriptionType
                 )
               } else {
-                this.#logger.warn(
+                this.#logger.debug(
                   'INITIALIZE_PEER_CONNECTION:',
                   'DCC not found for inputs',
                   inputs
@@ -794,7 +794,7 @@ export default class IntervalClient {
             }
           }
         } catch (err) {
-          this.#logger.error('Failed initializing peer connection', err)
+          this.#logger.warn('Failed initializing peer connection', err)
         }
       },
       START_TRANSACTION: async inputs => {
@@ -1213,7 +1213,7 @@ export default class IntervalClient {
           pageSendTimeout = null
           sendPagePromise = sendPage()
             .catch(err => {
-              this.#logger.error(`Failed sending page with key ${pageKey}`, err)
+              this.#logger.debug(`Failed sending page with key ${pageKey}`, err)
             })
             .finally(() => {
               sendPagePromise = null
