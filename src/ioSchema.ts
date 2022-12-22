@@ -308,7 +308,7 @@ export const gridItem = z.object({
   description: z.string().nullable().optional(),
   image: z
     .object({
-      url: z.string(),
+      url: z.string().nullable().optional(),
       alt: z.string().optional(),
       fit: z.enum(['cover', 'contain']).optional(),
       aspectRatio: z.number().optional(),

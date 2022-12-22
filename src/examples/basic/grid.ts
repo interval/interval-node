@@ -244,12 +244,17 @@ export const async_grid: IntervalActionHandler = async io => {
       name: faker.name.middleName(),
       email: faker.internet.email(),
       description: faker.lorem.sentence(),
+      image: i % 5 === 0 ? null : faker.image.imageUrl(600, 300, 'dog', true),
     }))
 
-  await io.display.grid('Display users', {
+  await io.display.grid<typeof allData[0]>('Display users', {
     renderItem: row => ({
       title: row.name,
       description: row.description,
+      image: {
+        url: row.image,
+        aspectRatio: 2,
+      },
     }),
     defaultPageSize: 30,
     async getData({ queryTerm, offset, pageSize }) {
