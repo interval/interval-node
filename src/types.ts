@@ -383,5 +383,6 @@ export type TableColumn<Row> = {
 export type PageError = {
   error: string
   message: string
+  cause?: string
   layoutKey?: keyof BasicLayoutConfig
 }
