@@ -967,6 +967,12 @@ export default class IntervalClient {
                 data = {
                   error: err.name,
                   message: err.message,
+                  cause:
+                    err.cause && err.cause instanceof Error
+                      ? `${err.cause.name}: ${err.cause.message}`
+                      : undefined,
+                  // TODO: Maybe show stack traces in the future?
+                  // stack: err.stack,
                 }
               }
 
@@ -1261,6 +1267,7 @@ export default class IntervalClient {
                 error.cause && error.cause instanceof Error
                   ? `${error.cause.name}: ${error.cause.message}`
                   : undefined,
+              // TODO: Maybe show stack traces in the future?
               // stack: error.stack,
             }
           } else {
