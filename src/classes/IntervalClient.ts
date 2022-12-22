@@ -59,8 +59,6 @@ import {
   Layout,
   BasicLayout,
   LayoutSchemaInput,
-  MetaItemSchema,
-  MetaItemsSchema,
   BasicLayoutConfig,
 } from './Layout'
 
@@ -473,7 +471,7 @@ export default class IntervalClient {
             })
             .catch(async err => {
               if (err instanceof IOError) {
-                this.#logger.error(
+                this.#logger.warn(
                   'Failed resending pending IO call: ',
                   err.kind
                 )
@@ -534,7 +532,7 @@ export default class IntervalClient {
             })
             .catch(async err => {
               if (err instanceof IOError) {
-                this.#logger.error(
+                this.#logger.warn(
                   'Failed resending transaction loading state: ',
                   err.kind
                 )
@@ -655,14 +653,14 @@ export default class IntervalClient {
       } catch (err) {
         this.#logger.warn('Pong not received in time')
         if (!(err instanceof TimeoutError)) {
-          this.#logger.error(err)
+          this.#logger.warn(err)
         }
 
         if (
           lastSuccessfulPing.getTime() <
           new Date().getTime() - this.#closeUnresponsiveConnectionTimeoutMs
         ) {
-          this.#logger.error(
+          this.#logger.warn(
             'No pong received in last three minutes, closing connection to Interval and retrying...'
           )
           if (this.#pingIntervalHandle) {
@@ -769,7 +767,7 @@ export default class IntervalClient {
                   inputs.type as DescriptionType
                 )
               } else {
-                this.#logger.warn(
+                this.#logger.debug(
                   'INITIALIZE_PEER_CONNECTION:',
                   'DCC not found for inputs',
                   inputs
@@ -796,7 +794,7 @@ export default class IntervalClient {
             }
           }
         } catch (err) {
-          this.#logger.error('Failed initializing peer connection', err)
+          this.#logger.warn('Failed initializing peer connection', err)
         }
       },
       START_TRANSACTION: async inputs => {
@@ -960,12 +958,28 @@ export default class IntervalClient {
 
               intervalClient.#logger.error(err)
 
+              let data: IOFunctionReturnType = null
+              if (err instanceof IOError && err.cause) {
+                err = err.cause
+              }
+
+              if (err instanceof Error) {
+                data = {
+                  error: err.name,
+                  message: err.message,
+                  cause:
+                    err.cause && err.cause instanceof Error
+                      ? `${err.cause.name}: ${err.cause.message}`
+                      : undefined,
+                  // TODO: Maybe show stack traces in the future?
+                  // stack: err.stack,
+                }
+              }
+
               const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
                 status: 'FAILURE',
-                data: err.message
-                  ? { error: err.name, message: err.message }
-                  : null,
+                data,
               }
 
               return result
@@ -1199,7 +1213,7 @@ export default class IntervalClient {
           pageSendTimeout = null
           sendPagePromise = sendPage()
             .catch(err => {
-              this.#logger.error(`Failed sending page with key ${pageKey}`, err)
+              this.#logger.debug(`Failed sending page with key ${pageKey}`, err)
             })
             .finally(() => {
               sendPagePromise = null
@@ -1249,6 +1263,12 @@ export default class IntervalClient {
               layoutKey,
               error: error.name,
               message: error.message,
+              cause:
+                error.cause && error.cause instanceof Error
+                  ? `${error.cause.name}: ${error.cause.message}`
+                  : undefined,
+              // TODO: Maybe show stack traces in the future?
+              // stack: error.stack,
             }
           } else {
             return {
@@ -1334,19 +1354,34 @@ export default class IntervalClient {
               }
 
               if (page.children) {
-                group(page.children).then(() => {
-                  this.#logger.debug(
-                    'Initial children render complete for pageKey',
-                    pageKey
-                  )
-                })
+                group(page.children).then(
+                  () => {
+                    this.#logger.debug(
+                      'Initial children render complete for pageKey',
+                      pageKey
+                    )
+                  },
+                  // We use the reject callback form because it's an IOGroupPromise,
+                  // not a real Promise and we don't currently implement `.catch()`
+                  // (I don't know how or if it's possbile right now, thenable objects aren't documented well)
+                  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
+                  err => {
+                    this.#logger.error(err)
+                    if (err instanceof IOError && err.cause) {
+                      errors.push(pageError(err.cause))
+                    } else {
+                      errors.push(pageError(err))
+                    }
+
+                    scheduleSendPage()
+                  }
+                )
               } else {
                 scheduleSendPage()
               }
             })
             .catch(async err => {
-              this.#logger.error(err)
-              errors.push(pageError(err))
+              this.#logger.error('Error in page:', err)
               const pageLayout: LayoutSchemaInput = {
                 kind: 'BASIC',
                 errors,

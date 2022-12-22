@@ -13,7 +13,7 @@ import {
 
 type PublicProps<Row> = Omit<T_IO_PROPS<'SELECT_TABLE'>, 'data' | 'columns'> & {
   data: Row[]
-  columns?: (TableColumn<Row> | string)[]
+  columns?: (TableColumn<Row> | (string & keyof Row))[]
   rowMenuItems?: (row: Row) => MenuItem[]
 }
 
@@ -24,7 +24,7 @@ export default function selectTable(logger: Logger) {
     type DataList = typeof props['data']
 
     const columns = columnsBuilder(props, column =>
-      logger.error(missingColumnMessage('io.select.table')(column))
+      logger.warn(missingColumnMessage('io.select.table')(column))
     )
 
     // Rendering all rows on initialization is necessary for filtering and sorting

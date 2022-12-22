@@ -1,5 +1,5 @@
 import { IntervalActionDefinition } from '@interval/sdk/src/types'
-import { IntervalActionHandler } from '../..'
+import { IntervalActionHandler, Page, Layout, io } from '../..'
 import { faker } from '@faker-js/faker'
 
 function generateRows(count: number, offset = 0) {
@@ -153,9 +153,52 @@ export const multiple_tables: IntervalActionHandler = async io => {
   ])
 }
 
-export const async_table: IntervalActionHandler = async io => {
-  const allData = generateRows(500)
-  await io.display.table<ReturnType<typeof generateRows>[0]>('Display users', {
+export const big_payload_table = new Page({
+  name: 'Big table',
+  handler: async () => {
+    const bigData = generateRows(100000)
+
+    return new Layout({
+      children: [
+        io.display.table('Large table', {
+          data: bigData,
+          // These don't work, they're just here to make the payload bigger
+          rowMenuItems: row => [
+            {
+              label: 'Browse app structure',
+              action: 'organizations/app_structure',
+              params: { org: row.email },
+            },
+            {
+              label: 'Change slug',
+              action: 'organizations/change_slug',
+              params: { org: row.email },
+            },
+            {
+              label: 'Enable SSO',
+              action: 'organizations/create_org_sso',
+              params: { org: row.email },
+            },
+            {
+              label: 'Toggle feature flag',
+              action: 'organizations/org_feature_flag',
+              params: { org: row.email },
+            },
+            {
+              label: 'Transfer owner',
+              action: 'organizations/transfer_ownership',
+              params: { org: row.email },
+            },
+          ],
+        }),
+      ],
+    })
+  },
+})
+
+function asyncTable(numRows: number) {
+  const allData = generateRows(numRows)
+  return io.display.table<ReturnType<typeof generateRows>[0]>('Display users', {
     async getData({ queryTerm, sortColumn, sortDirection, offset, pageSize }) {
       let filteredData = allData.slice()
 
@@ -198,14 +241,18 @@ export const async_table: IntervalActionHandler = async io => {
       'id',
       {
         label: 'User',
-        renderCell: row => ({
-          label: row.name,
-          image: {
-            alt: 'Alt tag',
-            url: row.image,
-            size: 'small',
-          },
-        }),
+        renderCell: row => {
+          throw new Error('Oops!')
+
+          return {
+            label: row.name,
+            image: {
+              alt: 'Alt tag',
+              url: row.image,
+              size: 'small',
+            },
+          }
+        },
       },
       {
         label: 'Email',
@@ -232,6 +279,19 @@ export const async_table: IntervalActionHandler = async io => {
       },
     ],
   })
+}
+
+export const async_table_page = new Page({
+  name: 'Async table - in a page',
+  handler: async () => {
+    return new Layout({
+      children: [asyncTable(500)],
+    })
+  },
+})
+
+export const async_table: IntervalActionHandler = async () => {
+  await asyncTable(500)
 }
 
 export const select_table: IntervalActionHandler = async io => {

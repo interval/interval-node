@@ -1,5 +1,5 @@
 import { internalTableColumn, tableRow, internalTableRow } from '../ioSchema'
-import { MenuItem } from '../types'
+import { ColumnKey, MenuItem } from '../types'
 import { z } from 'zod'
 import { TableColumn, TableColumnResult } from '../types'
 import { bufferToDataUrl } from './image'
@@ -15,7 +15,7 @@ export const TABLE_DATA_BUFFER_SIZE = 500
  */
 export function columnsBuilder<Row extends z.infer<typeof tableRow>>(
   props: {
-    columns?: (TableColumn<Row> | string)[]
+    columns?: (TableColumn<Row> | ColumnKey<Row>)[]
     data?: Row[]
   },
   logMissingColumn: (column: string) => void
@@ -29,12 +29,13 @@ export function columnsBuilder<Row extends z.infer<typeof tableRow>>(
 
     return labels.map(label => ({
       label,
-      accessorKey: label,
+      accessorKey: label as ColumnKey<Row>,
     }))
   }
 
   return props.columns.map(column => {
     const accessorKey = typeof column === 'string' ? column : column.accessorKey
+
     if (accessorKey && !dataColumns.has(accessorKey)) {
       logMissingColumn(accessorKey)
     }

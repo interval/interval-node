@@ -2,7 +2,7 @@ import { z } from 'zod'
 import fetch from 'cross-fetch'
 import Routes from './classes/Routes'
 import IOError from './classes/IOError'
-import Logger from './classes/Logger'
+import Logger, { LogLevel } from './classes/Logger'
 import Page from './classes/Page'
 import {
   NOTIFY,
@@ -54,7 +54,7 @@ export interface InternalConfig {
   // TODO: Mark as deprecated soon, remove soon afterward
   groups?: Record<string, Page>
   endpoint?: string
-  logLevel?: 'prod' | 'debug'
+  logLevel?: LogLevel
   retryIntervalMs?: number
   retryChunkIntervalMs?: number
   pingIntervalMs?: number
