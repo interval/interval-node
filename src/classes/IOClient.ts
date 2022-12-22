@@ -517,7 +517,7 @@ export class IOClient {
         }),
         grid: this.createIOMethod('DISPLAY_GRID', {
           propsRequired: true,
-          componentDef: displayGrid(),
+          componentDef: displayGrid,
         }),
         video: this.createIOMethod('DISPLAY_VIDEO', {
           componentDef: displayVideo,
