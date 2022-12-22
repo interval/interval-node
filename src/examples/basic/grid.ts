@@ -136,6 +136,7 @@ export const only_images: IntervalActionHandler = async io => {
         aspectRatio: 4 / 3,
       },
     }),
+    isFilterable: false,
   })
 }
 

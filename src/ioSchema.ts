@@ -446,6 +446,7 @@ const DISPLAY_SCHEMA = {
       idealColumnWidth: z.optional(z.number()),
       defaultPageSize: z.number().optional(),
       helpText: z.optional(z.string()),
+      isFilterable: z.boolean().default(true),
       //== private props
       totalRecords: z.optional(z.number().int()),
       isAsync: z.optional(z.boolean().default(false)),
