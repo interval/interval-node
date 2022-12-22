@@ -16,6 +16,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "tar": "yarn pack",
+    "check": "tsc --noEmit",
     "build:envoy": "yarn envoy $INIT_CWD/envoy.config.ts $INIT_CWD/.env $INIT_CWD/src/env.ts",
     "build": "yarn build:envoy && tsc",
     "demo:basic": "node ./dist/examples/basic/index.js",
