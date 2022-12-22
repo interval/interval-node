@@ -420,6 +420,8 @@ const DISPLAY_SCHEMA = {
       data: z.array(internalTableRow),
       orientation: z.enum(['vertical', 'horizontal']).default('horizontal'),
       defaultPageSize: z.number().optional(),
+      canSort: z.boolean().default(true),
+      canFilter: z.boolean().default(true),
       //== private props
       // added in v0.28, optional until required by all active versions
       totalRecords: z.optional(z.number().int()),
@@ -655,6 +657,8 @@ const INPUT_SCHEMA = {
       minSelections: z.optional(z.number().int().min(0)),
       maxSelections: z.optional(z.number().positive().int()),
       disabled: z.optional(z.boolean().default(false)),
+      canSort: z.optional(z.boolean().default(true)),
+      canFilter: z.optional(z.boolean().default(true)),
       //== private props
       // added in v0.28, optional until required by all active versions
       totalRecords: z.optional(z.number().int()),
