@@ -35,6 +35,8 @@ export const no_pagination: IntervalActionHandler = async io => {
   await io.display.table('Display users', {
     data,
     defaultPageSize: 50,
+    isFilterable: false,
+    isSortable: false,
   })
 }
 
