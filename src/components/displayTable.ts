@@ -33,7 +33,7 @@ export default function displayTable(logger: Logger) {
     props: PublicProps<Row>
   ) {
     const initialColumns = columnsBuilder(props, column =>
-      logger.error(missingColumnMessage('io.display.table')(column))
+      logger.warn(missingColumnMessage('io.display.table')(column))
     )
 
     // Rendering all rows on initialization is necessary for filtering and sorting
@@ -74,7 +74,7 @@ export default function displayTable(logger: Logger) {
               data,
             },
             column =>
-              logger.error(missingColumnMessage('io.display.table')(column))
+              logger.warn(missingColumnMessage('io.display.table')(column))
           )
           serializedData = data.map((row, index) =>
             tableRowSerializer({

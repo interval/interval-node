@@ -24,7 +24,7 @@ export default function selectTable(logger: Logger) {
     type DataList = typeof props['data']
 
     const columns = columnsBuilder(props, column =>
-      logger.error(missingColumnMessage('io.select.table')(column))
+      logger.warn(missingColumnMessage('io.select.table')(column))
     )
 
     // Rendering all rows on initialization is necessary for filtering and sorting
