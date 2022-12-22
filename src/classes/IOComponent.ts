@@ -158,9 +158,9 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     } catch (err) {
       const ioError = new IOError(
         'BAD_RESPONSE',
-        'Received invalid return value'
+        'Received invalid return value',
+        { cause: err }
       )
-      ioError.cause = err
       throw ioError
     }
   }
