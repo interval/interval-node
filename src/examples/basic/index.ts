@@ -62,7 +62,7 @@ const actionLinks: IntervalActionHandler = async () => {
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3000/websocket',
-  logLevel: 'quiet',
+  logLevel: 'debug',
   routes: {
     backgroundable: {
       backgroundable: true,
