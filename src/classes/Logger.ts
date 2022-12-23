@@ -46,7 +46,9 @@ export default class Logger {
 
   /* Same as info, but without the [Interval] prefix */
   infoNoPrefix(...args: any[]) {
-    console.log(...args)
+    if (this.logLevel !== 'quiet') {
+      console.log(...args)
+    }
   }
 
   /* Non-fatal warnings, not emitted in "quiet" logLevel */
@@ -64,7 +66,7 @@ export default class Logger {
   }
 
   handleSdkAlert(sdkAlert: SdkAlert) {
-    console.info('')
+    this.infoNoPrefix()
 
     const WARN_EMOJI = '\u26A0\uFE0F'
     const ERROR_EMOJI = '‼️'
@@ -106,6 +108,6 @@ export default class Logger {
       getInstallCommand(`${pkg.name}@latest`, detectPackageManager())
     )
 
-    console.info('')
+    this.infoNoPrefix()
   }
 }
