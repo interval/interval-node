@@ -59,7 +59,7 @@ async function loadFolder(currentDirectory: string, logger: Logger) {
           }
         }
       } catch (err) {
-        logger.error(
+        logger.warn(
           `Failed loading file at ${fullPath} as module, skipping.`,
           err
         )

@@ -303,6 +303,33 @@ export const internalTableColumn = z.object({
   accessorKey: z.string().optional(),
 })
 
+export const gridItem = z.object({
+  title: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  image: z
+    .object({
+      url: z.string().nullable().optional(),
+      alt: z.string().optional(),
+      fit: z.enum(['cover', 'contain']).optional(),
+      aspectRatio: z.number().optional(),
+    })
+    .nullable()
+    .optional(),
+  menu: z.array(menuItem).optional(),
+  url: z.string().optional(),
+  route: z.string().optional(),
+  params: serializableRecord.optional(),
+})
+
+export const internalGridItem = z.object({
+  data: gridItem,
+  key: z.string(),
+  filterValue: z.string().optional(),
+})
+
+export type GridItem = z.infer<typeof gridItem>
+export type InternalGridItem = z.infer<typeof internalGridItem>
+
 export const CURRENCIES = [
   'USD',
   'CAD',
@@ -413,6 +440,24 @@ const DISPLAY_SCHEMA = {
     state: z.null(),
     returns: z.null(),
   },
+  DISPLAY_GRID: {
+    props: z.object({
+      data: z.array(internalGridItem),
+      idealColumnWidth: z.optional(z.number()),
+      defaultPageSize: z.number().optional(),
+      helpText: z.optional(z.string()),
+      isFilterable: z.boolean().default(true),
+      //== private props
+      totalRecords: z.optional(z.number().int()),
+      isAsync: z.optional(z.boolean().default(false)),
+    }),
+    state: z.object({
+      queryTerm: z.string().optional(),
+      offset: z.number().int().default(0),
+      pageSize: z.number().int(),
+    }),
+    returns: z.null(),
+  },
   DISPLAY_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
@@ -420,6 +465,8 @@ const DISPLAY_SCHEMA = {
       data: z.array(internalTableRow),
       orientation: z.enum(['vertical', 'horizontal']).default('horizontal'),
       defaultPageSize: z.number().optional(),
+      isSortable: z.boolean().default(true),
+      isFilterable: z.boolean().default(true),
       //== private props
       // added in v0.28, optional until required by all active versions
       totalRecords: z.optional(z.number().int()),
@@ -655,6 +702,8 @@ const INPUT_SCHEMA = {
       minSelections: z.optional(z.number().int().min(0)),
       maxSelections: z.optional(z.number().positive().int()),
       disabled: z.optional(z.boolean().default(false)),
+      isSortable: z.optional(z.boolean().default(true)),
+      isFilterable: z.optional(z.boolean().default(true)),
       //== private props
       // added in v0.28, optional until required by all active versions
       totalRecords: z.optional(z.number().int()),

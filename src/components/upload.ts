@@ -69,6 +69,7 @@ export function file(logger: Logger) {
           const urls = await generatePresignedUrls(newState)
           return urls
         } catch (error) {
+          // TODO: We should not swallow this error after merging #1012
           logger.error(
             'An error was unexpectedly thrown from the `generatePresignedUrls` function:'
           )

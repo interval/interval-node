@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z, ZodError } from 'zod'
 import {
   ioSchema,
   resolvesImmediately,
@@ -7,6 +7,7 @@ import {
   T_IO_RETURNS,
 } from '../ioSchema'
 import { deserializeDates } from '../utils/deserialize'
+import IOError from './IOError'
 import { IOPromiseValidator } from './IOPromise'
 
 type IoSchema = typeof ioSchema
@@ -155,7 +156,12 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
         this.resolver(parsed)
       }
     } catch (err) {
-      console.error('Received invalid return value:', err)
+      const ioError = new IOError(
+        'BAD_RESPONSE',
+        'Received invalid return value',
+        { cause: err }
+      )
+      throw ioError
     }
   }
 
@@ -178,7 +184,18 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       }
       this.onStateChangeHandler && this.onStateChangeHandler()
     } catch (err) {
-      console.error('Received invalid state:', err)
+      if (err instanceof ZodError) {
+        const ioError = new IOError('BAD_RESPONSE', 'Received invalid state')
+        ioError.cause = err
+        throw ioError
+      } else {
+        const ioError = new IOError(
+          'RESPONSE_HANDLER_ERROR',
+          'Error in state change handler'
+        )
+        ioError.cause = err
+        throw ioError
+      }
     }
 
     return this.instance

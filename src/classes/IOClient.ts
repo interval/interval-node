@@ -26,6 +26,7 @@ import selectTable from '../components/selectTable'
 import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
+import displayGrid from '../components/displayGrid'
 import displayLink from '../components/displayLink'
 import displayImage from '../components/displayImage'
 import displayVideo from '../components/displayVideo'
@@ -151,87 +152,108 @@ export class IOClient {
         }
 
         this.onResponseHandler = async result => {
-          if (result.inputGroupKey && result.inputGroupKey !== inputGroupKey) {
-            this.logger.debug('Received response for other input group')
-            return
-          }
-
-          if (this.isCanceled || isReturned) {
-            this.logger.debug('Received response after IO call complete')
-            return
-          }
-
-          // Transaction canceled from Interval cloud UI
-          if (result.kind === 'CANCELED') {
-            this.isCanceled = true
-            reject(new IOError('CANCELED'))
-            return
-          }
-
-          if (result.values.length !== components.length) {
-            throw new Error('Mismatch in return array length')
-          }
-
-          if (result.valuesMeta) {
-            result.values = superjson.deserialize({
-              json: result.values,
-              meta: result.valuesMeta,
-            })
-          }
-
-          if (result.kind === 'RETURN') {
-            const validities = await Promise.all(
-              result.values.map(async (v, index) => {
-                const component = components[index]
-                if (component.validator) {
-                  const resp = await component.handleValidation(v)
-                  if (resp !== undefined) {
-                    return false
-                  }
-                }
-                return true
-              })
-            )
-
-            validationErrorMessage = undefined
-
-            if (validities.some(v => !v)) {
-              render()
+          try {
+            if (
+              result.inputGroupKey &&
+              result.inputGroupKey !== inputGroupKey
+            ) {
+              this.logger.debug('Received response for other input group')
               return
             }
 
-            if (groupValidator) {
-              validationErrorMessage = await groupValidator(
-                result.values as IOClientRenderReturnValues<typeof components>
+            if (this.isCanceled || isReturned) {
+              this.logger.debug('Received response after IO call complete')
+              return
+            }
+
+            // Transaction canceled from Interval cloud UI
+            if (result.kind === 'CANCELED') {
+              this.isCanceled = true
+              reject(new IOError('CANCELED'))
+              return
+            }
+
+            if (result.values.length !== components.length) {
+              throw new Error('Mismatch in return array length')
+            }
+
+            if (result.valuesMeta) {
+              result.values = superjson.deserialize({
+                json: result.values,
+                meta: result.valuesMeta,
+              })
+            }
+
+            if (result.kind === 'RETURN') {
+              const validities = await Promise.all(
+                result.values.map(async (v, index) => {
+                  const component = components[index]
+                  if (component.validator) {
+                    const resp = await component.handleValidation(v)
+                    if (resp !== undefined) {
+                      return false
+                    }
+                  }
+                  return true
+                })
               )
 
-              if (validationErrorMessage) {
+              validationErrorMessage = undefined
+
+              if (validities.some(v => !v)) {
                 render()
                 return
               }
-            }
 
-            isReturned = true
+              if (groupValidator) {
+                validationErrorMessage = await groupValidator(
+                  result.values as IOClientRenderReturnValues<typeof components>
+                )
 
-            result.values.forEach((v, index) => {
-              // @ts-ignore
-              components[index].setReturnValue(v)
-            })
-
-            return
-          }
-
-          if (result.kind === 'SET_STATE') {
-            for (const [index, newState] of result.values.entries()) {
-              const prevState = components[index].getInstance().state
-
-              if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
-                this.logger.debug(`New state at ${index}`, newState)
-                // @ts-ignore
-                await components[index].setState(newState)
+                if (validationErrorMessage) {
+                  render()
+                  return
+                }
               }
+
+              isReturned = true
+
+              result.values.forEach((v, index) => {
+                // @ts-ignore
+                components[index].setReturnValue(v)
+              })
+
+              return
             }
-            render()
+
+            if (result.kind === 'SET_STATE') {
+              for (const [index, newState] of result.values.entries()) {
+                const prevState = components[index].getInstance().state
+
+                if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
+                  this.logger.debug(`New state at ${index}`, newState)
+                  // @ts-ignore
+                  await components[index].setState(newState)
+                }
+              }
+              render()
+            }
+          } catch (err) {
+            if (err instanceof Error) {
+              const errorCause = err.cause
+                ? err.cause instanceof Error
+                  ? err.cause.message
+                  : err.cause
+                : undefined
+              if (errorCause) {
+                this.logger.error(`${err.message}:`, errorCause)
+              } else {
+                this.logger.error(err.message)
+              }
+            } else {
+              this.logger.error(err)
+            }
+            reject(err)
           }
         }
 
@@ -513,6 +535,10 @@ export class IOClient {
         table: this.createIOMethod('DISPLAY_TABLE', {
           propsRequired: true,
           componentDef: displayTable(this.logger),
+        }),
+        grid: this.createIOMethod('DISPLAY_GRID', {
+          propsRequired: true,
+          componentDef: displayGrid,
         }),
         video: this.createIOMethod('DISPLAY_VIDEO', {
           componentDef: displayVideo,

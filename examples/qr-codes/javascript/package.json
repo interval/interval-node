@@ -7,7 +7,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@interval/sdk": "^0.35.1",
+    "@interval/sdk": "^0.36.0",
     "dotenv": "^16.0.1",
     "qrcode": "^1.5.1"
   },
