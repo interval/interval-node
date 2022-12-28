@@ -1102,7 +1102,7 @@ export default class IntervalClient {
       OPEN_PAGE: async inputs => {
         if (!this.organization) {
           this.#log.error('No organization defined')
-          return { type: 'ERROR' as const }
+          return { type: 'ERROR' as const, message: 'No organization defined.' }
         }
 
         const { pageKey, clientId } = inputs
@@ -1113,8 +1113,8 @@ export default class IntervalClient {
         }
 
         if (!pageHandler) {
-          this.#log.debug('No app handler called', inputs.page.slug)
-          return { type: 'ERROR' as const }
+          this.#log.debug('No page handler found', inputs.page.slug)
+          return { type: 'ERROR' as const, message: 'No page handler found.' }
         }
 
         let { params, paramsMeta } = inputs
@@ -1331,20 +1331,21 @@ export default class IntervalClient {
               }
 
               if (page.menuItems) {
-                menuItems = page.menuItems.map(menuItem => {
-                  // if (
-                  //   'action' in menuItem &&
-                  //   typeof menuItem['action'] === 'function'
-                  // ) {
-                  //   const inlineAction = client.addInlineAction(menuItem.action)
-                  //   return {
-                  //     ...menuItem,
-                  //     inlineAction,
-                  //   }
-                  // }
-
-                  return menuItem
-                })
+                menuItems = page.menuItems
+                // menuItems = page.menuItems.map(menuItem => {
+                //   if (
+                //     'action' in menuItem &&
+                //     typeof menuItem['action'] === 'function'
+                //   ) {
+                //     const inlineAction = client.addInlineAction(menuItem.action)
+                //     return {
+                //       ...menuItem,
+                //       inlineAction,
+                //     }
+                //   }
+                //
+                //   return menuItem
+                // })
               }
 
               if ('metadata' in page) {
@@ -1368,9 +1369,9 @@ export default class IntervalClient {
                   err => {
                     this.#logger.error(err)
                     if (err instanceof IOError && err.cause) {
-                      errors.push(pageError(err.cause))
+                      errors.push(pageError(err.cause, 'children'))
                     } else {
-                      errors.push(pageError(err))
+                      errors.push(pageError(err, 'children'))
                     }
 
                     scheduleSendPage()

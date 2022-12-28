@@ -15,7 +15,7 @@ export type DisplayComponentToRender = z.infer<
 export const INPUT_COMPONENT_TO_RENDER = DISPLAY_COMPONENT_TO_RENDER.merge(
   z.object({
     isOptional: z.boolean().optional().default(false),
-    validationErrorMessage: z.string().optional(),
+    validationErrorMessage: z.string().nullish(),
   })
 )
 
@@ -37,7 +37,7 @@ export const IO_RENDER = z.object({
   id: z.string(),
   inputGroupKey: z.string(),
   toRender: z.array(COMPONENT_TO_RENDER),
-  validationErrorMessage: z.string().optional(),
+  validationErrorMessage: z.string().nullish(),
   continueButton: z
     .object({
       label: z.string().optional(),
