@@ -535,7 +535,7 @@ const interval = new Interval({
 
       await io.group([
         io.display.heading(`Grid view`),
-        io.display.metadata('', { data }),
+        io.display.metadata('Metadata grid label', { data }),
         io.display.heading(`List view`),
         io.display.metadata('', {
           layout: 'list',
