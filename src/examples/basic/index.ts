@@ -1,5 +1,5 @@
 import { T_IO_PROPS } from './../../ioSchema'
-import Interval, { IOError, io, ctx, Page } from '../../index'
+import Interval, { IOError, io, ctx, Page, Layout } from '../../index'
 import IntervalClient from '../../classes/IntervalClient'
 import {
   IntervalActionDefinition,
@@ -1264,6 +1264,22 @@ const interval = new Interval({
 
       return 'All done!'
     },
+    select_single: async () => {
+      const selected = await io.select.single('Select an item', {
+        options: [
+          { label: 'Item 1', value: 1 },
+          { label: 'Item 2', value: 2 },
+          { label: 'Item 3', value: 3 },
+          { label: 'Item 4', value: 4 },
+          { label: 'Item 5', value: 5 },
+          { label: 'Item 6', value: 6 },
+          { label: 'Item 7', value: 7 },
+          { label: 'Item 8', value: 8 },
+        ],
+      })
+
+      return selected
+    },
     tables: new Page({
       name: 'Tables',
       routes: table_actions,
@@ -1271,6 +1287,28 @@ const interval = new Interval({
     grids: new Page({
       name: 'Grids',
       routes: grid_actions,
+      // including this to test two-column page layouts
+      handler: async () => {
+        return new Layout({
+          title: 'Grids',
+          children: [
+            io.display.table('Grid layouts', {
+              data: Object.keys(grid_actions).map(k => ({
+                name: k,
+              })),
+              columns: [
+                {
+                  label: 'Name',
+                  renderCell: ({ name }) => ({
+                    label: name,
+                    route: `grids/${name}`,
+                  }),
+                },
+              ],
+            }),
+          ],
+        })
+      },
     }),
     confirm_identity: async () => {
       await io.input.text('Enter your name')
