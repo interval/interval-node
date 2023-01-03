@@ -1469,7 +1469,6 @@ export default class IntervalClient {
     await this.#walkRoutes()
 
     const response = await this.#send('INITIALIZE_HOST', {
-      apiKey: this.#apiKey,
       actions: this.#actionDefinitions,
       groups: this.#pageDefinitions,
       sdkName: pkg.name,

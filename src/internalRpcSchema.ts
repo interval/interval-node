@@ -368,7 +368,6 @@ export const wsServerSchema = {
   INITIALIZE_HOST: {
     inputs: z.intersection(
       z.object({
-        apiKey: z.string().optional(),
         sdkName: z.string().optional(),
         sdkVersion: z.string().optional(),
         requestId: z.string().optional(),
