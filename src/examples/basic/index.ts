@@ -15,6 +15,33 @@ import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
 
+const gridsPage = new Page({
+  name: 'Grids',
+  routes: grid_actions,
+  // including this to test two-column page layouts
+  handler: async () => {
+    return new Layout({
+      title: 'Grids',
+      children: [
+        io.display.table('Grid layouts', {
+          data: Object.keys(grid_actions).map(k => ({
+            name: k,
+          })),
+          columns: [
+            {
+              label: 'Name',
+              renderCell: ({ name }) => ({
+                label: name,
+                route: `grids/${name}`,
+              }),
+            },
+          ],
+        }),
+      ],
+    })
+  },
+})
+
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
     io.display.table('In a table!', {
@@ -179,6 +206,7 @@ const prod = new Interval({
         },
       })
     },
+    grids: gridsPage,
   },
 })
 
@@ -1284,32 +1312,7 @@ const interval = new Interval({
       name: 'Tables',
       routes: table_actions,
     }),
-    grids: new Page({
-      name: 'Grids',
-      routes: grid_actions,
-      // including this to test two-column page layouts
-      handler: async () => {
-        return new Layout({
-          title: 'Grids',
-          children: [
-            io.display.table('Grid layouts', {
-              data: Object.keys(grid_actions).map(k => ({
-                name: k,
-              })),
-              columns: [
-                {
-                  label: 'Name',
-                  renderCell: ({ name }) => ({
-                    label: name,
-                    route: `grids/${name}`,
-                  }),
-                },
-              ],
-            }),
-          ],
-        })
-      },
-    }),
+    grids: gridsPage,
     confirm_identity: async () => {
       await io.input.text('Enter your name')
 
