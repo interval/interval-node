@@ -18,6 +18,7 @@ import type {
   ImageSize,
   SerializableRecord,
   LegacyLinkProps,
+  T_IO_MULTIPLEABLE_METHOD_NAMES,
 } from './ioSchema'
 import type { AccessControlDefinition, HostSchema } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
@@ -25,6 +26,7 @@ import type IOComponent from './classes/IOComponent'
 import type {
   AnyIOComponent,
   ComponentReturnValue,
+  MaybeMultipleComponentReturnValue,
 } from './classes/IOComponent'
 import type {
   IOPromise,
@@ -32,6 +34,7 @@ import type {
   ExclusiveIOPromise,
   DisplayIOPromise,
   InputIOPromise,
+  MultipleableIOPromise,
 } from './classes/IOPromise'
 import type IOError from './classes/IOError'
 import type TransactionLoadingState from './classes/TransactionLoadingState'
@@ -153,6 +156,24 @@ export type RequiredPropsInputIOComponentFunction<
   props: Props
 ) => InputIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
+export type MultipleableInputIOComponentFunction<
+  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+  Props,
+  Output = ComponentReturnValue<MethodName>
+> = (
+  label: string,
+  props?: Props
+) => MultipleableIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
+
+export type RequiredPropsMultipleableInputIOComponentFunction<
+  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+  Props,
+  Output = ComponentReturnValue<MethodName>
+> = (
+  label: string,
+  props: Props
+) => MultipleableIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
+
 export type DisplayIOComponentFunction<
   MethodName extends T_IO_DISPLAY_METHOD_NAMES,
   Props,
@@ -183,7 +204,10 @@ export type ExclusiveIOComponentFunction<
 export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = (
   components: [IOComponent<MethodName>, ...IOComponent<MethodName>[]]
 ) => Promise<
-  [ComponentReturnValue<MethodName>, ...ComponentReturnValue<MethodName>[]]
+  [
+    MaybeMultipleComponentReturnValue<MethodName>,
+    ...MaybeMultipleComponentReturnValue<MethodName>[]
+  ]
 >
 
 export type ComponentsRenderer<

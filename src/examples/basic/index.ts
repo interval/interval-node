@@ -207,6 +207,38 @@ const interval = new Interval({
 
       console.log({ r1, r2 })
     },
+    multiple_search: async io => {
+      const bareResults = await io
+        .search('Bare', {
+          onSearch: async query => fakeDb.find(query),
+          renderResult: result => ({
+            label: `${result.first_name} ${result.last_name}`,
+          }),
+        })
+        .multiple()
+
+      const [groupResults] = await io.group([
+        io
+          .search('In a group', {
+            onSearch: async query => fakeDb.find(query),
+            renderResult: result => ({
+              label: `${result.first_name} ${result.last_name}`,
+            }),
+          })
+          .multiple(),
+      ])
+
+      console.log({ bareResults, groupResults })
+
+      return {
+        'Bare selected': bareResults
+          .map(r => `${r.first_name} ${r.last_name}`)
+          .join(', '),
+        'Group selected': groupResults
+          .map(r => `${r.first_name} ${r.last_name}`)
+          .join(', '),
+      }
+    },
     section_heading: async io => {
       await io.group([
         io.display.heading('Section heading', {

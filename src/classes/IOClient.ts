@@ -1,7 +1,7 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
 import * as superjson from 'superjson'
-import type {
+import {
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
   T_IO_PROPS,
@@ -9,6 +9,8 @@ import type {
   T_IO_METHOD_NAMES,
   T_IO_DISPLAY_METHOD_NAMES,
   T_IO_INPUT_METHOD_NAMES,
+  T_IO_MULTIPLEABLE_METHOD_NAMES,
+  supportsMultiple,
 } from '../ioSchema'
 import Logger from './Logger'
 import { AnyIOComponent } from './IOComponent'
@@ -18,6 +20,7 @@ import {
   IOPromiseValidator,
   DisplayIOPromise,
   InputIOPromise,
+  MultipleableIOPromise,
 } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
@@ -46,6 +49,8 @@ import {
   RequiredPropsInputIOComponentFunction,
   GroupConfig,
   ButtonConfig,
+  RequiredPropsMultipleableInputIOComponentFunction,
+  MultipleableInputIOComponentFunction,
 } from '../types'
 import { stripUndefined } from '../utils/deserialize'
 import { IntervalError } from '..'
@@ -319,7 +324,9 @@ export class IOClient {
     inputProps?: Props,
     componentDef?: IOComponentDefinition<MethodName, Props, Output>
   ) {
-    let props = inputProps ? (inputProps as T_IO_PROPS<MethodName>) : {}
+    let props: T_IO_PROPS<MethodName> = inputProps
+      ? (inputProps as T_IO_PROPS<MethodName>)
+      : {}
     let getValue = (r: T_IO_RETURNS<MethodName>) => r as unknown as Output
     let onStateChange: ReturnType<
       IOComponentDefinition<MethodName, Props, Output>
@@ -351,6 +358,32 @@ export class IOClient {
     }
   }
 
+  createIOMethod<
+    MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    config?: {
+      propsRequired?: false
+      componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    }
+  ): MultipleableInputIOComponentFunction<MethodName, Props, Output>
+  createIOMethod<
+    MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    config: {
+      propsRequired?: true
+      componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    }
+  ): RequiredPropsMultipleableInputIOComponentFunction<
+    MethodName,
+    Props,
+    Output
+  >
   createIOMethod<
     MethodName extends T_IO_DISPLAY_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
@@ -409,12 +442,40 @@ export class IOClient {
     } = {}
   ) {
     return (label: string, props?: Props) => {
-      const isDisplay = methodName.startsWith('DISPLAY_')
-      const promiseProps = this.getPromiseProps(methodName, props, componentDef)
+      if (supportsMultiple(methodName)) {
+        return new MultipleableIOPromise({
+          ...this.getPromiseProps(
+            methodName as T_IO_MULTIPLEABLE_METHOD_NAMES,
+            props,
+            componentDef as
+              | IOComponentDefinition<
+                  T_IO_MULTIPLEABLE_METHOD_NAMES,
+                  Props,
+                  T_IO_RETURNS<T_IO_MULTIPLEABLE_METHOD_NAMES>
+                >
+              | undefined
+          ),
+          methodName: methodName as T_IO_MULTIPLEABLE_METHOD_NAMES,
+          renderer: this.renderComponents.bind(
+            this
+          ) as ComponentRenderer<T_IO_MULTIPLEABLE_METHOD_NAMES>,
+          label,
+        })
+      }
 
-      return isDisplay
+      return methodName.startsWith('DISPLAY_')
         ? new DisplayIOPromise({
-            ...promiseProps,
+            ...this.getPromiseProps(
+              methodName as T_IO_DISPLAY_METHOD_NAMES,
+              props,
+              componentDef as
+                | IOComponentDefinition<
+                    T_IO_DISPLAY_METHOD_NAMES,
+                    Props,
+                    T_IO_RETURNS<T_IO_DISPLAY_METHOD_NAMES>
+                  >
+                | undefined
+            ),
             methodName: methodName as T_IO_DISPLAY_METHOD_NAMES,
             renderer: this.renderComponents.bind(
               this
@@ -422,7 +483,17 @@ export class IOClient {
             label,
           })
         : new InputIOPromise({
-            ...promiseProps,
+            ...this.getPromiseProps(
+              methodName as T_IO_INPUT_METHOD_NAMES,
+              props,
+              componentDef as
+                | IOComponentDefinition<
+                    T_IO_INPUT_METHOD_NAMES,
+                    Props,
+                    T_IO_RETURNS<T_IO_INPUT_METHOD_NAMES>
+                  >
+                | undefined
+            ),
             methodName: methodName as T_IO_INPUT_METHOD_NAMES,
             renderer: this.renderComponents.bind(
               this

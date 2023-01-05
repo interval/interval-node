@@ -2,12 +2,14 @@ import {
   T_IO_DISPLAY_METHOD_NAMES,
   T_IO_INPUT_METHOD_NAMES,
   T_IO_METHOD_NAMES,
+  T_IO_MULTIPLEABLE_METHOD_NAMES,
   T_IO_PROPS,
   T_IO_STATE,
 } from '../ioSchema'
 import IOComponent, {
   AnyIOComponent,
   ComponentReturnValue,
+  MaybeMultipleComponentReturnValue,
 } from './IOComponent'
 import IOError from './IOError'
 import {
@@ -76,7 +78,7 @@ export class IOPromise<
   then(resolve: (output: Output) => void, reject?: (err: IOError) => void) {
     this.renderer([this.component])
       .then(([result]) => {
-        resolve(this.getValue(result))
+        resolve(this.getValue(result as ComponentReturnValue<MethodName>))
       })
       .catch(err => {
         if (reject) reject(err)
@@ -90,13 +92,13 @@ export class IOPromise<
   }
 
   get component() {
-    return new IOComponent(
-      this.methodName,
-      this.label,
-      this.props,
-      this.onStateChange,
-      false
-    )
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      isOptional: false,
+    })
   }
 }
 
@@ -116,22 +118,26 @@ export class InputIOPromise<
   Output = ComponentReturnValue<MethodName>
 > extends IOPromise<MethodName, Props, Output> {
   get component() {
-    return new IOComponent(
-      this.methodName,
-      this.label,
-      this.props,
-      this.onStateChange,
-      false,
-      this.validator ? this.#handleValidation.bind(this) : undefined
-    )
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      isOptional: false,
+      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+    })
   }
 
   async #handleValidation(
-    returnValue: ComponentReturnValue<MethodName> | undefined
+    returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Promise<string | undefined> {
+    // These should be caught already, primarily here for types
     if (returnValue === undefined) {
-      // This should be caught already, primarily here for types
       return 'This field is required.'
+    }
+
+    if (Array.isArray(returnValue)) {
+      return 'This field accepts only one value.'
     }
 
     if (this.validator) {
@@ -193,32 +199,155 @@ export class OptionalIOPromise<
   }
 
   get component() {
-    return new IOComponent(
-      this.methodName,
-      this.label,
-      this.props,
-      this.onStateChange,
-      true,
-      this.validator ? this.#handleValidation.bind(this) : undefined
-    )
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      isOptional: true,
+      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+    })
   }
 
   async #handleValidation(
-    returnValue: ComponentReturnValue<MethodName> | undefined
+    returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Promise<string | undefined> {
+    if (Array.isArray(returnValue)) {
+      return 'This field accepts only one value.'
+    }
+
     if (this.validator) {
       return this.validator(this.getValue(returnValue))
     }
   }
 
   getValue(
-    result: ComponentReturnValue<MethodName> | undefined
+    result: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Output | undefined {
     if (result === undefined) return undefined
 
-    if (this.valueGetter) return this.valueGetter(result)
+    if (this.valueGetter) {
+      // This should never be multiple()
+      return this.valueGetter(result as ComponentReturnValue<MethodName>)
+    }
 
     return result as unknown as Output
+  }
+}
+
+export class MultipleableIOPromise<
+  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  Output = ComponentReturnValue<MethodName>
+> extends InputIOPromise<MethodName, Props, Output> {
+  constructor(props: {
+    renderer: ComponentRenderer<MethodName>
+    methodName: MethodName
+    label: string
+    props: Props
+    valueGetter?: (response: ComponentReturnValue<MethodName>) => Output
+    onStateChange?: (
+      incomingState: T_IO_STATE<MethodName>
+    ) => Promise<Partial<Props>>
+    validator?: IOPromiseValidator<Output> | undefined
+  }) {
+    super(props)
+  }
+
+  multiple() {
+    return new MultipleIOPromise<MethodName, Props, Output>({
+      renderer: this.renderer,
+      methodName: this.methodName,
+      label: this.label,
+      props: this.props,
+      valueGetter: this.valueGetter,
+      onStateChange: this.onStateChange,
+    })
+  }
+}
+
+export class MultipleIOPromise<
+  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  Output = ComponentReturnValue<MethodName>
+> extends IOPromise<MethodName, Props, Output[]> {
+  getSingleValue:
+    | ((response: ComponentReturnValue<MethodName>) => Output)
+    | undefined
+
+  constructor({
+    valueGetter,
+    ...rest
+  }: {
+    renderer: ComponentRenderer<MethodName>
+    methodName: MethodName
+    label: string
+    props: Props
+    valueGetter?: (response: ComponentReturnValue<MethodName>) => Output
+    onStateChange?: (
+      incomingState: T_IO_STATE<MethodName>
+    ) => Promise<Partial<Props>>
+    validator?: IOPromiseValidator<Output[]> | undefined
+  }) {
+    super(rest)
+    this.getSingleValue = valueGetter
+  }
+
+  then(resolve: (output: Output[]) => void, reject?: (err: IOError) => void) {
+    this.renderer([this.component])
+      .then(([results]) => {
+        resolve(this.getValue(results))
+      })
+      .catch(err => {
+        if (reject) reject(err)
+      })
+  }
+
+  validate(validator: IOPromiseValidator<Output[]>): this {
+    this.validator = validator
+
+    return this
+  }
+
+  getValue(results: MaybeMultipleComponentReturnValue<MethodName>): Output[] {
+    if (!Array.isArray(results)) {
+      results = [results]
+    }
+
+    const { getSingleValue } = this
+    if (getSingleValue) {
+      return results.map(result => getSingleValue(result))
+    }
+
+    return results as unknown as Output[]
+  }
+
+  async #handleValidation(
+    returnValues: MaybeMultipleComponentReturnValue<MethodName> | undefined
+  ): Promise<string | undefined> {
+    // These should be caught already, primarily here for types
+    if (!returnValues) {
+      return 'This field is required.'
+    }
+
+    if (!Array.isArray(returnValues)) {
+      return 'This field accepts only multiple values.'
+    }
+
+    if (this.validator) {
+      return this.validator(this.getValue(returnValues))
+    }
+  }
+
+  get component() {
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      isMultiple: true,
+      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+    })
   }
 }
 
@@ -233,22 +362,26 @@ export class ExclusiveIOPromise<
   Output = ComponentReturnValue<MethodName>
 > extends IOPromise<MethodName, Props, Output> {
   get component() {
-    return new IOComponent(
-      this.methodName,
-      this.label,
-      this.props,
-      this.onStateChange,
-      false,
-      this.validator ? this.#handleValidation.bind(this) : undefined
-    )
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      isOptional: false,
+      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+    })
   }
 
   async #handleValidation(
-    returnValue: ComponentReturnValue<MethodName> | undefined
+    returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Promise<string | undefined> {
+    // These should be caught already, primarily here for types
     if (returnValue === undefined) {
-      // This should be caught already, primarily here for types
       return 'This field is required.'
+    }
+
+    if (Array.isArray(returnValue)) {
+      return 'This field accepts only one value.'
     }
 
     if (this.validator) {
@@ -288,8 +421,8 @@ export type IOGroupComponents<
     : IOPromises[Idx]
 }
 
-export type IOPromiseValidator<ReturnValue> = (
-  returnValue: ReturnValue
+export type IOPromiseValidator<Output> = (
+  returnValue: Output
 ) => string | undefined | Promise<string | undefined>
 
 export class IOGroupPromise<

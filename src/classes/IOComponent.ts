@@ -18,6 +18,7 @@ export interface ComponentInstance<MN extends keyof IoSchema> {
   state: z.infer<IoSchema[MN]['state']>
   isStateful?: boolean
   isOptional?: boolean
+  isMultiple?: boolean
   validationErrorMessage?: string | undefined
 }
 
@@ -27,6 +28,10 @@ export type ComponentRenderInfo<MN extends keyof IoSchema> = Omit<
 >
 
 export type ComponentReturnValue<MN extends keyof IoSchema> = T_IO_RETURNS<MN>
+
+export type MaybeMultipleComponentReturnValue<MN extends keyof IoSchema> =
+  | T_IO_RETURNS<MN>
+  | T_IO_RETURNS<MN>[]
 
 export type IOComponentMap = {
   [MethodName in T_IO_METHOD_NAMES]: IOComponent<MethodName>
@@ -49,9 +54,11 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
   schema: IoSchema[MethodName]
   instance: ComponentInstance<MethodName>
   resolver:
-    | ((v: ComponentReturnValue<MethodName> | undefined) => void)
+    | ((v: MaybeMultipleComponentReturnValue<MethodName> | undefined) => void)
     | undefined
-  returnValue: Promise<ComponentReturnValue<MethodName> | undefined>
+  returnValue: Promise<
+    MaybeMultipleComponentReturnValue<MethodName> | undefined
+  >
   onStateChangeHandler: (() => void) | undefined
   handleStateChange:
     | ((
@@ -60,31 +67,44 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     | undefined
 
   validator:
-    | IOPromiseValidator<ComponentReturnValue<MethodName> | undefined>
+    | IOPromiseValidator<
+        MaybeMultipleComponentReturnValue<MethodName> | undefined
+      >
     | undefined
 
   /**
-   * @param methodName - The component's method name from ioSchema, used
+   * @param options.methodName - The component's method name from ioSchema, used
    * to determine the valid types for communication with Interval.
-   * @param label - The UI label to be displayed to the action runner.
-   * @param initialProps - The properties send to Interval for the initial
+   * @param options.label - The UI label to be displayed to the action runner.
+   * @param options.initialProps - The properties send to Interval for the initial
    * render call.
-   * @param handleStateChange - A handler that converts new state received
+   * @param options.handleStateChange - A handler that converts new state received
    * from Interval into a new set of props.
-   * @param isOptional - If true, the input can be omitted by the action
+   * @param options.isOptional - If true, the input can be omitted by the action
    * runner, in which case the component will accept and return `undefined`.
    */
-  constructor(
-    methodName: MethodName,
-    label: string,
-    initialProps?: z.input<IoSchema[MethodName]['props']>,
-    handleStateChange?: (
+  constructor({
+    methodName,
+    label,
+    initialProps,
+    onStateChange,
+    isOptional = false,
+    isMultiple = false,
+    validator,
+  }: {
+    methodName: MethodName
+    label: string
+    initialProps?: z.input<IoSchema[MethodName]['props']>
+    onStateChange?: (
       incomingState: z.infer<IoSchema[MethodName]['state']>
-    ) => Promise<Partial<z.input<IoSchema[MethodName]['props']>>>,
-    isOptional: boolean = false,
-    validator?: IOPromiseValidator<ComponentReturnValue<MethodName> | undefined>
-  ) {
-    this.handleStateChange = handleStateChange
+    ) => Promise<Partial<z.input<IoSchema[MethodName]['props']>>>
+    isOptional?: boolean
+    isMultiple?: boolean
+    validator?: IOPromiseValidator<
+      MaybeMultipleComponentReturnValue<MethodName> | undefined
+    >
+  }) {
+    this.handleStateChange = onStateChange
     this.schema = ioSchema[methodName]
     this.validator = validator
 
@@ -101,12 +121,13 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       label,
       props: initialProps,
       state: null,
-      isStateful: !!handleStateChange,
+      isStateful: !!onStateChange,
       isOptional: isOptional,
+      isMultiple: isMultiple,
     }
 
     this.returnValue = new Promise<
-      ComponentReturnValue<MethodName> | undefined
+      MaybeMultipleComponentReturnValue<MethodName> | undefined
     >(resolve => {
       this.resolver = resolve
     })
@@ -120,7 +141,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
   }
 
   async handleValidation(
-    returnValue: ComponentReturnValue<MethodName> | undefined
+    returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Promise<string | undefined> {
     if (this.validator) {
       const message = await this.validator(returnValue)
@@ -130,13 +151,21 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
   }
 
   setReturnValue(value: z.input<IoSchema[MethodName]['returns']>) {
+    let requiredReturnSchema:
+      | IoSchema[MethodName]['returns']
+      | z.ZodArray<IoSchema[MethodName]['returns']> = this.schema.returns
+
+    if (this.instance.isMultiple) {
+      requiredReturnSchema = z.array(requiredReturnSchema)
+    }
+
     const returnSchema = this.instance.isOptional
-      ? this.schema.returns
+      ? requiredReturnSchema
           .nullable()
           .optional()
           // JSON.stringify turns undefined into null in arrays
           .transform(value => value ?? undefined)
-      : this.schema.returns
+      : requiredReturnSchema
 
     try {
       let parsed: ReturnType<typeof returnSchema.parse>
@@ -144,7 +173,13 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       if (value && typeof value === 'object') {
         // TODO: Remove this when all active SDKs support superjson
         if (Array.isArray(value)) {
-          parsed = returnSchema.parse(value.map(v => deserializeDates<any>(v)))
+          parsed = returnSchema.parse(
+            value.map(v =>
+              typeof v === 'object' && !Array.isArray(v)
+                ? deserializeDates<any>(v)
+                : v
+            )
+          )
         } else {
           parsed = returnSchema.parse(deserializeDates<any>(value))
         }
@@ -225,6 +260,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       props: this.instance.props,
       isStateful: this.instance.isStateful,
       isOptional: this.instance.isOptional,
+      isMultiple: this.instance.isMultiple,
       validationErrorMessage: this.instance.validationErrorMessage,
     }
   }
