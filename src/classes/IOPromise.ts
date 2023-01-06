@@ -207,7 +207,9 @@ export class OptionalIOPromise<
   ) {
     this.renderer([this.component])
       .then(([result]) => {
-        const parsed = ioSchema[this.methodName].returns.parse(result)
+        const parsed = ioSchema[this.methodName].returns
+          .optional()
+          .parse(result)
         resolve(this.getValue(parsed))
       })
       .catch(err => {
