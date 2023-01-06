@@ -1,4 +1,5 @@
 import {
+  ioSchema,
   T_IO_DISPLAY_METHOD_NAMES,
   T_IO_INPUT_METHOD_NAMES,
   T_IO_METHOD_NAMES,
@@ -21,6 +22,7 @@ import {
   ButtonConfig,
 } from '../types'
 import { IOClientRenderReturnValues } from './IOClient'
+import { ZodError } from 'zod'
 
 /**
  * A custom wrapper class that handles creating the underlying component
@@ -78,10 +80,22 @@ export class IOPromise<
   then(resolve: (output: Output) => void, reject?: (err: IOError) => void) {
     this.renderer([this.component])
       .then(([result]) => {
-        resolve(this.getValue(result as ComponentReturnValue<MethodName>))
+        const parsed = ioSchema[this.methodName].returns.parse(result)
+        resolve(this.getValue(parsed))
       })
       .catch(err => {
-        if (reject) reject(err)
+        if (reject) {
+          if (err instanceof ZodError) {
+            // This should be caught already, primarily here for types
+            reject(
+              new IOError('BAD_RESPONSE', 'Received invalid response.', {
+                cause: err,
+              })
+            )
+          } else {
+            reject(err)
+          }
+        }
       })
   }
 
@@ -136,12 +150,14 @@ export class InputIOPromise<
       return 'This field is required.'
     }
 
-    if (Array.isArray(returnValue)) {
-      return 'This field accepts only one value.'
-    }
-
-    if (this.validator) {
-      return this.validator(this.getValue(returnValue))
+    const parsed = ioSchema[this.methodName].returns.safeParse(returnValue)
+    if (parsed.success) {
+      if (this.validator) {
+        return this.validator(this.getValue(parsed.data))
+      }
+    } else {
+      // shouldn't be hit, but just in case
+      return 'Received invalid value for field.'
     }
   }
 
@@ -191,10 +207,22 @@ export class OptionalIOPromise<
   ) {
     this.renderer([this.component])
       .then(([result]) => {
-        resolve(this.getValue(result))
+        const parsed = ioSchema[this.methodName].returns.parse(result)
+        resolve(this.getValue(parsed))
       })
       .catch(err => {
-        if (reject) reject(err)
+        if (reject) {
+          if (err instanceof ZodError) {
+            // This should be caught already, primarily here for types
+            reject(
+              new IOError('BAD_RESPONSE', 'Received invalid response.', {
+                cause: err,
+              })
+            )
+          } else {
+            reject(err)
+          }
+        }
       })
   }
 
@@ -212,23 +240,27 @@ export class OptionalIOPromise<
   async #handleValidation(
     returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Promise<string | undefined> {
-    if (Array.isArray(returnValue)) {
-      return 'This field accepts only one value.'
-    }
-
-    if (this.validator) {
-      return this.validator(this.getValue(returnValue))
+    // These should be caught already, primarily here for types
+    const parsed = ioSchema[this.methodName].returns
+      .optional()
+      .safeParse(returnValue)
+    if (parsed.success) {
+      if (this.validator) {
+        return this.validator(this.getValue(parsed.data))
+      }
+    } else {
+      // shouldn't be hit, but just in case
+      return 'Received invalid value for field.'
     }
   }
 
   getValue(
-    result: MaybeMultipleComponentReturnValue<MethodName> | undefined
+    result: ComponentReturnValue<MethodName> | undefined
   ): Output | undefined {
     if (result === undefined) return undefined
 
     if (this.valueGetter) {
-      // This should never be multiple()
-      return this.valueGetter(result as ComponentReturnValue<MethodName>)
+      return this.valueGetter(result)
     }
 
     return result as unknown as Output
@@ -330,12 +362,14 @@ export class MultipleIOPromise<
       return 'This field is required.'
     }
 
-    if (!Array.isArray(returnValues)) {
-      return 'This field accepts only multiple values.'
-    }
-
-    if (this.validator) {
-      return this.validator(this.getValue(returnValues))
+    const parsed = ioSchema[this.methodName].returns.safeParse(returnValues)
+    if (parsed.success) {
+      if (this.validator) {
+        return this.validator(this.getValue(parsed.data))
+      }
+    } else {
+      // shouldn't be hit, but just in case
+      return 'Received invalid value for field.'
     }
   }
 
@@ -380,12 +414,14 @@ export class ExclusiveIOPromise<
       return 'This field is required.'
     }
 
-    if (Array.isArray(returnValue)) {
-      return 'This field accepts only one value.'
-    }
-
-    if (this.validator) {
-      return this.validator(this.getValue(returnValue))
+    const parsed = ioSchema[this.methodName].returns.safeParse(returnValue)
+    if (parsed.success) {
+      if (this.validator) {
+        return this.validator(this.getValue(parsed.data))
+      }
+    } else {
+      // shouldn't be hit, but just in case
+      return 'Received invalid value for field.'
     }
   }
 
