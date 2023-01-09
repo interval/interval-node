@@ -37,6 +37,7 @@ export const no_pagination: IntervalActionHandler = async io => {
     defaultPageSize: 50,
     isFilterable: false,
     isSortable: false,
+    rowMenuItems: () => [],
   })
 }
 
