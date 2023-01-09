@@ -304,7 +304,6 @@ export class MultipleableIOPromise<
   multiple({ defaultValue }: { defaultValue?: DefaultValue[] } = {}) {
     let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined
     if (defaultValue) {
-      console.log({ defaultValue })
       const { defaultValueGetter } = this
       const potentialDefaultValue = defaultValueGetter
         ? defaultValue.map(dv => defaultValueGetter(dv))
