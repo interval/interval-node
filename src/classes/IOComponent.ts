@@ -4,7 +4,9 @@ import {
   resolvesImmediately,
   T_IO_DISPLAY_METHOD_NAMES,
   T_IO_METHOD_NAMES,
+  T_IO_PROPS,
   T_IO_RETURNS,
+  T_IO_STATE,
 } from '../ioSchema'
 import { deserializeDates } from '../utils/deserialize'
 import IOError from './IOError'
@@ -14,12 +16,13 @@ type IoSchema = typeof ioSchema
 export interface ComponentInstance<MN extends keyof IoSchema> {
   methodName: MN
   label: string
-  props?: z.input<IoSchema[MN]['props']>
-  state: z.infer<IoSchema[MN]['state']>
+  props?: T_IO_PROPS<MN>
+  state: T_IO_STATE<MN>
   isStateful?: boolean
   isOptional?: boolean
   isMultiple?: boolean
   validationErrorMessage?: string | undefined
+  multipleDefaultValue?: T_IO_RETURNS<MN>[]
 }
 
 export type ComponentRenderInfo<MN extends keyof IoSchema> = Omit<
@@ -91,18 +94,20 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     isOptional = false,
     isMultiple = false,
     validator,
+    multipleDefaultValue,
   }: {
     methodName: MethodName
     label: string
-    initialProps?: z.input<IoSchema[MethodName]['props']>
+    initialProps?: T_IO_PROPS<MethodName>
     onStateChange?: (
-      incomingState: z.infer<IoSchema[MethodName]['state']>
-    ) => Promise<Partial<z.input<IoSchema[MethodName]['props']>>>
+      incomingState: T_IO_STATE<MethodName>
+    ) => Promise<Partial<T_IO_PROPS<MethodName>>>
     isOptional?: boolean
     isMultiple?: boolean
     validator?: IOPromiseValidator<
       MaybeMultipleComponentReturnValue<MethodName> | undefined
     >
+    multipleDefaultValue?: T_IO_RETURNS<MethodName>[]
   }) {
     this.handleStateChange = onStateChange
     this.schema = ioSchema[methodName]
@@ -111,7 +116,9 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     try {
       initialProps = this.schema.props.parse(initialProps ?? {})
     } catch (err) {
-      console.error(`Invalid props found for IO call with label "${label}":`)
+      console.error(
+        `[Interval] Invalid props found for IO call with label "${label}":`
+      )
       console.error(err)
       throw err
     }
@@ -124,6 +131,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       isStateful: !!onStateChange,
       isOptional: isOptional,
       isMultiple: isMultiple,
+      multipleDefaultValue,
     }
 
     this.returnValue = new Promise<
@@ -262,6 +270,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       isOptional: this.instance.isOptional,
       isMultiple: this.instance.isMultiple,
       validationErrorMessage: this.instance.validationErrorMessage,
+      multipleDefaultValue: this.instance.multipleDefaultValue,
     }
   }
 }

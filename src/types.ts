@@ -310,13 +310,15 @@ export type MaybeOptionalGroupIOPromise =
 export type IOComponentDefinition<
   MethodName extends T_IO_METHOD_NAMES,
   Props,
-  Output
+  Output,
+  DefaultValue = Output
 > = (
   this: IOClient,
   props: Props
 ) => {
   props?: T_IO_PROPS<MethodName>
   getValue?: (response: T_IO_RETURNS<MethodName>) => Output
+  getDefaultValue?: (defaultValue: DefaultValue) => any
   onStateChange?: (
     newState: T_IO_STATE<MethodName>
   ) => Promise<T_IO_PROPS<MethodName>>

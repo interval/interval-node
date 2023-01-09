@@ -14,6 +14,7 @@ import unauthorized from './unauthorized'
 import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
+import fakeUsers from '../utils/fakeUsers'
 
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
@@ -189,56 +190,92 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
-    two_searches: async io => {
-      const [r1, r2] = await io.group([
-        io.search('One', {
-          onSearch: async query => fakeDb.find(query),
-          renderResult: result => ({
-            label: `${result.first_name} ${result.last_name}`,
-          }),
-        }),
-        io.search('Two', {
-          onSearch: async query => fakeDb.find(query),
-          renderResult: result => ({
-            label: `${result.first_name} ${result.last_name}`,
-          }),
-        }),
-      ])
+    searches: new Page({
+      name: 'Search',
+      routes: {
+        two_searches: async io => {
+          const [r1, r2] = await io.group([
+            io.search('One', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            }),
+            io.search('Two', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            }),
+          ])
 
-      console.log({ r1, r2 })
-    },
-    multiple_search: async io => {
-      const bareResults = await io
-        .search('Bare', {
-          onSearch: async query => fakeDb.find(query),
-          renderResult: result => ({
-            label: `${result.first_name} ${result.last_name}`,
-          }),
-        })
-        .multiple()
+          console.log({ r1, r2 })
+        },
+        multiple_search: async io => {
+          const bareResults = await io
+            .search('Bare', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            })
+            .multiple()
 
-      const [groupResults] = await io.group([
-        io
-          .search('In a group', {
+          const [groupResults] = await io.group([
+            io
+              .search('In a group', {
+                onSearch: async query => fakeDb.find(query),
+                renderResult: result => ({
+                  label: `${result.first_name} ${result.last_name}`,
+                }),
+              })
+              .multiple(),
+          ])
+
+          console.log({ bareResults, groupResults })
+
+          return {
+            'Bare selected': bareResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+            'Group selected': groupResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+          }
+        },
+        default_value: async io => {
+          const bareResult = await io.search('Bare', {
             onSearch: async query => fakeDb.find(query),
             renderResult: result => ({
               label: `${result.first_name} ${result.last_name}`,
             }),
+            defaultValue: fakeUsers[0],
           })
-          .multiple(),
-      ])
 
-      console.log({ bareResults, groupResults })
+          const [groupResults] = await io.group([
+            io
+              .search('In a group', {
+                onSearch: async query => fakeDb.find(query),
+                renderResult: result => ({
+                  label: `${result.first_name} ${result.last_name}`,
+                }),
+              })
+              .multiple({
+                defaultValue: await fakeDb.find('jo'),
+              }),
+          ])
 
-      return {
-        'Bare selected': bareResults
-          .map(r => `${r.first_name} ${r.last_name}`)
-          .join(', '),
-        'Group selected': groupResults
-          .map(r => `${r.first_name} ${r.last_name}`)
-          .join(', '),
-      }
-    },
+          console.log({ bareResult, groupResults })
+
+          return {
+            'Bare selected': `${bareResult.first_name} ${bareResult.last_name}`,
+            'Group selected': groupResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+          }
+        },
+      },
+    }),
     section_heading: async io => {
       await io.group([
         io.display.heading('Section heading', {

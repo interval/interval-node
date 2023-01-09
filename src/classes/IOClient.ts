@@ -318,16 +318,24 @@ export class IOClient {
   getPromiseProps<
     MethodName extends T_IO_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
+    Output = T_IO_RETURNS<MethodName>,
+    DefaultValue = Output
   >(
     methodName: MethodName,
     inputProps?: Props,
-    componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    componentDef?: IOComponentDefinition<
+      MethodName,
+      Props,
+      Output,
+      DefaultValue
+    >
   ) {
     let props: T_IO_PROPS<MethodName> = inputProps
       ? (inputProps as T_IO_PROPS<MethodName>)
       : {}
     let getValue = (r: T_IO_RETURNS<MethodName>) => r as unknown as Output
+    let getDefaultValue = (defaultValue: DefaultValue) =>
+      defaultValue as unknown as Output
     let onStateChange: ReturnType<
       IOComponentDefinition<MethodName, Props, Output>
     >['onStateChange'] = undefined
@@ -345,6 +353,10 @@ export class IOClient {
         getValue = componentGetters.getValue
       }
 
+      if (componentGetters.getDefaultValue) {
+        getDefaultValue = componentGetters.getDefaultValue
+      }
+
       if (componentGetters.onStateChange) {
         onStateChange = componentGetters.onStateChange
       }
@@ -354,6 +366,7 @@ export class IOClient {
       methodName,
       props,
       valueGetter: getValue,
+      defaultValueGetter: getDefaultValue,
       onStateChange,
     }
   }

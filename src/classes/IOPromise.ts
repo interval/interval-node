@@ -5,6 +5,7 @@ import {
   T_IO_METHOD_NAMES,
   T_IO_MULTIPLEABLE_METHOD_NAMES,
   T_IO_PROPS,
+  T_IO_RETURNS,
   T_IO_STATE,
 } from '../ioSchema'
 import IOComponent, {
@@ -22,7 +23,7 @@ import {
   ButtonConfig,
 } from '../types'
 import { IOClientRenderReturnValues } from './IOClient'
-import { ZodError } from 'zod'
+import { z, ZodError } from 'zod'
 
 /**
  * A custom wrapper class that handles creating the underlying component
@@ -272,23 +273,58 @@ export class OptionalIOPromise<
 export class MultipleableIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
+  DefaultValue = Output
 > extends InputIOPromise<MethodName, Props, Output> {
-  constructor(props: {
+  defaultValueGetter:
+    | ((defaultValue: DefaultValue) => T_IO_RETURNS<MethodName>)
+    | undefined
+
+  constructor({
+    defaultValueGetter,
+    ...props
+  }: {
     renderer: ComponentRenderer<MethodName>
     methodName: MethodName
     label: string
     props: Props
     valueGetter?: (response: ComponentReturnValue<MethodName>) => Output
+    defaultValueGetter?: (
+      defaultValue: DefaultValue
+    ) => T_IO_RETURNS<MethodName>
     onStateChange?: (
       incomingState: T_IO_STATE<MethodName>
     ) => Promise<Partial<Props>>
     validator?: IOPromiseValidator<Output> | undefined
   }) {
     super(props)
+    this.defaultValueGetter = defaultValueGetter
   }
 
-  multiple() {
+  multiple({ defaultValue }: { defaultValue?: DefaultValue[] } = {}) {
+    let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined
+    if (defaultValue) {
+      console.log({ defaultValue })
+      const { defaultValueGetter } = this
+      const potentialDefaultValue = defaultValueGetter
+        ? defaultValue.map(dv => defaultValueGetter(dv))
+        : (defaultValue as unknown as T_IO_RETURNS<MethodName>[])
+
+      try {
+        const propsSchema = ioSchema[this.methodName].props
+        const defaultValueSchema = propsSchema.shape.defaultValue
+        transformedDefaultValue = z
+          .array(defaultValueSchema.unwrap())
+          .parse(potentialDefaultValue)
+      } catch (err) {
+        console.error(
+          `[Interval] Invalid default value found for multiple IO call with label "${this.label}": ${defaultValue}. This default value will be ignored.`
+        )
+        console.error(err)
+        transformedDefaultValue = undefined
+      }
+    }
+
     return new MultipleIOPromise<MethodName, Props, Output>({
       renderer: this.renderer,
       methodName: this.methodName,
@@ -296,6 +332,7 @@ export class MultipleableIOPromise<
       props: this.props,
       valueGetter: this.valueGetter,
       onStateChange: this.onStateChange,
+      defaultValue: transformedDefaultValue,
     })
   }
 }
@@ -308,11 +345,14 @@ export class MultipleIOPromise<
   getSingleValue:
     | ((response: ComponentReturnValue<MethodName>) => Output)
     | undefined
+  defaultValue: T_IO_RETURNS<MethodName>[] | undefined
 
   constructor({
+    defaultValue,
     valueGetter,
     ...rest
   }: {
+    defaultValue?: T_IO_RETURNS<MethodName>[]
     renderer: ComponentRenderer<MethodName>
     methodName: MethodName
     label: string
@@ -325,6 +365,7 @@ export class MultipleIOPromise<
   }) {
     super(rest)
     this.getSingleValue = valueGetter
+    this.defaultValue = defaultValue
   }
 
   then(resolve: (output: Output[]) => void, reject?: (err: IOError) => void) {
@@ -381,8 +422,9 @@ export class MultipleIOPromise<
       label: this.label,
       initialProps: this.props,
       onStateChange: this.onStateChange,
-      isMultiple: true,
       validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      isMultiple: true,
+      multipleDefaultValue: this.defaultValue,
     })
   }
 }
