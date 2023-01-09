@@ -1325,15 +1325,15 @@ const interval = new Interval({
 
       console.log(await customDestinationFile.url())
 
-      const file = await io.input.file('Upload an image!', {
+      const files = await io.input.file('Upload an image!', {
         helpText:
           'Will be uploaded to Interval and expire after the action finishes running.',
         allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
-      })
+      }).multiple()
 
-      console.log(file)
+      console.log(files)
 
-      const { text, json, buffer, url, ...rest } = file
+      const { text, json, buffer, url, ...rest } = files[0]
 
       return {
         ...rest,

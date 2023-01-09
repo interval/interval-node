@@ -307,14 +307,14 @@ export class MultipleableIOPromise<
 
   multiple({ defaultValue }: { defaultValue?: DefaultValue[] } = {}) {
     let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined
-    if (defaultValue) {
+    const propsSchema = ioSchema[this.methodName].props
+    if (defaultValue && 'defaultValue' in propsSchema.shape) {
       const { defaultValueGetter } = this
       const potentialDefaultValue = defaultValueGetter
         ? defaultValue.map(dv => defaultValueGetter(dv))
         : (defaultValue as unknown as T_IO_RETURNS<MethodName>[])
 
       try {
-        const propsSchema = ioSchema[this.methodName].props
         const defaultValueSchema = propsSchema.shape.defaultValue
         transformedDefaultValue = z
           .array(defaultValueSchema.unwrap())

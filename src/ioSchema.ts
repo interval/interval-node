@@ -676,6 +676,7 @@ const INPUT_SCHEMA = {
       size: z.number(),
       url: z.string(),
     }),
+    supportsMultiple: true,
   },
   SEARCH: {
     props: z.object({
