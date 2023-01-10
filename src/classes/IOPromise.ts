@@ -25,6 +25,22 @@ import {
 import { IOClientRenderReturnValues } from './IOClient'
 import { z, ZodError } from 'zod'
 
+interface IOPromiseProps<
+  MethodName extends T_IO_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  Output = ComponentReturnValue<MethodName>
+> {
+  renderer: ComponentRenderer<MethodName>
+  methodName: MethodName
+  label: string
+  props: Props
+  valueGetter?: (response: ComponentReturnValue<MethodName>) => Output
+  onStateChange?: (
+    incomingState: T_IO_STATE<MethodName>
+  ) => Promise<Partial<Props>>
+  validator?: IOPromiseValidator<Output> | undefined
+}
+
 /**
  * A custom wrapper class that handles creating the underlying component
  * model when the IO call is to be rendered, and optionally transforming
@@ -58,17 +74,7 @@ export class IOPromise<
     valueGetter,
     onStateChange,
     validator,
-  }: {
-    renderer: ComponentRenderer<MethodName>
-    methodName: MethodName
-    label: string
-    props: Props
-    valueGetter?: (response: ComponentReturnValue<MethodName>) => Output
-    onStateChange?: (
-      incomingState: T_IO_STATE<MethodName>
-    ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<Output> | undefined
-  }) {
+  }: IOPromiseProps<MethodName, Props, Output>) {
     this.renderer = renderer
     this.methodName = methodName
     this.label = label
@@ -112,7 +118,6 @@ export class IOPromise<
       label: this.label,
       initialProps: this.props,
       onStateChange: this.onStateChange,
-      isOptional: false,
     })
   }
 }
@@ -138,7 +143,6 @@ export class InputIOPromise<
       label: this.label,
       initialProps: this.props,
       onStateChange: this.onStateChange,
-      isOptional: false,
       validator: this.validator ? this.#handleValidation.bind(this) : undefined,
     })
   }
@@ -169,17 +173,17 @@ export class InputIOPromise<
   }
 
   optional(isOptional?: true): OptionalIOPromise<MethodName, Props, Output>
-  optional(isOptional?: false): IOPromise<MethodName, Props, Output>
+  optional(isOptional?: false): InputIOPromise<MethodName, Props, Output>
   optional(
     isOptional?: boolean
   ):
     | OptionalIOPromise<MethodName, Props, Output>
-    | IOPromise<MethodName, Props, Output>
+    | InputIOPromise<MethodName, Props, Output>
   optional(
     isOptional = true
   ):
     | OptionalIOPromise<MethodName, Props, Output>
-    | IOPromise<MethodName, Props, Output> {
+    | InputIOPromise<MethodName, Props, Output> {
     return isOptional
       ? new OptionalIOPromise({
           renderer: this.renderer,
@@ -404,7 +408,9 @@ export class MultipleIOPromise<
       return 'This field is required.'
     }
 
-    const parsed = ioSchema[this.methodName].returns.safeParse(returnValues)
+    const parsed = z
+      .array(ioSchema[this.methodName].returns)
+      .safeParse(returnValues)
     if (parsed.success) {
       if (this.validator) {
         return this.validator(this.getValue(parsed.data))
@@ -423,6 +429,132 @@ export class MultipleIOPromise<
       onStateChange: this.onStateChange,
       validator: this.validator ? this.#handleValidation.bind(this) : undefined,
       isMultiple: true,
+      multipleDefaultValue: this.defaultValue,
+    })
+  }
+
+  optional(
+    isOptional?: true
+  ): OptionalMultipleIOPromise<MethodName, Props, Output>
+  optional(isOptional?: false): MultipleIOPromise<MethodName, Props, Output>
+  optional(
+    isOptional?: boolean
+  ):
+    | OptionalMultipleIOPromise<MethodName, Props, Output>
+    | MultipleIOPromise<MethodName, Props, Output>
+  optional(
+    isOptional = true
+  ):
+    | OptionalMultipleIOPromise<MethodName, Props, Output>
+    | MultipleIOPromise<MethodName, Props, Output> {
+    return isOptional
+      ? new OptionalMultipleIOPromise<MethodName, Props, Output>({
+          renderer: this.renderer,
+          methodName: this.methodName,
+          label: this.label,
+          props: this.props,
+          valueGetter: this.getSingleValue,
+          onStateChange: this.onStateChange,
+        })
+      : this
+  }
+}
+
+export class OptionalMultipleIOPromise<
+  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  Output = ComponentReturnValue<MethodName>
+> extends OptionalIOPromise<MethodName, Props, Output[]> {
+  getSingleValue:
+    | ((response: ComponentReturnValue<MethodName>) => Output)
+    | undefined
+  defaultValue: T_IO_RETURNS<MethodName>[] | undefined
+
+  constructor({
+    defaultValue,
+    valueGetter,
+    ...rest
+  }: {
+    defaultValue?: T_IO_RETURNS<MethodName>[]
+    renderer: ComponentRenderer<MethodName>
+    methodName: MethodName
+    label: string
+    props: Props
+    valueGetter?: (response: ComponentReturnValue<MethodName>) => Output
+    onStateChange?: (
+      incomingState: T_IO_STATE<MethodName>
+    ) => Promise<Partial<Props>>
+    validator?: IOPromiseValidator<Output[] | undefined> | undefined
+  }) {
+    super(rest)
+    this.getSingleValue = valueGetter
+    this.defaultValue = defaultValue
+  }
+
+  then(
+    resolve: (output: Output[] | undefined) => void,
+    reject?: (err: IOError) => void
+  ) {
+    this.renderer([this.component])
+      .then(([results]) => {
+        resolve(this.getValue(results))
+      })
+      .catch(err => {
+        if (reject) reject(err)
+      })
+  }
+
+  validate(validator: IOPromiseValidator<Output[] | undefined>): this {
+    this.validator = validator
+
+    return this
+  }
+
+  getValue(
+    results: MaybeMultipleComponentReturnValue<MethodName> | undefined
+  ): Output[] | undefined {
+    if (!results) return undefined
+
+    if (!Array.isArray(results)) {
+      results = [results]
+    }
+
+    const { getSingleValue } = this
+    if (getSingleValue) {
+      return results.map(result => getSingleValue(result))
+    }
+
+    return results as unknown as Output[]
+  }
+
+  async #handleValidation(
+    returnValues: MaybeMultipleComponentReturnValue<MethodName> | undefined
+  ): Promise<string | undefined> {
+    // These should be caught already, primarily here for types
+    const parsed = z
+      .array(ioSchema[this.methodName].returns)
+      .optional()
+      .safeParse(returnValues)
+    if (parsed.success) {
+      if (this.validator) {
+        return this.validator(this.getValue(parsed.data))
+      }
+    } else {
+      console.debug(parsed)
+      // shouldn't be hit, but just in case
+      return 'Received invalid value for field.'
+    }
+  }
+
+  get component() {
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      isMultiple: true,
+      isOptional: true,
       multipleDefaultValue: this.defaultValue,
     })
   }

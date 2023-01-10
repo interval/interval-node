@@ -243,6 +243,95 @@ const interval = new Interval({
               .join(', '),
           }
         },
+        optional_multiple: async io => {
+          const bareResults = await io
+            .search('Bare', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            })
+            .multiple()
+            .optional()
+
+          const [groupResults] = await io.group([
+            io
+              .search('In a group', {
+                onSearch: async query => fakeDb.find(query),
+                renderResult: result => ({
+                  label: `${result.first_name} ${result.last_name}`,
+                }),
+              })
+              .multiple()
+              .optional(),
+          ])
+
+          console.log({ bareResults, groupResults })
+
+          return {
+            'Bare selected':
+              bareResults
+                ?.map(r => `${r.first_name} ${r.last_name}`)
+                ?.join(', ') ?? 'None!',
+            'Group selected':
+              groupResults
+                ?.map(r => `${r.first_name} ${r.last_name}`)
+                ?.join(', ') ?? 'None!',
+          }
+        },
+        multiple_validation: async io => {
+          const bareResults = await io
+            .search('Bare', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            })
+            .validate(() => {
+              throw new Error('This should never be called!')
+            })
+            .multiple()
+            .validate(results => {
+              console.log('Bare', results)
+              return undefined
+            })
+
+          const [groupResults] = await io
+            .group([
+              io
+                .search('In a group', {
+                  onSearch: async query => fakeDb.find(query),
+                  renderResult: result => ({
+                    label: `${result.first_name} ${result.last_name}`,
+                  }),
+                })
+                .validate(() => {
+                  throw new Error('This should never be called!')
+                })
+                .multiple()
+                .optional()
+                .validate(results => {
+                  console.log('Group inner', results)
+                  return undefined
+                }),
+            ])
+            .validate(([results]) => {
+              console.log('Group outer', results)
+              return undefined
+            })
+
+          console.log({ bareResults, groupResults })
+
+          return {
+            'Bare selected': bareResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+            'Group selected':
+              groupResults
+                ?.map(r => `${r.first_name} ${r.last_name}`)
+                ?.join(', ') ?? 'None!',
+          }
+        },
         default_value: async io => {
           const bareResult = await io.search('Bare', {
             onSearch: async query => fakeDb.find(query),
