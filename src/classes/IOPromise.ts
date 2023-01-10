@@ -340,7 +340,7 @@ export class MultipleIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>
-> extends IOPromise<MethodName, Props, Output[]> {
+> extends InputIOPromise<MethodName, Props, Output[]> {
   getSingleValue:
     | ((response: ComponentReturnValue<MethodName>) => Output)
     | undefined
