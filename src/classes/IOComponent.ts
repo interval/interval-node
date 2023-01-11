@@ -22,7 +22,9 @@ export interface ComponentInstance<MN extends keyof IoSchema> {
   isOptional?: boolean
   isMultiple?: boolean
   validationErrorMessage?: string | undefined
-  multipleDefaultValue?: T_IO_RETURNS<MN>[]
+  multipleProps?: {
+    defaultValue?: T_IO_RETURNS<MN>[]
+  }
 }
 
 export type ComponentRenderInfo<MN extends keyof IoSchema> = Omit<
@@ -94,7 +96,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     isOptional = false,
     isMultiple = false,
     validator,
-    multipleDefaultValue,
+    multipleProps,
   }: {
     methodName: MethodName
     label: string
@@ -107,7 +109,9 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     validator?: IOPromiseValidator<
       MaybeMultipleComponentReturnValue<MethodName> | undefined
     >
-    multipleDefaultValue?: T_IO_RETURNS<MethodName>[]
+    multipleProps?: {
+      defaultValue?: T_IO_RETURNS<MethodName>[]
+    }
   }) {
     this.handleStateChange = onStateChange
     this.schema = ioSchema[methodName]
@@ -131,7 +135,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       isStateful: !!onStateChange,
       isOptional: isOptional,
       isMultiple: isMultiple,
-      multipleDefaultValue,
+      multipleProps,
     }
 
     this.returnValue = new Promise<
@@ -270,7 +274,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       isOptional: this.instance.isOptional,
       isMultiple: this.instance.isMultiple,
       validationErrorMessage: this.instance.validationErrorMessage,
-      multipleDefaultValue: this.instance.multipleDefaultValue,
+      multipleProps: this.instance.multipleProps,
     }
   }
 }

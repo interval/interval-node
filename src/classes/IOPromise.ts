@@ -429,7 +429,9 @@ export class MultipleIOPromise<
       onStateChange: this.onStateChange,
       validator: this.validator ? this.#handleValidation.bind(this) : undefined,
       isMultiple: true,
-      multipleDefaultValue: this.defaultValue,
+      multipleProps: {
+        defaultValue: this.defaultValue,
+      },
     })
   }
 
@@ -555,7 +557,9 @@ export class OptionalMultipleIOPromise<
       validator: this.validator ? this.#handleValidation.bind(this) : undefined,
       isMultiple: true,
       isOptional: true,
-      multipleDefaultValue: this.defaultValue,
+      multipleProps: {
+        defaultValue: this.defaultValue,
+      },
     })
   }
 }

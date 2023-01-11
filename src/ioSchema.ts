@@ -17,7 +17,11 @@ export const INPUT_COMPONENT_TO_RENDER = DISPLAY_COMPONENT_TO_RENDER.merge(
     isMultiple: z.boolean().optional().default(false),
     isOptional: z.boolean().optional().default(false),
     validationErrorMessage: z.string().optional(),
-    multipleDefaultValue: z.optional(z.array(z.any())),
+    multipleProps: z.optional(
+      z.object({
+        defaultValue: z.optional(z.array(z.any())),
+      })
+    ),
   })
 )
 
