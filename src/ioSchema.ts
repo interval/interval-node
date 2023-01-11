@@ -14,8 +14,14 @@ export type DisplayComponentToRender = z.infer<
 
 export const INPUT_COMPONENT_TO_RENDER = DISPLAY_COMPONENT_TO_RENDER.merge(
   z.object({
+    isMultiple: z.boolean().optional().default(false),
     isOptional: z.boolean().optional().default(false),
     validationErrorMessage: z.string().optional(),
+    multipleProps: z.optional(
+      z.object({
+        defaultValue: z.optional(z.array(z.any())),
+      })
+    ),
   })
 )
 
@@ -330,6 +336,14 @@ export const internalGridItem = z.object({
 export type GridItem = z.infer<typeof gridItem>
 export type InternalGridItem = z.infer<typeof internalGridItem>
 
+const searchResult = z.object({
+  value: z.string(),
+  label: primitiveValue,
+  description: z.string().nullish(),
+  imageUrl: z.string().nullish(),
+  image: imageSchema.optional(),
+})
+
 export const CURRENCIES = [
   'USD',
   'CAD',
@@ -363,6 +377,11 @@ export type DateTimeObject = z.infer<typeof dateTimeObject>
 export function resolvesImmediately(methodName: T_IO_METHOD_NAMES): boolean {
   const schema = ioSchema[methodName]
   return schema && 'immediate' in schema && schema.immediate
+}
+
+export function supportsMultiple(methodName: T_IO_METHOD_NAMES): boolean {
+  const schema = ioSchema[methodName]
+  return schema && 'supportsMultiple' in schema && schema.supportsMultiple
 }
 
 export function requiresServer(methodName: T_IO_METHOD_NAMES): boolean {
@@ -660,21 +679,15 @@ const INPUT_SCHEMA = {
   },
   SEARCH: {
     props: z.object({
-      results: z.array(
-        z.object({
-          value: z.string(),
-          label: primitiveValue,
-          description: z.string().nullish(),
-          imageUrl: z.string().nullish(),
-          image: imageSchema.optional(),
-        })
-      ),
+      results: z.array(searchResult),
+      defaultValue: z.optional(z.string()),
       placeholder: z.optional(z.string()),
       helpText: z.optional(z.string()),
       disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.object({ queryTerm: z.string() }),
     returns: z.string(),
+    supportsMultiple: true,
   },
   CONFIRM: {
     props: z.object({
@@ -766,6 +779,17 @@ export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
 export type T_IO_DISPLAY_METHOD_NAMES = keyof typeof DISPLAY_SCHEMA
 export type T_IO_INPUT_METHOD_NAMES = keyof typeof INPUT_SCHEMA
+
+type SupportsMultipleMap = {
+  [MN in T_IO_METHOD_NAMES]: T_IO_Schema[MN] extends {
+    supportsMultiple: boolean
+  }
+    ? MN
+    : never
+}
+
+export type T_IO_MULTIPLEABLE_METHOD_NAMES =
+  SupportsMultipleMap[T_IO_METHOD_NAMES]
 
 type T_Fields = 'props' | 'state' | 'returns'
 
