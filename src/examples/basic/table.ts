@@ -1,6 +1,7 @@
 import { IntervalActionDefinition } from '@interval/sdk/src/types'
 import { IntervalActionHandler, Page, Layout, io } from '../..'
 import { faker } from '@faker-js/faker'
+import fakeUsers from '../utils/fakeUsers'
 
 function generateRows(count: number, offset = 0) {
   return Array(count)
@@ -37,6 +38,7 @@ export const no_pagination: IntervalActionHandler = async io => {
     defaultPageSize: 50,
     isFilterable: false,
     isSortable: false,
+    rowMenuItems: () => [],
   })
 }
 
@@ -592,3 +594,57 @@ export const image_viewer: IntervalActionHandler = async io => {
     ],
   })
 }
+
+export const big_table = new Page({
+  name: 'Big table',
+  handler: async () => {
+    const bigData = [
+      ...fakeUsers,
+      ...fakeUsers,
+      ...fakeUsers,
+      ...fakeUsers,
+      ...fakeUsers,
+      ...fakeUsers,
+      ...fakeUsers,
+      ...fakeUsers,
+      ...fakeUsers,
+      ...fakeUsers,
+    ]
+
+    return new Layout({
+      children: [
+        io.display.table('Large table', {
+          data: bigData,
+          // These don't work, they're just here to make the payload bigger
+          rowMenuItems: row => [
+            {
+              label: 'Browse app structure',
+              action: 'organizations/app_structure',
+              params: { org: row.email },
+            },
+            {
+              label: 'Change slug',
+              action: 'organizations/change_slug',
+              params: { org: row.email },
+            },
+            {
+              label: 'Enable SSO',
+              action: 'organizations/create_org_sso',
+              params: { org: row.email },
+            },
+            {
+              label: 'Toggle feature flag',
+              action: 'organizations/org_feature_flag',
+              params: { org: row.email },
+            },
+            {
+              label: 'Transfer owner',
+              action: 'organizations/transfer_ownership',
+              params: { org: row.email },
+            },
+          ],
+        }),
+      ],
+    })
+  },
+})

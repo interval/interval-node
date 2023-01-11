@@ -16,6 +16,33 @@ import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
 import fakeUsers from '../utils/fakeUsers'
 
+const gridsPage = new Page({
+  name: 'Grids',
+  routes: grid_actions,
+  // including this to test two-column page layouts
+  handler: async () => {
+    return new Layout({
+      title: 'Grids',
+      children: [
+        io.display.table('Grid layouts', {
+          data: Object.keys(grid_actions).map(k => ({
+            name: k,
+          })),
+          columns: [
+            {
+              label: 'Name',
+              renderCell: ({ name }) => ({
+                label: name,
+                route: `grids/${name}`,
+              }),
+            },
+          ],
+        }),
+      ],
+    })
+  },
+})
+
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
     io.display.table('In a table!', {
@@ -180,6 +207,7 @@ const prod = new Interval({
         },
       })
     },
+    grids: gridsPage,
   },
 })
 
@@ -190,77 +218,181 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
-    big_table: new Page({
-      name: 'Big table',
-      handler: async () => {
-        const bigData = [
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-        ]
-
-        return new Layout({
-          children: [
-            io.display.table('Large table', {
-              data: bigData,
-              // These don't work, they're just here to make the payload bigger
-              rowMenuItems: row => [
-                {
-                  label: 'Browse app structure',
-                  action: 'organizations/app_structure',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Change slug',
-                  action: 'organizations/change_slug',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Enable SSO',
-                  action: 'organizations/create_org_sso',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Toggle feature flag',
-                  action: 'organizations/org_feature_flag',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Transfer owner',
-                  action: 'organizations/transfer_ownership',
-                  params: { org: row.email },
-                },
-              ],
+    searches: new Page({
+      name: 'Search',
+      routes: {
+        two_searches: async io => {
+          const [r1, r2] = await io.group([
+            io.search('One', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
             }),
-          ],
-        })
+            io.search('Two', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            }),
+          ])
+
+          console.log({ r1, r2 })
+        },
+        multiple_search: async io => {
+          const bareResults = await io
+            .search('Bare', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            })
+            .multiple()
+
+          const [groupResults] = await io.group([
+            io
+              .search('In a group', {
+                onSearch: async query => fakeDb.find(query),
+                renderResult: result => ({
+                  label: `${result.first_name} ${result.last_name}`,
+                }),
+              })
+              .multiple(),
+          ])
+
+          console.log({ bareResults, groupResults })
+
+          return {
+            'Bare selected': bareResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+            'Group selected': groupResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+          }
+        },
+        optional_multiple: async io => {
+          const bareResults = await io
+            .search('Bare', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            })
+            .multiple()
+            .optional()
+
+          const [groupResults] = await io.group([
+            io
+              .search('In a group', {
+                onSearch: async query => fakeDb.find(query),
+                renderResult: result => ({
+                  label: `${result.first_name} ${result.last_name}`,
+                }),
+              })
+              .multiple()
+              .optional(),
+          ])
+
+          console.log({ bareResults, groupResults })
+
+          return {
+            'Bare selected':
+              bareResults
+                ?.map(r => `${r.first_name} ${r.last_name}`)
+                ?.join(', ') ?? 'None!',
+            'Group selected':
+              groupResults
+                ?.map(r => `${r.first_name} ${r.last_name}`)
+                ?.join(', ') ?? 'None!',
+          }
+        },
+        multiple_validation: async io => {
+          const bareResults = await io
+            .search('Bare', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            })
+            .validate(() => {
+              throw new Error('This should never be called!')
+            })
+            .multiple()
+            .validate(results => {
+              console.log('Bare', results)
+              return undefined
+            })
+
+          const [groupResults] = await io
+            .group([
+              io
+                .search('In a group', {
+                  onSearch: async query => fakeDb.find(query),
+                  renderResult: result => ({
+                    label: `${result.first_name} ${result.last_name}`,
+                  }),
+                })
+                .validate(() => {
+                  throw new Error('This should never be called!')
+                })
+                .multiple()
+                .optional()
+                .validate(results => {
+                  console.log('Group inner', results)
+                  return undefined
+                }),
+            ])
+            .validate(([results]) => {
+              console.log('Group outer', results)
+              return undefined
+            })
+
+          console.log({ bareResults, groupResults })
+
+          return {
+            'Bare selected': bareResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+            'Group selected':
+              groupResults
+                ?.map(r => `${r.first_name} ${r.last_name}`)
+                ?.join(', ') ?? 'None!',
+          }
+        },
+        default_value: async io => {
+          const bareResult = await io.search('Bare', {
+            onSearch: async query => fakeDb.find(query),
+            renderResult: result => ({
+              label: `${result.first_name} ${result.last_name}`,
+            }),
+            defaultValue: fakeUsers[0],
+          })
+
+          const [groupResults] = await io.group([
+            io
+              .search('In a group', {
+                onSearch: async query => fakeDb.find(query),
+                renderResult: result => ({
+                  label: `${result.first_name} ${result.last_name}`,
+                }),
+              })
+              .multiple({
+                defaultValue: await fakeDb.find('jo'),
+              }),
+          ])
+
+          console.log({ bareResult, groupResults })
+
+          return {
+            'Bare selected': `${bareResult.first_name} ${bareResult.last_name}`,
+            'Group selected': groupResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+          }
+        },
       },
     }),
-    two_searches: async io => {
-      const [r1, r2] = await io.group([
-        io.search('One', {
-          onSearch: async query => fakeDb.find(query),
-          renderResult: result => ({
-            label: `${result.first_name} ${result.last_name}`,
-          }),
-        }),
-        io.search('Two', {
-          onSearch: async query => fakeDb.find(query),
-          renderResult: result => ({
-            label: `${result.first_name} ${result.last_name}`,
-          }),
-        }),
-      ])
-
-      console.log({ r1, r2 })
-    },
     section_heading: async io => {
       await io.group([
         io.display.heading('Section heading', {
@@ -1338,32 +1470,7 @@ const interval = new Interval({
       name: 'Tables',
       routes: table_actions,
     }),
-    grids: new Page({
-      name: 'Grids',
-      routes: grid_actions,
-      // including this to test two-column page layouts
-      handler: async () => {
-        return new Layout({
-          title: 'Grids',
-          children: [
-            io.display.table('Grid layouts', {
-              data: Object.keys(grid_actions).map(k => ({
-                name: k,
-              })),
-              columns: [
-                {
-                  label: 'Name',
-                  renderCell: ({ name }) => ({
-                    label: name,
-                    route: `grids/${name}`,
-                  }),
-                },
-              ],
-            }),
-          ],
-        })
-      },
-    }),
+    grids: gridsPage,
     confirm_identity: async () => {
       await io.input.text('Enter your name')
 
