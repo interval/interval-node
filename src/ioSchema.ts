@@ -661,13 +661,33 @@ const INPUT_SCHEMA = {
     props: z.object({
       helpText: z.string().optional(),
       allowedExtensions: z.array(z.string()).optional(),
+      disabled: z.optional(z.boolean().default(false)),
+      fileUrls: z
+        .array(
+          z.object({
+            uploadUrl: z.string(),
+            downloadUrl: z.string(),
+          })
+        )
+        .nullish(),
+
+      // Deprecated
       uploadUrl: z.string().nullish().optional(),
       downloadUrl: z.string().nullish().optional(),
-      disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.object({
-      name: z.string(),
-      type: z.string(),
+      files: z
+        .array(
+          z.object({
+            name: z.string(),
+            type: z.string(),
+          })
+        )
+        .optional(),
+
+      // Deprecated
+      name: z.string().optional(),
+      type: z.string().optional(),
     }),
     returns: z.object({
       name: z.string(),
@@ -676,6 +696,7 @@ const INPUT_SCHEMA = {
       size: z.number(),
       url: z.string(),
     }),
+    supportsMultiple: true,
   },
   SEARCH: {
     props: z.object({

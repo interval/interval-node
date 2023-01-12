@@ -1101,7 +1101,7 @@ const interval = new Interval({
           # What to expect from here on out
 
           _This has been adapted from the [Tailwind](https://tailwindcss.com) typography plugin demo._
-        
+
           What follows from here is just a bunch of absolute nonsense I've written to demo typography. It includes every sensible typographic element I could think of, like **bold text**, unordered lists, ordered lists, code blocks, block quotes, and _even italics_.
 
           It's important to cover all of these use cases for a few reasons:
@@ -1109,7 +1109,7 @@ const interval = new Interval({
           1. We want everything to look good out of the box.
           2. Really just the first reason, that's the whole point of the plugin.
           3. Here's a third pretend reason though a list with three items looks more realistic than a list with two items.
-          
+
           Now we're going to try out another header style.
 
           ## Typography should be easy
@@ -1128,7 +1128,7 @@ const interval = new Interval({
           - And this is the last item in the list.
 
           ### What does code look like?
-          
+
           Code blocks should look okay by default, although most people will probably want to use \`io.display.code\`:
 
           \`\`\`
@@ -1139,7 +1139,7 @@ const interval = new Interval({
             }
           })
           \`\`\`
-          
+
           #### And finally, an H4
 
           And that's the end of this demo.
@@ -1311,49 +1311,75 @@ const interval = new Interval({
 
       return { message: 'OK, notified!' }
     },
-    upload: async (io, ctx) => {
-      const customDestinationFile = await io.input.file('Upload an image!', {
-        helpText: 'Will be uploaded to the custom destination.',
-        allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
-        generatePresignedUrls: async ({ name }) => {
-          const urlSafeName = name.replace(/ /g, '-')
-          const path = `custom-endpoint/${new Date().getTime()}-${urlSafeName}`
+    uploads: new Page({
+      name: 'Uploads',
+      routes: {
+        custom_destination: async io => {
+          const customDestinationFile = await io.input.file(
+            'Upload an image!',
+            {
+              helpText: 'Will be uploaded to the custom destination.',
+              allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
+              generatePresignedUrls: async ({ name }) => {
+                const urlSafeName = name.replace(/ /g, '-')
+                const path = `custom-endpoint/${new Date().getTime()}-${urlSafeName}`
 
-          return generateS3Urls(path)
+                return generateS3Urls(path)
+              },
+            }
+          )
+
+          console.log(await customDestinationFile.url())
+
+          const { text, json, buffer, url, ...rest } = customDestinationFile
+
+          return {
+            ...rest,
+            url: await url(),
+            text: rest.type.includes('text/')
+              ? await text().catch(err => {
+                  console.log('Invalid text', err)
+                  return undefined
+                })
+              : undefined,
+            json: rest.type.includes('text/')
+              ? await json()
+                  .then(obj => JSON.stringify(obj))
+                  .catch(err => {
+                    console.log('Invalid JSON', err)
+                    return undefined
+                  })
+              : undefined,
+          }
         },
-      })
-
-      console.log(await customDestinationFile.url())
-
-      const file = await io.input.file('Upload an image!', {
-        helpText:
-          'Will be uploaded to Interval and expire after the action finishes running.',
-        allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
-      })
-
-      console.log(file)
-
-      const { text, json, buffer, url, ...rest } = file
-
-      return {
-        ...rest,
-        url: await url(),
-        text: rest.type.includes('text/')
-          ? await text().catch(err => {
-              console.log('Invalid text', err)
-              return undefined
+        multiple: async io => {
+          const files = await io.input
+            .file('Upload an image!', {
+              helpText:
+                'Will be uploaded to Interval and expire after the action finishes running.',
+              allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
             })
-          : undefined,
-        json: rest.type.includes('text/')
-          ? await json()
-              .then(obj => JSON.stringify(obj))
-              .catch(err => {
-                console.log('Invalid JSON', err)
-                return undefined
-              })
-          : undefined,
-      }
-    },
+            .multiple()
+            .optional()
+
+          if (!files) return 'None selected.'
+
+          await io.group(
+            (
+              await Promise.all(
+                files.map(async file => [
+                  io.display.image(file.name, {
+                    url: await file.url(),
+                  }),
+                ])
+              )
+            ).map(([p]) => p)
+          )
+
+          return Object.fromEntries(files.map((file, i) => [i, file.name]))
+        },
+      },
+    }),
     advanced_data: async io => {
       const data = {
         bigInt: BigInt(5),
