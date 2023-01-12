@@ -1,7 +1,7 @@
 import { z, ZodError } from 'zod'
 import { v4 } from 'uuid'
 import { WebSocket } from 'ws'
-import fetch from 'node-fetch'
+import fetch from 'cross-fetch'
 import * as superjson from 'superjson'
 import { JSONValue } from 'superjson/dist/types'
 import ISocket, { TimeoutError } from './ISocket'
