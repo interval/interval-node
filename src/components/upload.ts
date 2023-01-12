@@ -24,7 +24,7 @@ async function retryFetch(url: string): Promise<Response> {
 
 type UploaderProps = T_IO_PROPS<'UPLOAD_FILE'> & {
   generatePresignedUrls?: (
-    state: T_IO_STATE<'UPLOAD_FILE'>
+    state: NonNullable<T_IO_STATE<'UPLOAD_FILE'>['files']>[0]
   ) => Promise<{ uploadUrl: string; downloadUrl: string }>
 }
 
@@ -34,8 +34,7 @@ export function file(logger: Logger) {
     return {
       props: {
         ...props,
-        uploadUrl: isProvidingUrls ? null : undefined,
-        downloadUrl: isProvidingUrls ? null : undefined,
+        fileUrls: isProvidingUrls ? null : undefined,
       },
       getValue({ url, ...response }: T_IO_RETURNS<'UPLOAD_FILE'>) {
         return {
@@ -61,20 +60,14 @@ export function file(logger: Logger) {
         }
       },
       async onStateChange(newState: T_IO_STATE<'UPLOAD_FILE'>) {
-        if (!generatePresignedUrls) {
-          return { uploadUrl: undefined, downloadUrl: undefined }
+        if (!generatePresignedUrls || !newState.files) {
+          return { fileUrls: undefined }
         }
 
-        try {
-          const urls = await generatePresignedUrls(newState)
-          return urls
-        } catch (error) {
-          // TODO: We should not swallow this error after merging #1012
-          logger.error(
-            'An error was unexpectedly thrown from the `generatePresignedUrls` function:'
-          )
-          logger.error(error)
-          return { uploadUrl: 'error', downloadUrl: 'error' }
+        return {
+          fileUrls: await Promise.all(
+            newState.files.map(fileState => generatePresignedUrls(fileState))
+          ),
         }
       },
     }
