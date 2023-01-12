@@ -1,6 +1,6 @@
 {
   "name": "@interval/sdk",
-  "version": "0.37.0-dev",
+  "version": "0.37.0",
   "homepage": "https://interval.com",
   "repository": {
     "type": "git",
@@ -20,7 +20,8 @@
     "build:envoy": "yarn envoy $INIT_CWD/envoy.config.ts $INIT_CWD/.env $INIT_CWD/src/env.ts",
     "build": "yarn build:envoy && tsc",
     "demo:basic": "node ./dist/examples/basic/index.js",
-    "dev": "run(){ yarn build:envoy && nodemon --watch src -e ts src/examples/${1:-basic}/index.ts; }; run"
+    "dev": "run(){ yarn build:envoy && nodemon --watch src -e ts src/examples/${1:-basic}/index.ts; }; run",
+    "upgrade-examples": "echo -n examples/*/* | xargs -I _ -d ' ' yarn --cwd _ add @interval/sdk"
   },
   "dependencies": {
     "cross-fetch": "^3.1.5",
@@ -38,7 +39,6 @@
     "@interval/envoy": "^1.0.1",
     "@types/dedent": "^0.7.0",
     "@types/node": "^17.0.8",
-    "@types/node-fetch": "^2.0.0",
     "@types/uuid": "^8.3.4",
     "@types/ws": "^8.2.0",
     "nodemon": "^2.0.20",
