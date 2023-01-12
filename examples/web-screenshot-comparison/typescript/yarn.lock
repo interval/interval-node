@@ -9,10 +9,10 @@
   dependencies:
     "@jridgewell/trace-mapping" "0.3.9"
 
-"@interval/sdk@^0.36.0":
-  version "0.36.0"
-  resolved "https://registry.yarnpkg.com/@interval/sdk/-/sdk-0.36.0.tgz#0f45e45de35ae4e40fb76ed8b343801b75643746"
-  integrity sha512-mzHT/9ULfC1jZK67zEA0P/TSHXacyiHMCbvNCqr8HOqYvF4S/cVi0pAqKioiuH+/o56kvB7D1cWBPUG96HeELQ==
+"@interval/sdk@^0.37.0":
+  version "0.37.0"
+  resolved "https://registry.yarnpkg.com/@interval/sdk/-/sdk-0.37.0.tgz#2ecf76d16b2f3e16bde4d9c4482bb0b98948ef1e"
+  integrity sha512-5BzpoC5PIm9pgZfP7MRv+LwqRLSG8tWYlB3MSd3hQ6UnYeVRVr1Ga3wqKCY61wcK+qF6eRP44sl2QchSrhmlaQ==
   dependencies:
     cross-fetch "^3.1.5"
     evt "^2.4.10"
