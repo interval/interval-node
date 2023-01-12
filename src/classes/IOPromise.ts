@@ -278,7 +278,9 @@ export class MultipleableIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>,
-  DefaultValue = Output
+  DefaultValue = T_IO_PROPS<MethodName> extends { defaultValue?: any }
+    ? Output
+    : never
 > extends InputIOPromise<MethodName, Props, Output> {
   defaultValueGetter:
     | ((defaultValue: DefaultValue) => T_IO_RETURNS<MethodName>)
@@ -305,7 +307,11 @@ export class MultipleableIOPromise<
     this.defaultValueGetter = defaultValueGetter
   }
 
-  multiple({ defaultValue }: { defaultValue?: DefaultValue[] } = {}) {
+  multiple({
+    defaultValue,
+  }: {
+    defaultValue?: DefaultValue[]
+  } = {}): MultipleIOPromise<MethodName, Props, Output> {
     let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined
     const propsSchema = ioSchema[this.methodName].props
     if (defaultValue && 'defaultValue' in propsSchema.shape) {
