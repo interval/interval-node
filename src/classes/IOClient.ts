@@ -1,7 +1,7 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
 import * as superjson from 'superjson'
-import type {
+import {
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
   T_IO_PROPS,
@@ -9,6 +9,8 @@ import type {
   T_IO_METHOD_NAMES,
   T_IO_DISPLAY_METHOD_NAMES,
   T_IO_INPUT_METHOD_NAMES,
+  T_IO_MULTIPLEABLE_METHOD_NAMES,
+  supportsMultiple,
 } from '../ioSchema'
 import Logger from './Logger'
 import { AnyIOComponent } from './IOComponent'
@@ -18,6 +20,7 @@ import {
   IOPromiseValidator,
   DisplayIOPromise,
   InputIOPromise,
+  MultipleableIOPromise,
 } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
@@ -26,6 +29,7 @@ import selectTable from '../components/selectTable'
 import selectSingle from '../components/selectSingle'
 import search from '../components/search'
 import selectMultiple from '../components/selectMultiple'
+import displayGrid from '../components/displayGrid'
 import displayLink from '../components/displayLink'
 import displayImage from '../components/displayImage'
 import displayVideo from '../components/displayVideo'
@@ -45,6 +49,8 @@ import {
   RequiredPropsInputIOComponentFunction,
   GroupConfig,
   ButtonConfig,
+  RequiredPropsMultipleableInputIOComponentFunction,
+  MultipleableInputIOComponentFunction,
 } from '../types'
 import { stripUndefined } from '../utils/deserialize'
 import { IntervalError } from '..'
@@ -151,87 +157,108 @@ export class IOClient {
         }
 
         this.onResponseHandler = async result => {
-          if (result.inputGroupKey && result.inputGroupKey !== inputGroupKey) {
-            this.logger.debug('Received response for other input group')
-            return
-          }
-
-          if (this.isCanceled || isReturned) {
-            this.logger.debug('Received response after IO call complete')
-            return
-          }
-
-          // Transaction canceled from Interval cloud UI
-          if (result.kind === 'CANCELED') {
-            this.isCanceled = true
-            reject(new IOError('CANCELED'))
-            return
-          }
-
-          if (result.values.length !== components.length) {
-            throw new Error('Mismatch in return array length')
-          }
-
-          if (result.valuesMeta) {
-            result.values = superjson.deserialize({
-              json: result.values,
-              meta: result.valuesMeta,
-            })
-          }
-
-          if (result.kind === 'RETURN') {
-            const validities = await Promise.all(
-              result.values.map(async (v, index) => {
-                const component = components[index]
-                if (component.validator) {
-                  const resp = await component.handleValidation(v)
-                  if (resp !== undefined) {
-                    return false
-                  }
-                }
-                return true
-              })
-            )
-
-            validationErrorMessage = undefined
-
-            if (validities.some(v => !v)) {
-              render()
+          try {
+            if (
+              result.inputGroupKey &&
+              result.inputGroupKey !== inputGroupKey
+            ) {
+              this.logger.debug('Received response for other input group')
               return
             }
 
-            if (groupValidator) {
-              validationErrorMessage = await groupValidator(
-                result.values as IOClientRenderReturnValues<typeof components>
+            if (this.isCanceled || isReturned) {
+              this.logger.debug('Received response after IO call complete')
+              return
+            }
+
+            // Transaction canceled from Interval cloud UI
+            if (result.kind === 'CANCELED') {
+              this.isCanceled = true
+              reject(new IOError('CANCELED'))
+              return
+            }
+
+            if (result.values.length !== components.length) {
+              throw new Error('Mismatch in return array length')
+            }
+
+            if (result.valuesMeta) {
+              result.values = superjson.deserialize({
+                json: result.values,
+                meta: result.valuesMeta,
+              })
+            }
+
+            if (result.kind === 'RETURN') {
+              const validities = await Promise.all(
+                result.values.map(async (v, index) => {
+                  const component = components[index]
+                  if (component.validator) {
+                    const resp = await component.handleValidation(v)
+                    if (resp !== undefined) {
+                      return false
+                    }
+                  }
+                  return true
+                })
               )
 
-              if (validationErrorMessage) {
+              validationErrorMessage = undefined
+
+              if (validities.some(v => !v)) {
                 render()
                 return
               }
-            }
 
-            isReturned = true
+              if (groupValidator) {
+                validationErrorMessage = await groupValidator(
+                  result.values as IOClientRenderReturnValues<typeof components>
+                )
 
-            result.values.forEach((v, index) => {
-              // @ts-ignore
-              components[index].setReturnValue(v)
-            })
-
-            return
-          }
-
-          if (result.kind === 'SET_STATE') {
-            for (const [index, newState] of result.values.entries()) {
-              const prevState = components[index].getInstance().state
-
-              if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
-                this.logger.debug(`New state at ${index}`, newState)
-                // @ts-ignore
-                await components[index].setState(newState)
+                if (validationErrorMessage) {
+                  render()
+                  return
+                }
               }
+
+              isReturned = true
+
+              result.values.forEach((v, index) => {
+                // @ts-ignore
+                components[index].setReturnValue(v)
+              })
+
+              return
             }
-            render()
+
+            if (result.kind === 'SET_STATE') {
+              for (const [index, newState] of result.values.entries()) {
+                const prevState = components[index].getInstance().state
+
+                if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
+                  this.logger.debug(`New state at ${index}`, newState)
+                  // @ts-ignore
+                  await components[index].setState(newState)
+                }
+              }
+              render()
+            }
+          } catch (err) {
+            if (err instanceof Error) {
+              const errorCause = err.cause
+                ? err.cause instanceof Error
+                  ? err.cause.message
+                  : err.cause
+                : undefined
+              if (errorCause) {
+                this.logger.error(`${err.message}:`, errorCause)
+              } else {
+                this.logger.error(err.message)
+              }
+            } else {
+              this.logger.error(err)
+            }
+            reject(err)
           }
         }
 
@@ -291,14 +318,24 @@ export class IOClient {
   getPromiseProps<
     MethodName extends T_IO_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
+    Output = T_IO_RETURNS<MethodName>,
+    DefaultValue = Output
   >(
     methodName: MethodName,
     inputProps?: Props,
-    componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    componentDef?: IOComponentDefinition<
+      MethodName,
+      Props,
+      Output,
+      DefaultValue
+    >
   ) {
-    let props = inputProps ? (inputProps as T_IO_PROPS<MethodName>) : {}
+    let props: T_IO_PROPS<MethodName> = inputProps
+      ? (inputProps as T_IO_PROPS<MethodName>)
+      : {}
     let getValue = (r: T_IO_RETURNS<MethodName>) => r as unknown as Output
+    let getDefaultValue = (defaultValue: DefaultValue) =>
+      defaultValue as unknown as Output
     let onStateChange: ReturnType<
       IOComponentDefinition<MethodName, Props, Output>
     >['onStateChange'] = undefined
@@ -316,6 +353,10 @@ export class IOClient {
         getValue = componentGetters.getValue
       }
 
+      if (componentGetters.getDefaultValue) {
+        getDefaultValue = componentGetters.getDefaultValue
+      }
+
       if (componentGetters.onStateChange) {
         onStateChange = componentGetters.onStateChange
       }
@@ -325,10 +366,37 @@ export class IOClient {
       methodName,
       props,
       valueGetter: getValue,
+      defaultValueGetter: getDefaultValue,
       onStateChange,
     }
   }
 
+  createIOMethod<
+    MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    config?: {
+      propsRequired?: false
+      componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    }
+  ): MultipleableInputIOComponentFunction<MethodName, Props, Output>
+  createIOMethod<
+    MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+    Props extends object = T_IO_PROPS<MethodName>,
+    Output = T_IO_RETURNS<MethodName>
+  >(
+    methodName: MethodName,
+    config: {
+      propsRequired?: true
+      componentDef?: IOComponentDefinition<MethodName, Props, Output>
+    }
+  ): RequiredPropsMultipleableInputIOComponentFunction<
+    MethodName,
+    Props,
+    Output
+  >
   createIOMethod<
     MethodName extends T_IO_DISPLAY_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
@@ -387,12 +455,40 @@ export class IOClient {
     } = {}
   ) {
     return (label: string, props?: Props) => {
-      const isDisplay = methodName.startsWith('DISPLAY_')
-      const promiseProps = this.getPromiseProps(methodName, props, componentDef)
+      if (supportsMultiple(methodName)) {
+        return new MultipleableIOPromise({
+          ...this.getPromiseProps(
+            methodName as T_IO_MULTIPLEABLE_METHOD_NAMES,
+            props,
+            componentDef as
+              | IOComponentDefinition<
+                  T_IO_MULTIPLEABLE_METHOD_NAMES,
+                  Props,
+                  T_IO_RETURNS<T_IO_MULTIPLEABLE_METHOD_NAMES>
+                >
+              | undefined
+          ),
+          methodName: methodName as T_IO_MULTIPLEABLE_METHOD_NAMES,
+          renderer: this.renderComponents.bind(
+            this
+          ) as ComponentRenderer<T_IO_MULTIPLEABLE_METHOD_NAMES>,
+          label,
+        })
+      }
 
-      return isDisplay
+      return methodName.startsWith('DISPLAY_')
         ? new DisplayIOPromise({
-            ...promiseProps,
+            ...this.getPromiseProps(
+              methodName as T_IO_DISPLAY_METHOD_NAMES,
+              props,
+              componentDef as
+                | IOComponentDefinition<
+                    T_IO_DISPLAY_METHOD_NAMES,
+                    Props,
+                    T_IO_RETURNS<T_IO_DISPLAY_METHOD_NAMES>
+                  >
+                | undefined
+            ),
             methodName: methodName as T_IO_DISPLAY_METHOD_NAMES,
             renderer: this.renderComponents.bind(
               this
@@ -400,7 +496,17 @@ export class IOClient {
             label,
           })
         : new InputIOPromise({
-            ...promiseProps,
+            ...this.getPromiseProps(
+              methodName as T_IO_INPUT_METHOD_NAMES,
+              props,
+              componentDef as
+                | IOComponentDefinition<
+                    T_IO_INPUT_METHOD_NAMES,
+                    Props,
+                    T_IO_RETURNS<T_IO_INPUT_METHOD_NAMES>
+                  >
+                | undefined
+            ),
             methodName: methodName as T_IO_INPUT_METHOD_NAMES,
             renderer: this.renderComponents.bind(
               this
@@ -513,6 +619,10 @@ export class IOClient {
         table: this.createIOMethod('DISPLAY_TABLE', {
           propsRequired: true,
           componentDef: displayTable(this.logger),
+        }),
+        grid: this.createIOMethod('DISPLAY_GRID', {
+          propsRequired: true,
+          componentDef: displayGrid,
         }),
         video: this.createIOMethod('DISPLAY_VIDEO', {
           componentDef: displayVideo,

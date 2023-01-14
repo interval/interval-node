@@ -9,11 +9,39 @@ import {
 import editEmailForUser from './editEmail'
 import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
 import * as table_actions from './table'
+import * as grid_actions from './grid'
 import unauthorized from './unauthorized'
 import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
 import fakeUsers from '../utils/fakeUsers'
+
+const gridsPage = new Page({
+  name: 'Grids',
+  routes: grid_actions,
+  // including this to test two-column page layouts
+  handler: async () => {
+    return new Layout({
+      title: 'Grids',
+      children: [
+        io.display.table('Grid layouts', {
+          data: Object.keys(grid_actions).map(k => ({
+            name: k,
+          })),
+          columns: [
+            {
+              label: 'Name',
+              renderCell: ({ name }) => ({
+                label: name,
+                route: `grids/${name}`,
+              }),
+            },
+          ],
+        }),
+      ],
+    })
+  },
+})
 
 const actionLinks: IntervalActionHandler = async () => {
   await io.group([
@@ -179,6 +207,7 @@ const prod = new Interval({
         },
       })
     },
+    grids: gridsPage,
   },
 })
 
@@ -189,77 +218,181 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
-    big_table: new Page({
-      name: 'Big table',
-      handler: async () => {
-        const bigData = [
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-          ...fakeUsers,
-        ]
-
-        return new Layout({
-          children: [
-            io.display.table('Large table', {
-              data: bigData,
-              // These don't work, they're just here to make the payload bigger
-              rowMenuItems: row => [
-                {
-                  label: 'Browse app structure',
-                  action: 'organizations/app_structure',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Change slug',
-                  action: 'organizations/change_slug',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Enable SSO',
-                  action: 'organizations/create_org_sso',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Toggle feature flag',
-                  action: 'organizations/org_feature_flag',
-                  params: { org: row.email },
-                },
-                {
-                  label: 'Transfer owner',
-                  action: 'organizations/transfer_ownership',
-                  params: { org: row.email },
-                },
-              ],
+    searches: new Page({
+      name: 'Search',
+      routes: {
+        two_searches: async io => {
+          const [r1, r2] = await io.group([
+            io.search('One', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
             }),
-          ],
-        })
+            io.search('Two', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            }),
+          ])
+
+          console.log({ r1, r2 })
+        },
+        multiple_search: async io => {
+          const bareResults = await io
+            .search('Bare', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            })
+            .multiple()
+
+          const [groupResults] = await io.group([
+            io
+              .search('In a group', {
+                onSearch: async query => fakeDb.find(query),
+                renderResult: result => ({
+                  label: `${result.first_name} ${result.last_name}`,
+                }),
+              })
+              .multiple(),
+          ])
+
+          console.log({ bareResults, groupResults })
+
+          return {
+            'Bare selected': bareResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+            'Group selected': groupResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+          }
+        },
+        optional_multiple: async io => {
+          const bareResults = await io
+            .search('Bare', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            })
+            .multiple()
+            .optional()
+
+          const [groupResults] = await io.group([
+            io
+              .search('In a group', {
+                onSearch: async query => fakeDb.find(query),
+                renderResult: result => ({
+                  label: `${result.first_name} ${result.last_name}`,
+                }),
+              })
+              .multiple()
+              .optional(),
+          ])
+
+          console.log({ bareResults, groupResults })
+
+          return {
+            'Bare selected':
+              bareResults
+                ?.map(r => `${r.first_name} ${r.last_name}`)
+                ?.join(', ') ?? 'None!',
+            'Group selected':
+              groupResults
+                ?.map(r => `${r.first_name} ${r.last_name}`)
+                ?.join(', ') ?? 'None!',
+          }
+        },
+        multiple_validation: async io => {
+          const bareResults = await io
+            .search('Bare', {
+              onSearch: async query => fakeDb.find(query),
+              renderResult: result => ({
+                label: `${result.first_name} ${result.last_name}`,
+              }),
+            })
+            .validate(() => {
+              throw new Error('This should never be called!')
+            })
+            .multiple()
+            .validate(results => {
+              console.log('Bare', results)
+              return undefined
+            })
+
+          const [groupResults] = await io
+            .group([
+              io
+                .search('In a group', {
+                  onSearch: async query => fakeDb.find(query),
+                  renderResult: result => ({
+                    label: `${result.first_name} ${result.last_name}`,
+                  }),
+                })
+                .validate(() => {
+                  throw new Error('This should never be called!')
+                })
+                .multiple()
+                .optional()
+                .validate(results => {
+                  console.log('Group inner', results)
+                  return undefined
+                }),
+            ])
+            .validate(([results]) => {
+              console.log('Group outer', results)
+              return undefined
+            })
+
+          console.log({ bareResults, groupResults })
+
+          return {
+            'Bare selected': bareResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+            'Group selected':
+              groupResults
+                ?.map(r => `${r.first_name} ${r.last_name}`)
+                ?.join(', ') ?? 'None!',
+          }
+        },
+        default_value: async io => {
+          const bareResult = await io.search('Bare', {
+            onSearch: async query => fakeDb.find(query),
+            renderResult: result => ({
+              label: `${result.first_name} ${result.last_name}`,
+            }),
+            defaultValue: fakeUsers[0],
+          })
+
+          const [groupResults] = await io.group([
+            io
+              .search('In a group', {
+                onSearch: async query => fakeDb.find(query),
+                renderResult: result => ({
+                  label: `${result.first_name} ${result.last_name}`,
+                }),
+              })
+              .multiple({
+                defaultValue: await fakeDb.find('jo'),
+              }),
+          ])
+
+          console.log({ bareResult, groupResults })
+
+          return {
+            'Bare selected': `${bareResult.first_name} ${bareResult.last_name}`,
+            'Group selected': groupResults
+              .map(r => `${r.first_name} ${r.last_name}`)
+              .join(', '),
+          }
+        },
       },
     }),
-    two_searches: async io => {
-      const [r1, r2] = await io.group([
-        io.search('One', {
-          onSearch: async query => fakeDb.find(query),
-          renderResult: result => ({
-            label: `${result.first_name} ${result.last_name}`,
-          }),
-        }),
-        io.search('Two', {
-          onSearch: async query => fakeDb.find(query),
-          renderResult: result => ({
-            label: `${result.first_name} ${result.last_name}`,
-          }),
-        }),
-      ])
-
-      console.log({ r1, r2 })
-    },
     section_heading: async io => {
       await io.group([
         io.display.heading('Section heading', {
@@ -588,7 +721,7 @@ const interval = new Interval({
 
       await io.group([
         io.display.heading(`Grid view`),
-        io.display.metadata('', { data }),
+        io.display.metadata('Metadata grid label', { data }),
         io.display.heading(`List view`),
         io.display.metadata('', {
           layout: 'list',
@@ -968,7 +1101,7 @@ const interval = new Interval({
           # What to expect from here on out
 
           _This has been adapted from the [Tailwind](https://tailwindcss.com) typography plugin demo._
-        
+
           What follows from here is just a bunch of absolute nonsense I've written to demo typography. It includes every sensible typographic element I could think of, like **bold text**, unordered lists, ordered lists, code blocks, block quotes, and _even italics_.
 
           It's important to cover all of these use cases for a few reasons:
@@ -976,7 +1109,7 @@ const interval = new Interval({
           1. We want everything to look good out of the box.
           2. Really just the first reason, that's the whole point of the plugin.
           3. Here's a third pretend reason though a list with three items looks more realistic than a list with two items.
-          
+
           Now we're going to try out another header style.
 
           ## Typography should be easy
@@ -995,7 +1128,7 @@ const interval = new Interval({
           - And this is the last item in the list.
 
           ### What does code look like?
-          
+
           Code blocks should look okay by default, although most people will probably want to use \`io.display.code\`:
 
           \`\`\`
@@ -1006,7 +1139,7 @@ const interval = new Interval({
             }
           })
           \`\`\`
-          
+
           #### And finally, an H4
 
           And that's the end of this demo.
@@ -1178,57 +1311,75 @@ const interval = new Interval({
 
       return { message: 'OK, notified!' }
     },
-    upload: async (io, ctx) => {
-      const customDestinationFile = await io.input.file('Upload an image!', {
-        helpText: 'Will be uploaded to the custom destination.',
-        allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
-        generatePresignedUrls: async ({ name }) => {
-          const urlSafeName = name.replace(/ /g, '-')
-          const path = `custom-endpoint/${new Date().getTime()}-${urlSafeName}`
+    uploads: new Page({
+      name: 'Uploads',
+      routes: {
+        custom_destination: async io => {
+          const customDestinationFile = await io.input.file(
+            'Upload an image!',
+            {
+              helpText: 'Will be uploaded to the custom destination.',
+              allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
+              generatePresignedUrls: async ({ name }) => {
+                const urlSafeName = name.replace(/ /g, '-')
+                const path = `custom-endpoint/${new Date().getTime()}-${urlSafeName}`
 
-          return generateS3Urls(path)
+                return generateS3Urls(path)
+              },
+            }
+          )
+
+          console.log(await customDestinationFile.url())
+
+          const { text, json, buffer, url, ...rest } = customDestinationFile
+
+          return {
+            ...rest,
+            url: await url(),
+            text: rest.type.includes('text/')
+              ? await text().catch(err => {
+                  console.log('Invalid text', err)
+                  return undefined
+                })
+              : undefined,
+            json: rest.type.includes('text/')
+              ? await json()
+                  .then(obj => JSON.stringify(obj))
+                  .catch(err => {
+                    console.log('Invalid JSON', err)
+                    return undefined
+                  })
+              : undefined,
+          }
         },
-      })
-
-      await io.display.image('Uploaded image', {
-        url: await customDestinationFile.url(),
-      })
-
-      console.log(await customDestinationFile.url())
-
-      const file = await io.input.file('Upload an image!', {
-        helpText:
-          'Will be uploaded to Interval and expire after the action finishes running.',
-        allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
-      })
-
-      console.log(file)
-
-      await io.display.image('Uploaded image', {
-        url: await file.url(),
-      })
-
-      const { text, json, buffer, url, ...rest } = file
-
-      return {
-        ...rest,
-        url: await url(),
-        text: rest.type.includes('text/')
-          ? await text().catch(err => {
-              console.log('Invalid text', err)
-              return undefined
+        multiple: async io => {
+          const files = await io.input
+            .file('Upload an image!', {
+              helpText:
+                'Will be uploaded to Interval and expire after the action finishes running.',
+              allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
             })
-          : undefined,
-        json: rest.type.includes('text/')
-          ? await json()
-              .then(obj => JSON.stringify(obj))
-              .catch(err => {
-                console.log('Invalid JSON', err)
-                return undefined
-              })
-          : undefined,
-      }
-    },
+            .multiple()
+            .optional()
+
+          if (!files) return 'None selected.'
+
+          await io.group(
+            (
+              await Promise.all(
+                files.map(async file => [
+                  io.display.image(file.name, {
+                    url: await file.url(),
+                  }),
+                ])
+              )
+            ).map(([p]) => p)
+          )
+
+          return Object.fromEntries(files.map((file, i) => [i, file.name]))
+        },
+      },
+    }),
     advanced_data: async io => {
       const data = {
         bigInt: BigInt(5),
@@ -1325,10 +1476,27 @@ const interval = new Interval({
 
       return 'All done!'
     },
+    select_single: async () => {
+      const selected = await io.select.single('Select an item', {
+        options: [
+          { label: 'Item 1', value: 1 },
+          { label: 'Item 2', value: 2 },
+          { label: 'Item 3', value: 3 },
+          { label: 'Item 4', value: 4 },
+          { label: 'Item 5', value: 5 },
+          { label: 'Item 6', value: 6 },
+          { label: 'Item 7', value: 7 },
+          { label: 'Item 8', value: 8 },
+        ],
+      })
+
+      return selected
+    },
     tables: new Page({
       name: 'Tables',
       routes: table_actions,
     }),
+    grids: gridsPage,
     confirm_identity: async () => {
       await io.input.text('Enter your name')
 

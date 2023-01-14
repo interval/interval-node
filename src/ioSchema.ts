@@ -14,8 +14,14 @@ export type DisplayComponentToRender = z.infer<
 
 export const INPUT_COMPONENT_TO_RENDER = DISPLAY_COMPONENT_TO_RENDER.merge(
   z.object({
+    isMultiple: z.boolean().optional().default(false),
     isOptional: z.boolean().optional().default(false),
     validationErrorMessage: z.string().optional(),
+    multipleProps: z.optional(
+      z.object({
+        defaultValue: z.optional(z.array(z.any())),
+      })
+    ),
   })
 )
 
@@ -303,6 +309,41 @@ export const internalTableColumn = z.object({
   accessorKey: z.string().optional(),
 })
 
+export const gridItem = z.object({
+  title: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  image: z
+    .object({
+      url: z.string().nullable().optional(),
+      alt: z.string().optional(),
+      fit: z.enum(['cover', 'contain']).optional(),
+      aspectRatio: z.number().optional(),
+    })
+    .nullable()
+    .optional(),
+  menu: z.array(menuItem).optional(),
+  url: z.string().optional(),
+  route: z.string().optional(),
+  params: serializableRecord.optional(),
+})
+
+export const internalGridItem = z.object({
+  data: gridItem,
+  key: z.string(),
+  filterValue: z.string().optional(),
+})
+
+export type GridItem = z.infer<typeof gridItem>
+export type InternalGridItem = z.infer<typeof internalGridItem>
+
+const searchResult = z.object({
+  value: z.string(),
+  label: primitiveValue,
+  description: z.string().nullish(),
+  imageUrl: z.string().nullish(),
+  image: imageSchema.optional(),
+})
+
 export const CURRENCIES = [
   'USD',
   'CAD',
@@ -336,6 +377,11 @@ export type DateTimeObject = z.infer<typeof dateTimeObject>
 export function resolvesImmediately(methodName: T_IO_METHOD_NAMES): boolean {
   const schema = ioSchema[methodName]
   return schema && 'immediate' in schema && schema.immediate
+}
+
+export function supportsMultiple(methodName: T_IO_METHOD_NAMES): boolean {
+  const schema = ioSchema[methodName]
+  return schema && 'supportsMultiple' in schema && schema.supportsMultiple
 }
 
 export function requiresServer(methodName: T_IO_METHOD_NAMES): boolean {
@@ -413,6 +459,24 @@ const DISPLAY_SCHEMA = {
     state: z.null(),
     returns: z.null(),
   },
+  DISPLAY_GRID: {
+    props: z.object({
+      data: z.array(internalGridItem),
+      idealColumnWidth: z.optional(z.number()),
+      defaultPageSize: z.number().optional(),
+      helpText: z.optional(z.string()),
+      isFilterable: z.boolean().default(true),
+      //== private props
+      totalRecords: z.optional(z.number().int()),
+      isAsync: z.optional(z.boolean().default(false)),
+    }),
+    state: z.object({
+      queryTerm: z.string().optional(),
+      offset: z.number().int().default(0),
+      pageSize: z.number().int(),
+    }),
+    returns: z.null(),
+  },
   DISPLAY_TABLE: {
     props: z.object({
       helpText: z.optional(z.string()),
@@ -420,6 +484,8 @@ const DISPLAY_SCHEMA = {
       data: z.array(internalTableRow),
       orientation: z.enum(['vertical', 'horizontal']).default('horizontal'),
       defaultPageSize: z.number().optional(),
+      isSortable: z.boolean().default(true),
+      isFilterable: z.boolean().default(true),
       //== private props
       // added in v0.28, optional until required by all active versions
       totalRecords: z.optional(z.number().int()),
@@ -595,13 +661,33 @@ const INPUT_SCHEMA = {
     props: z.object({
       helpText: z.string().optional(),
       allowedExtensions: z.array(z.string()).optional(),
+      disabled: z.optional(z.boolean().default(false)),
+      fileUrls: z
+        .array(
+          z.object({
+            uploadUrl: z.string(),
+            downloadUrl: z.string(),
+          })
+        )
+        .nullish(),
+
+      // Deprecated
       uploadUrl: z.string().nullish().optional(),
       downloadUrl: z.string().nullish().optional(),
-      disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.object({
-      name: z.string(),
-      type: z.string(),
+      files: z
+        .array(
+          z.object({
+            name: z.string(),
+            type: z.string(),
+          })
+        )
+        .optional(),
+
+      // Deprecated
+      name: z.string().optional(),
+      type: z.string().optional(),
     }),
     returns: z.object({
       name: z.string(),
@@ -610,24 +696,19 @@ const INPUT_SCHEMA = {
       size: z.number(),
       url: z.string(),
     }),
+    supportsMultiple: true,
   },
   SEARCH: {
     props: z.object({
-      results: z.array(
-        z.object({
-          value: z.string(),
-          label: primitiveValue,
-          description: z.string().nullish(),
-          imageUrl: z.string().nullish(),
-          image: imageSchema.optional(),
-        })
-      ),
+      results: z.array(searchResult),
+      defaultValue: z.optional(z.string()),
       placeholder: z.optional(z.string()),
       helpText: z.optional(z.string()),
       disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.object({ queryTerm: z.string() }),
     returns: z.string(),
+    supportsMultiple: true,
   },
   CONFIRM: {
     props: z.object({
@@ -655,6 +736,8 @@ const INPUT_SCHEMA = {
       minSelections: z.optional(z.number().int().min(0)),
       maxSelections: z.optional(z.number().positive().int()),
       disabled: z.optional(z.boolean().default(false)),
+      isSortable: z.optional(z.boolean().default(true)),
+      isFilterable: z.optional(z.boolean().default(true)),
       //== private props
       // added in v0.28, optional until required by all active versions
       totalRecords: z.optional(z.number().int()),
@@ -717,6 +800,17 @@ export type T_IO_METHOD_NAMES = keyof T_IO_Schema
 
 export type T_IO_DISPLAY_METHOD_NAMES = keyof typeof DISPLAY_SCHEMA
 export type T_IO_INPUT_METHOD_NAMES = keyof typeof INPUT_SCHEMA
+
+type SupportsMultipleMap = {
+  [MN in T_IO_METHOD_NAMES]: T_IO_Schema[MN] extends {
+    supportsMultiple: boolean
+  }
+    ? MN
+    : never
+}
+
+export type T_IO_MULTIPLEABLE_METHOD_NAMES =
+  SupportsMultipleMap[T_IO_METHOD_NAMES]
 
 type T_Fields = 'props' | 'state' | 'returns'
 

@@ -1,10 +1,15 @@
-export type IOErrorKind = 'CANCELED' | 'TRANSACTION_CLOSED' | 'BAD_RESPONSE'
+export type IOErrorKind =
+  | 'CANCELED'
+  | 'TRANSACTION_CLOSED'
+  | 'BAD_RESPONSE'
+  | 'RESPONSE_HANDLER_ERROR'
 
 export default class IOError extends Error {
   kind: IOErrorKind
 
-  constructor(kind: IOErrorKind, message?: string) {
-    super(message)
+  constructor(kind: IOErrorKind, message?: string, options?: { cause?: any }) {
+    super(message, options)
     this.kind = kind
+    this.name = 'IOError'
   }
 }

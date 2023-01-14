@@ -22,10 +22,12 @@ type RenderResultDef =
     }
 
 type InternalResults = T_IO_PROPS<'SEARCH'>['results']
+type DefaultValue = T_IO_PROPS<'SEARCH'>['defaultValue']
 
 export default function search<Result = any>({
   onSearch,
   initialResults = [],
+  defaultValue,
   renderResult,
   disabled = false,
   ...rest
@@ -34,6 +36,7 @@ export default function search<Result = any>({
   helpText?: string
   disabled?: boolean
   initialResults?: Result[]
+  defaultValue?: Result
   renderResult: (result: Result) => RenderResultDef
   onSearch: (query: string) => Promise<Result[]>
 }) {
@@ -62,9 +65,37 @@ export default function search<Result = any>({
     })
   }
 
+  const results = renderResults(initialResults)
+
+  function getDefaultValue(defaultValue: Result): DefaultValue {
+    let defaultResults = resultMap.get('default')
+    if (!defaultResults) {
+      defaultResults = []
+      resultMap.set('default', defaultResults)
+    }
+    const r = renderResult(defaultValue)
+    const value = `default:${defaultResults.length}`
+    defaultResults.push(defaultValue)
+
+    if (r && typeof r == 'object' && !(r instanceof Date)) {
+      results.push({
+        ...r,
+        value,
+      })
+    } else {
+      results.push({
+        value,
+        label: r.toString(),
+      })
+    }
+
+    return value
+  }
+
   const props: T_IO_PROPS<'SEARCH'> = {
     ...rest,
-    results: renderResults(initialResults),
+    defaultValue: defaultValue ? getDefaultValue(defaultValue) : undefined,
+    results,
     disabled,
   }
 
@@ -82,6 +113,7 @@ export default function search<Result = any>({
         throw new IOError('BAD_RESPONSE')
       }
     },
+    getDefaultValue,
     async onStateChange(newState: T_IO_STATE<'SEARCH'>) {
       const results = await onSearch(newState.queryTerm)
 
