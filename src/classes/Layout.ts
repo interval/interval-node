@@ -74,10 +74,10 @@ export const BASIC_LAYOUT_SCHEMA = z.object({
   kind: z.literal('BASIC'),
   title: z.string().nullish(),
   description: z.string().nullish(),
-  children: IO_RENDER.optional(),
+  children: IO_RENDER.nullish(),
   metadata: META_ITEMS_SCHEMA.optional(),
-  menuItems: z.array(buttonItem).optional(),
-  errors: z.array(LAYOUT_ERROR_SCHEMA).optional(),
+  menuItems: z.array(buttonItem).nullish(),
+  errors: z.array(LAYOUT_ERROR_SCHEMA).nullish(),
 })
 
 // To be extended with z.discriminatedUnion when adding different pages

@@ -16,7 +16,7 @@ export const INPUT_COMPONENT_TO_RENDER = DISPLAY_COMPONENT_TO_RENDER.merge(
   z.object({
     isMultiple: z.boolean().optional().default(false),
     isOptional: z.boolean().optional().default(false),
-    validationErrorMessage: z.string().optional(),
+    validationErrorMessage: z.string().nullish(),
     multipleProps: z.optional(
       z.object({
         defaultValue: z.optional(z.array(z.any())),
@@ -43,7 +43,7 @@ export const IO_RENDER = z.object({
   id: z.string(),
   inputGroupKey: z.string(),
   toRender: z.array(COMPONENT_TO_RENDER),
-  validationErrorMessage: z.string().optional(),
+  validationErrorMessage: z.string().nullish(),
   continueButton: z
     .object({
       label: z.string().optional(),

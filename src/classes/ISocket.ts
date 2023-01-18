@@ -206,8 +206,6 @@ export default class ISocket {
   /** Server **/
   async confirmAuthentication() {
     return this.send('authenticated')
-    // .then(() => console.log('Client knows it is authenticated'))
-    // .catch(e => console.log('client does not know its authenticated'))
   }
 
   /** Both **/
