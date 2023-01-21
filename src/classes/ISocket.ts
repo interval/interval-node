@@ -1,8 +1,9 @@
 import type { WebSocket as NodeWebSocket } from 'ws'
-import type { DataChannel } from 'node-datachannel'
 import { Evt } from 'evt'
 import { v4 } from 'uuid'
 import { z } from 'zod'
+
+import { DataChannel } from './DataChannelConnection'
 
 const MESSAGE_META = z.object({
   data: z.any(),

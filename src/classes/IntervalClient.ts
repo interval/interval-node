@@ -5,7 +5,6 @@ import fetch from 'cross-fetch'
 import * as superjson from 'superjson'
 import { JSONValue } from 'superjson/dist/types'
 import ISocket, { TimeoutError } from './ISocket'
-import type { DescriptionType, IceServer } from 'node-datachannel'
 import {
   DuplexRPCClient,
   DuplexRPCHandlers,
@@ -52,6 +51,7 @@ import type {
   IntervalPageHandler,
 } from '../types'
 import type DataChannelConnection from './DataChannelConnection'
+import type { DescriptionType, IceServer } from './DataChannelConnection'
 import TransactionLoadingState from './TransactionLoadingState'
 import { Interval, InternalConfig, IntervalError } from '..'
 import Page from './Page'
