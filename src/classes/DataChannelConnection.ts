@@ -1,5 +1,5 @@
 import { PeerConnection } from 'node-datachannel'
-import type { IceServer, DataChannel, DescriptionType } from 'node-datachannel'
+import type { IceServer, DataChannel } from 'node-datachannel'
 import type { DuplexRPCClient } from './DuplexRPCClient'
 import {
   HostSchema,
@@ -9,7 +9,7 @@ import {
 } from '../internalRpcSchema'
 import ISocket, { DataChannelSocket, ISocketConfig } from './ISocket'
 
-export type { DataChannel, IceServer, DescriptionType }
+export type { DataChannel, IceServer }
 
 export default class DataChannelConnection {
   peer: PeerConnection

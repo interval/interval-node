@@ -4,6 +4,8 @@ import { WebSocket } from 'ws'
 import fetch from 'cross-fetch'
 import * as superjson from 'superjson'
 import { JSONValue } from 'superjson/dist/types'
+import type { DescriptionType } from 'node-datachannel'
+
 import ISocket, { TimeoutError } from './ISocket'
 import {
   DuplexRPCClient,
@@ -51,7 +53,7 @@ import type {
   IntervalPageHandler,
 } from '../types'
 import type DataChannelConnection from './DataChannelConnection'
-import type { DescriptionType, IceServer } from './DataChannelConnection'
+import type { IceServer } from './DataChannelConnection'
 import TransactionLoadingState from './TransactionLoadingState'
 import { Interval, InternalConfig, IntervalError } from '..'
 import Page from './Page'
