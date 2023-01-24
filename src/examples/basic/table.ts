@@ -246,8 +246,6 @@ function asyncTable(numRows: number) {
       {
         label: 'User',
         renderCell: row => {
-          throw new Error('Oops!')
-
           return {
             label: row.name,
             image: {

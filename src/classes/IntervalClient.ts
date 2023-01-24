@@ -267,6 +267,7 @@ export default class IntervalClient {
   #pageIOClients = new Map<string, IOClient>()
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
   #pendingIOCalls = new Map<string, string>()
+  #pendingPageLayouts = new Map<string, string>()
   #transactionLoadingStates = new Map<string, LoadingState>()
   #transactionCompleteCallbacks = new Map<
     string,
@@ -278,6 +279,7 @@ export default class IntervalClient {
   #pendingCandidatesMap = new Map<string, PeerCandidate[]>()
   #peerIdMap = new Map<string, string>()
   #peerIdToTransactionIdsMap = new Map<string, Set<string>>()
+  #peerIdToPageKeysMap = new Map<string, Set<string>>()
 
   #serverRpc:
     | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
@@ -504,6 +506,67 @@ export default class IntervalClient {
   }
 
   /**
+   * Resends pending IO calls upon reconnection.
+   */
+  async #resendPendingPageLayouts(resendToPageKeys?: string[]) {
+    if (!this.#isConnected) return
+
+    const toResend = resendToPageKeys
+      ? new Map(
+          resendToPageKeys
+            .map(id => [id, this.#pendingPageLayouts.get(id)])
+            .filter(([, state]) => !!state) as [string, string][]
+        )
+      : new Map(this.#pendingPageLayouts)
+
+    while (toResend.size > 0) {
+      await Promise.allSettled(
+        Array.from(toResend.entries()).map(([pageKey, page]) =>
+          this.#send('SEND_PAGE', {
+            pageKey,
+            page,
+          })
+            .then(response => {
+              toResend.delete(pageKey)
+
+              if (!response) {
+                // Unsuccessful response, don't try again
+                this.#pendingPageLayouts.delete(pageKey)
+              }
+            })
+            .catch(async err => {
+              if (err instanceof IOError) {
+                this.#logger.warn(
+                  'Failed resending pending IO call: ',
+                  err.kind
+                )
+
+                if (
+                  err.kind === 'CANCELED' ||
+                  err.kind === 'TRANSACTION_CLOSED'
+                ) {
+                  this.#logger.debug('Aborting resending pending page layout')
+                  toResend.delete(pageKey)
+                  this.#pendingPageLayouts.delete(pageKey)
+                  return
+                }
+              } else {
+                this.#logger.debug('Failed resending pending page layout:', err)
+              }
+
+              this.#logger.debug(
+                `Trying again in ${Math.round(
+                  this.#retryIntervalMs / 1000
+                )}s...`
+              )
+              await sleep(this.#retryIntervalMs)
+            })
+        )
+      )
+    }
+  }
+
+  /**
    * Resends pending transaction loading states upon reconnection.
    */
   async #resendTransactionLoadingStates(resendToTransactionIds?: string[]) {
@@ -619,6 +682,7 @@ export default class IntervalClient {
             this.#isConnected = true
             this.#resendPendingIOCalls()
             this.#resendTransactionLoadingStates()
+            this.#resendPendingPageLayouts()
           })
           .catch(() => {
             /* */
@@ -713,12 +777,24 @@ export default class IntervalClient {
                 rpcConstructor: props => {
                   const rpc = this.#createRPCClient(props)
                   rpc.communicator.onOpen.attach(() => {
-                    const set = this.#peerIdToTransactionIdsMap.get(inputs.id)
-                    if (set) {
+                    const peerTransactionIds =
+                      this.#peerIdToTransactionIdsMap.get(inputs.id)
+                    if (peerTransactionIds) {
                       this.#resendTransactionLoadingStates(
-                        Array.from(set.values())
+                        Array.from(peerTransactionIds.values())
                       )
-                      this.#resendPendingIOCalls(Array.from(set.values()))
+                      this.#resendPendingIOCalls(
+                        Array.from(peerTransactionIds.values())
+                      )
+                    }
+
+                    const peerPageKeys = this.#peerIdToPageKeysMap.get(
+                      inputs.id
+                    )
+                    if (peerPageKeys) {
+                      this.#resendPendingPageLayouts(
+                        Array.from(peerPageKeys.values())
+                      )
                     }
                   })
                   return rpc
@@ -1110,8 +1186,30 @@ export default class IntervalClient {
         const { pageKey, clientId } = inputs
         const pageHandler = this.#pageHandlers.get(inputs.page.slug)
 
-        if (clientId) {
+        const prevClientId = this.#peerIdMap.get(pageKey)
+
+        if (
+          clientId &&
+          clientId !== prevClientId &&
+          this.#dccMap.get(clientId)?.rpc
+        ) {
           this.#peerIdMap.set(pageKey, clientId)
+          let pageKeys = this.#peerIdToPageKeysMap.get(clientId)
+          if (!pageKeys) {
+            pageKeys = new Set()
+            this.#peerIdToPageKeysMap.set(clientId, pageKeys)
+          }
+          pageKeys.add(pageKey)
+
+          // if page is already opened but a new client connects resend them the previous call
+          if (this.#pendingPageLayouts.has(pageKey)) {
+            this.#logger.debug('Resending previous page to new peer', pageKey)
+            this.#resendPendingPageLayouts([pageKey])
+            return {
+              type: 'SUCCESS' as const,
+              pageKey,
+            }
+          }
         }
 
         if (!pageHandler) {
@@ -1178,9 +1276,11 @@ export default class IntervalClient {
             } else {
               for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
                 try {
+                  const page = JSON.stringify(pageLayout)
+                  this.#pendingPageLayouts.set(pageKey, page)
                   await this.#send('SEND_PAGE', {
                     pageKey,
-                    page: JSON.stringify(pageLayout),
+                    page,
                   })
                   return
                 } catch (err) {
@@ -1420,7 +1520,13 @@ export default class IntervalClient {
           this.#pageIOClients.delete(inputs.pageKey)
         }
 
-        this.#peerIdMap.delete(inputs.pageKey)
+        const peerId = this.#peerIdMap.get(inputs.pageKey)
+        if (peerId) {
+          this.#peerIdMap.delete(inputs.pageKey)
+          this.#peerIdToPageKeysMap.get(peerId)?.delete(inputs.pageKey)
+        }
+
+        this.#pendingPageLayouts.delete(inputs.pageKey)
         this.#ioResponseHandlers.delete(inputs.pageKey)
       },
     }
