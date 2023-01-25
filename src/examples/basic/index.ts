@@ -1209,6 +1209,21 @@ const interval = new Interval({
         await ctx.loading.completeOne()
       }
     },
+    loading_clobber: async () => {
+      await ctx.loading.start('Loading...')
+
+      await sleep(500)
+
+      sleep(200).then(() => {
+        ctx.loading.update({ description: 'Still loading!' })
+      })
+
+      await io.display.markdown('An IO input')
+
+      await ctx.loading.start('Loading again...')
+
+      await sleep(500)
+    },
     log_dos: async () => {
       for (let i = 0; i < 1000; i++) {
         await ctx.log(i)
