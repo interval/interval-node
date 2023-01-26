@@ -684,8 +684,8 @@ export default class IntervalClient {
             this.#resendTransactionLoadingStates()
             this.#resendPendingPageLayouts()
           })
-          .catch(() => {
-            /* */
+          .catch(err => {
+            this.#logger.debug('Failed resending saved calls', err)
           })
 
         this.#log.prod(
@@ -782,10 +782,20 @@ export default class IntervalClient {
                     if (peerTransactionIds) {
                       this.#resendTransactionLoadingStates(
                         Array.from(peerTransactionIds.values())
-                      )
+                      ).catch(err => {
+                        this.#logger.warn(
+                          'Failed resending transaction loading states',
+                          err
+                        )
+                      })
                       this.#resendPendingIOCalls(
                         Array.from(peerTransactionIds.values())
-                      )
+                      ).catch(err => {
+                        this.#logger.debug(
+                          'Failed resending pending IO calls',
+                          err
+                        )
+                      })
                     }
 
                     const peerPageKeys = this.#peerIdToPageKeysMap.get(
@@ -794,7 +804,9 @@ export default class IntervalClient {
                     if (peerPageKeys) {
                       this.#resendPendingPageLayouts(
                         Array.from(peerPageKeys.values())
-                      )
+                      ).catch(err => {
+                        this.#logger.debug('Failed resending page layouts', err)
+                      })
                     }
                   })
                   return rpc
@@ -899,8 +911,16 @@ export default class IntervalClient {
 
           if (clientId !== prevClientId) {
             // only resend if is a new peer connection
-            this.#resendPendingIOCalls([transactionId])
-            this.#resendTransactionLoadingStates([transactionId])
+            // TODO: Actually ensure this peer is the same as the original caller somehow
+            this.#resendPendingIOCalls([transactionId]).catch(err => {
+              this.#logger.debug('Failed resending pending IO calls', err)
+            })
+            this.#resendTransactionLoadingStates([transactionId]).catch(err => {
+              this.#logger.debug(
+                'Failed resending transaction loading states',
+                err
+              )
+            })
           }
 
           return
@@ -1186,6 +1206,11 @@ export default class IntervalClient {
         const { pageKey, clientId } = inputs
         const pageHandler = this.#pageHandlers.get(inputs.page.slug)
 
+        if (!pageHandler) {
+          this.#log.debug('No page handler found', inputs.page.slug)
+          return { type: 'ERROR' as const, message: 'No page handler found.' }
+        }
+
         const prevClientId = this.#peerIdMap.get(pageKey)
 
         if (
@@ -1194,27 +1219,29 @@ export default class IntervalClient {
           this.#dccMap.get(clientId)?.rpc
         ) {
           this.#peerIdMap.set(pageKey, clientId)
-          let pageKeys = this.#peerIdToPageKeysMap.get(clientId)
-          if (!pageKeys) {
-            pageKeys = new Set()
-            this.#peerIdToPageKeysMap.set(clientId, pageKeys)
+          let peerPageKeys = this.#peerIdToPageKeysMap.get(clientId)
+          if (!peerPageKeys) {
+            peerPageKeys = new Set()
+            this.#peerIdToPageKeysMap.set(clientId, peerPageKeys)
           }
-          pageKeys.add(pageKey)
-
-          // if page is already opened but a new client connects resend them the previous call
-          if (this.#pendingPageLayouts.has(pageKey)) {
-            this.#logger.debug('Resending previous page to new peer', pageKey)
-            this.#resendPendingPageLayouts([pageKey])
-            return {
-              type: 'SUCCESS' as const,
-              pageKey,
-            }
-          }
+          peerPageKeys.add(pageKey)
         }
 
-        if (!pageHandler) {
-          this.#log.debug('No page handler found', inputs.page.slug)
-          return { type: 'ERROR' as const, message: 'No page handler found.' }
+        // if page is already opened but a new client connects resend them the previous call
+        // TODO: Actually ensure this peer is the same as the original caller somehow
+        if (this.#pendingPageLayouts.has(pageKey)) {
+          this.#logger.debug('Resending previous page to new peer', pageKey)
+          this.#resendPendingPageLayouts([pageKey]).catch(err => {
+            this.#logger.debug(
+              'Failed resending page body to pageKey',
+              pageKey,
+              err
+            )
+          })
+          return {
+            type: 'SUCCESS' as const,
+            pageKey,
+          }
         }
 
         let { params, paramsMeta } = inputs
