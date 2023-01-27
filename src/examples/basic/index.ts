@@ -7,7 +7,12 @@ import {
   NotificationDeliveryInstruction,
 } from '../../types'
 import editEmailForUser from './editEmail'
-import { fakeDb, mapToIntervalUser, sleep } from '../utils/helpers'
+import {
+  fakeDb,
+  mapToIntervalUser,
+  sleep,
+  generateRows,
+} from '../utils/helpers'
 import * as table_actions from './table'
 import * as grid_actions from './grid'
 import unauthorized from './unauthorized'
@@ -208,6 +213,75 @@ const prod = new Interval({
       })
     },
     grids: gridsPage,
+    async_page_test: new Page({
+      name: 'Async page test',
+      handler: async () => {
+        const allData = generateRows(100)
+        return new Layout({
+          children: [
+            io.display.table<ReturnType<typeof generateRows>[0]>(
+              'Display users',
+              {
+                async getData({
+                  queryTerm,
+                  sortColumn,
+                  sortDirection,
+                  offset,
+                  pageSize,
+                }) {
+                  let filteredData = allData.slice()
+
+                  if (queryTerm) {
+                    const re = new RegExp(queryTerm, 'i')
+
+                    filteredData = filteredData.filter(row => {
+                      return (
+                        re.test(row.name) ||
+                        re.test(row.email) ||
+                        re.test(row.description)
+                      )
+                    })
+                  }
+
+                  if (sortColumn && sortDirection) {
+                    filteredData.sort((a, b) => {
+                      if (sortDirection === 'desc') {
+                        const temp = b
+                        b = a
+                        a = temp
+                      }
+
+                      if (!(sortColumn in a) || !(sortColumn in b)) return 0
+
+                      const aVal = a[sortColumn as keyof typeof a]
+                      const bVal = b[sortColumn as keyof typeof b]
+
+                      if (aVal < bVal) return -1
+                      if (aVal > bVal) return 1
+                      return 0
+                    })
+                  }
+
+                  return {
+                    data: filteredData.slice(offset, offset + pageSize),
+                    totalRecords: filteredData.length,
+                  }
+                },
+                defaultPageSize: 50,
+                columns: ['id', 'email', 'description'],
+                rowMenuItems: row => [
+                  {
+                    label: 'Edit',
+                    route: 'edit_user',
+                    params: { email: row.email },
+                  },
+                ],
+              }
+            ),
+          ],
+        })
+      },
+    }),
   },
 })
 
