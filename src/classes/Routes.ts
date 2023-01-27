@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import fetch from 'cross-fetch'
-import * as superjson from 'superjson'
+import superjson from '../utils/superjson'
 import Logger from './Logger'
 import Interval, {
   IntervalActionDefinition,

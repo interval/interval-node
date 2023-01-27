@@ -1,6 +1,6 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
-import * as superjson from 'superjson'
+import superjson from '../utils/superjson'
 import {
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
