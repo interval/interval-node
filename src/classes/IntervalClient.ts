@@ -2,7 +2,7 @@ import { z, ZodError } from 'zod'
 import { v4 } from 'uuid'
 import { WebSocket } from 'ws'
 import fetch from 'cross-fetch'
-import * as superjson from 'superjson'
+import superjson from '../utils/superjson'
 import { JSONValue } from 'superjson/dist/types'
 import type { DescriptionType } from 'node-datachannel'
 
