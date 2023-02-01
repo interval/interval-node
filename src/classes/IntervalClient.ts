@@ -110,6 +110,7 @@ export default class IntervalClient {
   #endpoint: string = DEFAULT_WEBSOCKET_ENDPOINT
   #httpEndpoint: string
   #logger: Logger
+  #completeHttpRequestDelayMs: number = 1000
   #retryIntervalMs: number = 3000
   #pingIntervalMs: number = 30_000
   #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
@@ -163,6 +164,13 @@ export default class IntervalClient {
       config.reinitializeBatchTimeoutMs > 0
     ) {
       this.#reinitializeBatchTimeoutMs = config.reinitializeBatchTimeoutMs
+    }
+
+    if (
+      config.completeHttpRequestDelayMs &&
+      config.completeHttpRequestDelayMs > 0
+    ) {
+      this.#completeHttpRequestDelayMs = config.completeHttpRequestDelayMs
     }
 
     this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
@@ -269,7 +277,7 @@ export default class IntervalClient {
   #pendingIOCalls = new Map<string, string>()
   #pendingPageLayouts = new Map<string, string>()
   #transactionLoadingStates = new Map<string, LoadingState>()
-  #transactionCompleteCallbacks = new Map<
+  #httpRequestCompleteCallbacks = new Map<
     string,
     [(output?: any) => void, (err?: any) => void]
   >()
@@ -354,7 +362,7 @@ export default class IntervalClient {
     }
 
     const result = new Promise((resolve, reject) => {
-      this.#transactionCompleteCallbacks.set(requestId, [resolve, reject])
+      this.#httpRequestCompleteCallbacks.set(requestId, [resolve, reject])
     })
 
     if (!this.#isInitialized) {
@@ -1098,17 +1106,19 @@ export default class IntervalClient {
               }
 
               if (requestId) {
-                const callbacks =
-                  intervalClient.#transactionCompleteCallbacks.get(requestId)
-                if (callbacks) {
-                  const [resolve] = callbacks
-                  resolve()
-                } else {
-                  intervalClient.#log.debug(
-                    'No transaction complete callbacks found for requestId',
-                    requestId
-                  )
-                }
+                setTimeout(() => {
+                  const callbacks =
+                    intervalClient.#httpRequestCompleteCallbacks.get(requestId)
+                  if (callbacks) {
+                    const [resolve] = callbacks
+                    resolve()
+                  } else {
+                    intervalClient.#log.debug(
+                      'No HTTP request complete callbacks found for requestId',
+                      requestId
+                    )
+                  }
+                }, this.#completeHttpRequestDelayMs)
               }
             })
             .catch(err => {
@@ -1132,17 +1142,19 @@ export default class IntervalClient {
               }
 
               if (requestId) {
-                const callbacks =
-                  intervalClient.#transactionCompleteCallbacks.get(requestId)
-                if (callbacks) {
-                  const [_, reject] = callbacks
-                  reject(err)
-                } else {
-                  intervalClient.#log.debug(
-                    'No transaction complete callbacks found for requestId',
-                    requestId
-                  )
-                }
+                setTimeout(() => {
+                  const callbacks =
+                    intervalClient.#httpRequestCompleteCallbacks.get(requestId)
+                  if (callbacks) {
+                    const [_, reject] = callbacks
+                    reject(err)
+                  } else {
+                    intervalClient.#log.debug(
+                      'No HTTP request complete callbacks found for requestId',
+                      requestId
+                    )
+                  }
+                }, this.#completeHttpRequestDelayMs)
               }
             })
             .finally(() => {
@@ -1200,7 +1212,25 @@ export default class IntervalClient {
       OPEN_PAGE: async inputs => {
         if (!this.organization) {
           this.#log.error('No organization defined')
-          return { type: 'ERROR' as const, message: 'No organization defined.' }
+
+          const error = new IntervalError('No organization defined.')
+          if (requestId) {
+            setTimeout(() => {
+              const callbacks =
+                intervalClient.#httpRequestCompleteCallbacks.get(requestId)
+              if (callbacks) {
+                const [_, reject] = callbacks
+                reject(error)
+              } else {
+                intervalClient.#log.debug(
+                  'No HTTP request complete callbacks found for requestId',
+                  requestId
+                )
+              }
+            }, this.#completeHttpRequestDelayMs)
+          }
+
+          return { type: 'ERROR' as const, message: error.message }
         }
 
         const { pageKey, clientId } = inputs
@@ -1208,7 +1238,25 @@ export default class IntervalClient {
 
         if (!pageHandler) {
           this.#log.debug('No page handler found', inputs.page.slug)
-          return { type: 'ERROR' as const, message: 'No page handler found.' }
+
+          const error = new IntervalError('No page handler found.')
+          if (requestId) {
+            setTimeout(() => {
+              const callbacks =
+                intervalClient.#httpRequestCompleteCallbacks.get(requestId)
+              if (callbacks) {
+                const [_, reject] = callbacks
+                reject(error)
+              } else {
+                intervalClient.#log.debug(
+                  'No HTTP request complete callbacks found for requestId',
+                  requestId
+                )
+              }
+            }, this.#completeHttpRequestDelayMs)
+          }
+
+          return { type: 'ERROR' as const, message: error.message }
         }
 
         const prevClientId = this.#peerIdMap.get(pageKey)
@@ -1555,6 +1603,23 @@ export default class IntervalClient {
 
         this.#pendingPageLayouts.delete(inputs.pageKey)
         this.#ioResponseHandlers.delete(inputs.pageKey)
+
+        // Do this after a small delay so that this function can return before shutdown
+        if (requestId) {
+          setTimeout(() => {
+            const callbacks =
+              intervalClient.#httpRequestCompleteCallbacks.get(requestId)
+            if (callbacks) {
+              const [resolve] = callbacks
+              resolve()
+            } else {
+              intervalClient.#log.debug(
+                'No HTTP request complete callbacks found for requestId',
+                requestId
+              )
+            }
+          }, this.#completeHttpRequestDelayMs)
+        }
       },
     }
   }

@@ -1,5 +1,6 @@
 import http from 'http'
-import Interval from '../../experimental'
+import Interval, { Page, Layout, io } from '../../experimental'
+import { asyncTable } from '../utils/ioMethodWrappers'
 
 const interval = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
@@ -10,6 +11,20 @@ const interval = new Interval({
       const message = await io.input.text('Enter a message')
       return `"${message}", from HTTP!`
     },
+    hello_http_pages: new Page({
+      name: 'Hello, HTTP pages!',
+      handler: async () => {
+        return new Layout({
+          title: 'Inside a page via HTTP',
+          children: [asyncTable(500)],
+        })
+      },
+      routes: {
+        sub_action: async () => {
+          return 'Hello, from a sub action!'
+        },
+      },
+    }),
   },
 })
 
