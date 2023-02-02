@@ -110,7 +110,7 @@ export default class IntervalClient {
   #endpoint: string = DEFAULT_WEBSOCKET_ENDPOINT
   #httpEndpoint: string
   #logger: Logger
-  #completeHttpRequestDelayMs: number = 1000
+  #completeHttpRequestDelayMs: number = 3000
   #retryIntervalMs: number = 3000
   #pingIntervalMs: number = 30_000
   #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
