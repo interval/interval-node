@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker'
 import fakeUsers from './fakeUsers'
 
 export function sleep(ms: number) {
@@ -65,3 +66,30 @@ export const fakeDb = (function fakeDb() {
     },
   }
 })()
+
+export function generateRows(count: number, offset = 0) {
+  return Array(count)
+    .fill(null)
+    .map((_, i) => ({
+      id: offset + i,
+      name: `${faker.name.firstName()} ${faker.name.lastName()}`,
+      email: faker.internet.email(),
+      description: faker.helpers.arrayElement([
+        faker.random.word(),
+        faker.random.words(),
+        faker.lorem.paragraph(),
+      ]),
+      number: faker.datatype.number(100),
+      boolean: faker.datatype.boolean(),
+      date: faker.datatype.datetime(),
+      image: faker.image.imageUrl(
+        480,
+        Math.random() < 0.25 ? 300 : 480,
+        undefined,
+        true
+      ),
+      array: Array(10)
+        .fill(null)
+        .map(() => faker.word.noun()),
+    }))
+}

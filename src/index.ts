@@ -61,6 +61,7 @@ export interface InternalConfig {
   connectTimeoutMs?: number
   sendTimeoutMs?: number
   pingTimeoutMs?: number
+  completeHttpRequestDelayMs?: number
 
   closeUnresponsiveConnectionTimeoutMs?: number
   reinitializeBatchTimeoutMs?: number

@@ -1,6 +1,7 @@
 {
   "name": "@interval/sdk",
-  "version": "0.38.0-dev",
+  "version": "0.37.1",
+  "description": "The frontendless framework for high growth companies. Interval automatically generates apps by inlining the UI in your backend code. It's a faster and more maintainable way to build internal tools, rapid prototypes, and more.",
   "homepage": "https://interval.com",
   "repository": {
     "type": "git",
@@ -20,13 +21,11 @@
     "build:envoy": "yarn envoy $INIT_CWD/envoy.config.ts $INIT_CWD/.env $INIT_CWD/src/env.ts",
     "build": "yarn build:envoy && tsc",
     "demo:basic": "node ./dist/examples/basic/index.js",
-    "dev": "run(){ yarn build:envoy && nodemon --watch src -e ts src/examples/${1:-basic}/index.ts; }; run",
-    "upgrade-examples": "echo -n examples/*/* | xargs -I _ -d ' ' yarn --cwd _ add @interval/sdk"
+    "dev": "run(){ yarn build:envoy && nodemon --watch src -e ts src/examples/${1:-basic}/index.ts; }; run"
   },
   "dependencies": {
     "cross-fetch": "^3.1.5",
     "evt": "^2.4.10",
-    "node-datachannel": "^0.4.0",
     "superjson": "^1.9.1",
     "uuid": "^9.0.0",
     "ws": "^8.4.1",
@@ -44,6 +43,9 @@
     "nodemon": "^2.0.20",
     "ts-node": "^10.9.1",
     "typescript": "^4.8.4"
+  },
+  "optionalDependencies": {
+    "node-datachannel": "^0.4.0"
   },
   "resolutions": {
     "ts-node": "^10.9.1"

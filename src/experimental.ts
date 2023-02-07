@@ -138,71 +138,12 @@ class ExperimentalInterval extends Interval {
   }
 
   async #declareHost(httpHostId: string) {
-    const routes = {
-      ...this.config.actions,
-      ...this.config.groups,
-      ...this.config.routes,
-    }
+    const client = new IntervalClient(this, this.config)
+    const response = await client.declareHost(httpHostId)
 
-    const actions = Object.entries(routes).map(([slug, def]) => ({
-      slug,
-      ...('handler' in def ? def : {}),
-      handler: undefined,
-    }))
-    const slugs = actions.map(a => a.slug)
+    client.close()
 
-    if (slugs.length === 0) {
-      this.log.prod('No actions defined, skipping host declaration')
-      return
-    }
-
-    const body: z.infer<typeof DECLARE_HOST['inputs']> = {
-      httpHostId,
-      actions,
-      sdkName: pkg.name,
-      sdkVersion: pkg.version,
-    }
-
-    const response = await fetch(`${this.httpEndpoint}/api/hosts/declare`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(body),
-    })
-      .then(r => r.json())
-      .then(r => DECLARE_HOST.returns.parseAsync(r))
-      .catch(err => {
-        this.log.debug(err)
-        throw new IntervalError('Received invalid API response.')
-      })
-
-    if (response.type === 'error') {
-      throw new IntervalError(
-        `There was a problem declaring the host: ${response.message}`
-      )
-    }
-
-    if (response.sdkAlert) {
-      this.log.handleSdkAlert(response.sdkAlert)
-    }
-
-    if (response.invalidSlugs.length > 0) {
-      this.log.warn('[Interval]', '⚠ Invalid slugs detected:\n')
-
-      for (const slug of response.invalidSlugs) {
-        this.log.warn(`  - ${slug}`)
-      }
-
-      this.log.warn(
-        '\nAction slugs must contain only letters, numbers, underscores, periods, and hyphens.'
-      )
-
-      if (response.invalidSlugs.length === slugs.length) {
-        throw new IntervalError('No valid slugs provided')
-      }
-    }
+    return response
   }
 }
 

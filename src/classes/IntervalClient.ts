@@ -2,10 +2,11 @@ import { z, ZodError } from 'zod'
 import { v4 } from 'uuid'
 import { WebSocket } from 'ws'
 import fetch from 'cross-fetch'
-import * as superjson from 'superjson'
+import superjson from '../utils/superjson'
 import { JSONValue } from 'superjson/dist/types'
+import type { DescriptionType } from 'node-datachannel'
+
 import ISocket, { TimeoutError } from './ISocket'
-import type { DescriptionType, IceServer } from 'node-datachannel'
 import {
   DuplexRPCClient,
   DuplexRPCHandlers,
@@ -52,6 +53,7 @@ import type {
   IntervalPageHandler,
 } from '../types'
 import type DataChannelConnection from './DataChannelConnection'
+import type { IceServer } from './DataChannelConnection'
 import TransactionLoadingState from './TransactionLoadingState'
 import { Interval, InternalConfig, IntervalError } from '..'
 import Page from './Page'
@@ -108,6 +110,7 @@ export default class IntervalClient {
   #endpoint: string = DEFAULT_WEBSOCKET_ENDPOINT
   #httpEndpoint: string
   #logger: Logger
+  #completeHttpRequestDelayMs: number = 3000
   #retryIntervalMs: number = 3000
   #pingIntervalMs: number = 30_000
   #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
@@ -161,6 +164,13 @@ export default class IntervalClient {
       config.reinitializeBatchTimeoutMs > 0
     ) {
       this.#reinitializeBatchTimeoutMs = config.reinitializeBatchTimeoutMs
+    }
+
+    if (
+      config.completeHttpRequestDelayMs &&
+      config.completeHttpRequestDelayMs > 0
+    ) {
+      this.#completeHttpRequestDelayMs = config.completeHttpRequestDelayMs
     }
 
     this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
@@ -265,8 +275,9 @@ export default class IntervalClient {
   #pageIOClients = new Map<string, IOClient>()
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
   #pendingIOCalls = new Map<string, string>()
+  #pendingPageLayouts = new Map<string, string>()
   #transactionLoadingStates = new Map<string, LoadingState>()
-  #transactionCompleteCallbacks = new Map<
+  #httpRequestCompleteCallbacks = new Map<
     string,
     [(output?: any) => void, (err?: any) => void]
   >()
@@ -276,6 +287,7 @@ export default class IntervalClient {
   #pendingCandidatesMap = new Map<string, PeerCandidate[]>()
   #peerIdMap = new Map<string, string>()
   #peerIdToTransactionIdsMap = new Map<string, Set<string>>()
+  #peerIdToPageKeysMap = new Map<string, Set<string>>()
 
   #serverRpc:
     | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
@@ -350,7 +362,7 @@ export default class IntervalClient {
     }
 
     const result = new Promise((resolve, reject) => {
-      this.#transactionCompleteCallbacks.set(requestId, [resolve, reject])
+      this.#httpRequestCompleteCallbacks.set(requestId, [resolve, reject])
     })
 
     if (!this.#isInitialized) {
@@ -502,6 +514,67 @@ export default class IntervalClient {
   }
 
   /**
+   * Resends pending IO calls upon reconnection.
+   */
+  async #resendPendingPageLayouts(resendToPageKeys?: string[]) {
+    if (!this.#isConnected) return
+
+    const toResend = resendToPageKeys
+      ? new Map(
+          resendToPageKeys
+            .map(id => [id, this.#pendingPageLayouts.get(id)])
+            .filter(([, state]) => !!state) as [string, string][]
+        )
+      : new Map(this.#pendingPageLayouts)
+
+    while (toResend.size > 0) {
+      await Promise.allSettled(
+        Array.from(toResend.entries()).map(([pageKey, page]) =>
+          this.#send('SEND_PAGE', {
+            pageKey,
+            page,
+          })
+            .then(response => {
+              toResend.delete(pageKey)
+
+              if (!response) {
+                // Unsuccessful response, don't try again
+                this.#pendingPageLayouts.delete(pageKey)
+              }
+            })
+            .catch(async err => {
+              if (err instanceof IOError) {
+                this.#logger.warn(
+                  'Failed resending pending IO call: ',
+                  err.kind
+                )
+
+                if (
+                  err.kind === 'CANCELED' ||
+                  err.kind === 'TRANSACTION_CLOSED'
+                ) {
+                  this.#logger.debug('Aborting resending pending page layout')
+                  toResend.delete(pageKey)
+                  this.#pendingPageLayouts.delete(pageKey)
+                  return
+                }
+              } else {
+                this.#logger.debug('Failed resending pending page layout:', err)
+              }
+
+              this.#logger.debug(
+                `Trying again in ${Math.round(
+                  this.#retryIntervalMs / 1000
+                )}s...`
+              )
+              await sleep(this.#retryIntervalMs)
+            })
+        )
+      )
+    }
+  }
+
+  /**
    * Resends pending transaction loading states upon reconnection.
    */
   async #resendTransactionLoadingStates(resendToTransactionIds?: string[]) {
@@ -617,9 +690,10 @@ export default class IntervalClient {
             this.#isConnected = true
             this.#resendPendingIOCalls()
             this.#resendTransactionLoadingStates()
+            this.#resendPendingPageLayouts()
           })
-          .catch(() => {
-            /* */
+          .catch(err => {
+            this.#logger.debug('Failed resending saved calls', err)
           })
 
         this.#log.prod(
@@ -711,12 +785,36 @@ export default class IntervalClient {
                 rpcConstructor: props => {
                   const rpc = this.#createRPCClient(props)
                   rpc.communicator.onOpen.attach(() => {
-                    const set = this.#peerIdToTransactionIdsMap.get(inputs.id)
-                    if (set) {
+                    const peerTransactionIds =
+                      this.#peerIdToTransactionIdsMap.get(inputs.id)
+                    if (peerTransactionIds) {
                       this.#resendTransactionLoadingStates(
-                        Array.from(set.values())
-                      )
-                      this.#resendPendingIOCalls(Array.from(set.values()))
+                        Array.from(peerTransactionIds.values())
+                      ).catch(err => {
+                        this.#logger.warn(
+                          'Failed resending transaction loading states',
+                          err
+                        )
+                      })
+                      this.#resendPendingIOCalls(
+                        Array.from(peerTransactionIds.values())
+                      ).catch(err => {
+                        this.#logger.debug(
+                          'Failed resending pending IO calls',
+                          err
+                        )
+                      })
+                    }
+
+                    const peerPageKeys = this.#peerIdToPageKeysMap.get(
+                      inputs.id
+                    )
+                    if (peerPageKeys) {
+                      this.#resendPendingPageLayouts(
+                        Array.from(peerPageKeys.values())
+                      ).catch(err => {
+                        this.#logger.debug('Failed resending page layouts', err)
+                      })
                     }
                   })
                   return rpc
@@ -821,8 +919,16 @@ export default class IntervalClient {
 
           if (clientId !== prevClientId) {
             // only resend if is a new peer connection
-            this.#resendPendingIOCalls([transactionId])
-            this.#resendTransactionLoadingStates([transactionId])
+            // TODO: Actually ensure this peer is the same as the original caller somehow
+            this.#resendPendingIOCalls([transactionId]).catch(err => {
+              this.#logger.debug('Failed resending pending IO calls', err)
+            })
+            this.#resendTransactionLoadingStates([transactionId]).catch(err => {
+              this.#logger.debug(
+                'Failed resending transaction loading states',
+                err
+              )
+            })
           }
 
           return
@@ -1000,17 +1106,19 @@ export default class IntervalClient {
               }
 
               if (requestId) {
-                const callbacks =
-                  intervalClient.#transactionCompleteCallbacks.get(requestId)
-                if (callbacks) {
-                  const [resolve] = callbacks
-                  resolve()
-                } else {
-                  intervalClient.#log.debug(
-                    'No transaction complete callbacks found for requestId',
-                    requestId
-                  )
-                }
+                setTimeout(() => {
+                  const callbacks =
+                    intervalClient.#httpRequestCompleteCallbacks.get(requestId)
+                  if (callbacks) {
+                    const [resolve] = callbacks
+                    resolve()
+                  } else {
+                    intervalClient.#log.debug(
+                      'No HTTP request complete callbacks found for requestId',
+                      requestId
+                    )
+                  }
+                }, this.#completeHttpRequestDelayMs)
               }
             })
             .catch(err => {
@@ -1034,17 +1142,19 @@ export default class IntervalClient {
               }
 
               if (requestId) {
-                const callbacks =
-                  intervalClient.#transactionCompleteCallbacks.get(requestId)
-                if (callbacks) {
-                  const [_, reject] = callbacks
-                  reject(err)
-                } else {
-                  intervalClient.#log.debug(
-                    'No transaction complete callbacks found for requestId',
-                    requestId
-                  )
-                }
+                setTimeout(() => {
+                  const callbacks =
+                    intervalClient.#httpRequestCompleteCallbacks.get(requestId)
+                  if (callbacks) {
+                    const [_, reject] = callbacks
+                    reject(err)
+                  } else {
+                    intervalClient.#log.debug(
+                      'No HTTP request complete callbacks found for requestId',
+                      requestId
+                    )
+                  }
+                }, this.#completeHttpRequestDelayMs)
               }
             })
             .finally(() => {
@@ -1102,19 +1212,84 @@ export default class IntervalClient {
       OPEN_PAGE: async inputs => {
         if (!this.organization) {
           this.#log.error('No organization defined')
-          return { type: 'ERROR' as const, message: 'No organization defined.' }
+
+          const error = new IntervalError('No organization defined.')
+          if (requestId) {
+            setTimeout(() => {
+              const callbacks =
+                intervalClient.#httpRequestCompleteCallbacks.get(requestId)
+              if (callbacks) {
+                const [_, reject] = callbacks
+                reject(error)
+              } else {
+                intervalClient.#log.debug(
+                  'No HTTP request complete callbacks found for requestId',
+                  requestId
+                )
+              }
+            }, this.#completeHttpRequestDelayMs)
+          }
+
+          return { type: 'ERROR' as const, message: error.message }
         }
 
         const { pageKey, clientId } = inputs
         const pageHandler = this.#pageHandlers.get(inputs.page.slug)
 
-        if (clientId) {
-          this.#peerIdMap.set(pageKey, clientId)
-        }
-
         if (!pageHandler) {
           this.#log.debug('No page handler found', inputs.page.slug)
-          return { type: 'ERROR' as const, message: 'No page handler found.' }
+
+          const error = new IntervalError('No page handler found.')
+          if (requestId) {
+            setTimeout(() => {
+              const callbacks =
+                intervalClient.#httpRequestCompleteCallbacks.get(requestId)
+              if (callbacks) {
+                const [_, reject] = callbacks
+                reject(error)
+              } else {
+                intervalClient.#log.debug(
+                  'No HTTP request complete callbacks found for requestId',
+                  requestId
+                )
+              }
+            }, this.#completeHttpRequestDelayMs)
+          }
+
+          return { type: 'ERROR' as const, message: error.message }
+        }
+
+        const prevClientId = this.#peerIdMap.get(pageKey)
+
+        if (
+          clientId &&
+          clientId !== prevClientId &&
+          this.#dccMap.get(clientId)?.rpc
+        ) {
+          this.#peerIdMap.set(pageKey, clientId)
+          let peerPageKeys = this.#peerIdToPageKeysMap.get(clientId)
+          if (!peerPageKeys) {
+            peerPageKeys = new Set()
+            this.#peerIdToPageKeysMap.set(clientId, peerPageKeys)
+          }
+          peerPageKeys.add(pageKey)
+        }
+
+        // if page is already opened but a new client connects resend them the previous call
+        // TODO: Actually ensure this peer is the same as the original caller somehow
+        if (this.#pendingPageLayouts.has(pageKey)) {
+          this.#logger.debug('Resending previous page to new peer', pageKey)
+          this.#resendPendingPageLayouts([pageKey]).catch(err => {
+            this.#logger.debug(
+              'Failed resending page body to pageKey',
+              pageKey,
+              err
+            )
+          })
+          return {
+            type: 'SUCCESS' as const,
+            pageKey,
+          }
         }
 
         let { params, paramsMeta } = inputs
@@ -1176,9 +1351,11 @@ export default class IntervalClient {
             } else {
               for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
                 try {
+                  const page = JSON.stringify(pageLayout)
+                  this.#pendingPageLayouts.set(pageKey, page)
                   await this.#send('SEND_PAGE', {
                     pageKey,
-                    page: JSON.stringify(pageLayout),
+                    page,
                   })
                   return
                 } catch (err) {
@@ -1418,8 +1595,31 @@ export default class IntervalClient {
           this.#pageIOClients.delete(inputs.pageKey)
         }
 
-        this.#peerIdMap.delete(inputs.pageKey)
+        const peerId = this.#peerIdMap.get(inputs.pageKey)
+        if (peerId) {
+          this.#peerIdMap.delete(inputs.pageKey)
+          this.#peerIdToPageKeysMap.get(peerId)?.delete(inputs.pageKey)
+        }
+
+        this.#pendingPageLayouts.delete(inputs.pageKey)
         this.#ioResponseHandlers.delete(inputs.pageKey)
+
+        // Do this after a small delay so that this function can return before shutdown
+        if (requestId) {
+          setTimeout(() => {
+            const callbacks =
+              intervalClient.#httpRequestCompleteCallbacks.get(requestId)
+            if (callbacks) {
+              const [resolve] = callbacks
+              resolve()
+            } else {
+              intervalClient.#log.debug(
+                'No HTTP request complete callbacks found for requestId',
+                requestId
+              )
+            }
+          }, this.#completeHttpRequestDelayMs)
+        }
       },
     }
   }

@@ -1,8 +1,12 @@
-import type { WebSocket as NodeWebSocket } from 'ws'
-import type { DataChannel } from 'node-datachannel'
+import type {
+  WebSocket as NodeWebSocket,
+  MessageEvent as NodeWSMessageEvent,
+} from 'ws'
 import { Evt } from 'evt'
 import { v4 } from 'uuid'
 import { z } from 'zod'
+
+import { DataChannel } from './DataChannelConnection'
 
 const MESSAGE_META = z.object({
   data: z.any(),
@@ -118,15 +122,22 @@ export class DataChannelSocket {
     }
   }
 
-  set onmessage(cb: (evt: MessageEvent) => void) {
+  set onmessage(
+    cb: (evt: MessageEvent | Pick<NodeWSMessageEvent, 'data'>) => void
+  ) {
     if ('onMessage' in this.dc) {
       // node
       this.dc.onMessage((msg: string | Buffer) => {
-        cb(
-          new MessageEvent('MessageEvent', {
-            data: msg,
-          })
-        )
+        const messageEvent =
+          typeof MessageEvent !== 'undefined'
+            ? new MessageEvent('MessageEvent', {
+                data: msg,
+              })
+            : {
+                data: msg,
+              }
+
+        cb(messageEvent)
       })
     } else {
       // web
@@ -295,9 +306,11 @@ export default class ISocket {
       this.onError.post(new Error(message))
     }
 
-    this.ws.onmessage = (evt: MessageEvent) => {
+    this.ws.onmessage = (
+      evt: MessageEvent | Pick<NodeWSMessageEvent, 'data'>
+    ) => {
       // only in browser
-      if (evt.stopPropagation) {
+      if ('stopPropagation' in evt) {
         evt.stopPropagation()
       }
 
