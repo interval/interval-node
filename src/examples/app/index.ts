@@ -1,4 +1,5 @@
 import Interval, { Page, ctx, io, Layout } from '../..'
+import { AnyDisplayIOPromise } from '../../types'
 import { sleep } from '../utils/helpers'
 import * as db from './db'
 
@@ -82,32 +83,101 @@ const hello_app = new Page({
 const users = new Page({
   name: 'Users',
   handler: async () => {
-    const allUsers = db.getUsers()
+    if (ctx.params.userId && typeof ctx.params.userId === 'string') {
+      const user = db.getUser(ctx.params.userId)
+      if (!user) throw new Error('User not found')
 
-    return new Layout({
-      menuItems: [
-        {
-          label: 'View funnel',
-          route: 'users/view_funnel',
-        },
-        {
-          label: 'Create user',
-          route: 'users/create',
-        },
-      ],
-      children: [
-        io.display.table('Users', {
-          data: allUsers,
-          rowMenuItems: row => [
-            {
-              label: 'Edit',
-              route: 'users/edit',
-              params: { id: row.id },
+      return new Layout({
+        menuItems: [
+          {
+            label: 'Edit user',
+            route: 'users/edit',
+            params: {
+              userId: user.id,
             },
-          ],
-        }),
-      ],
-    })
+          },
+        ],
+        children: [
+          io.display.metadata(`${user.firstName} ${user.lastName}`, {
+            data: [
+              {
+                label: 'ID',
+                value: user.id,
+              },
+              {
+                label: 'Email',
+                value: user.email,
+                url: `mailto:${user.email}`,
+              },
+              {
+                label: 'Created at',
+                value: user.createdAt,
+              },
+            ],
+          }),
+        ],
+      })
+    } else {
+      const allUsers = db.getUsers()
+      return new Layout({
+        menuItems: [
+          {
+            label: 'View funnel',
+            route: 'users/view_funnel',
+          },
+          {
+            label: 'Create user',
+            route: 'users/create',
+          },
+        ],
+        children: [
+          io.display.table('Users', {
+            data: allUsers,
+            rowMenuItems: row => [
+              {
+                label: 'Edit',
+                route: 'users/edit',
+                params: { userId: row.id },
+              },
+            ],
+            columns: [
+              {
+                label: 'ID',
+                accessorKey: 'id',
+
+                renderCell: user => ({
+                  label: user.id,
+                  route: 'users',
+                  params: {
+                    userId: user.id,
+                  },
+                }),
+              },
+              {
+                label: 'First name',
+                accessorKey: 'firstName',
+              },
+              {
+                label: 'Last name',
+                accessorKey: 'lastName',
+              },
+              {
+                label: 'Email',
+                accessorKey: 'email',
+                renderCell: user => ({
+                  label: user.email,
+                  url: `mailto:${user.email}`,
+                }),
+              },
+              {
+                label: 'Created at',
+                accessorKey: 'createdAt',
+              },
+            ],
+          }),
+        ],
+      })
+    }
   },
   routes: {
     create: {
@@ -128,7 +198,7 @@ const users = new Page({
       name: 'Edit user',
       unlisted: true,
       handler: async () => {
-        const userId = ctx.params.id
+        const userId = ctx.params.userId
         if (!userId) throw new Error('No user ID provided')
 
         const user = db.getUser(String(userId))
