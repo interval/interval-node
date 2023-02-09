@@ -1319,6 +1319,31 @@ const interval = new Interval({
         ],
       })
     },
+    append_ui_scroll_demo: async io => {
+      let i = 0
+      while (i < 3) {
+        await io.group([
+          io.input
+            .number('United States Dollar', {
+              min: 10,
+              currency: 'USD',
+            })
+            .optional(),
+          io.input
+            .number('Euro', {
+              currency: 'EUR',
+            })
+            .optional(),
+          io.input
+            .number('Japanese yen', {
+              currency: 'JPY',
+              decimals: 3,
+            })
+            .optional(),
+        ])
+        i++
+      }
+    },
     error: async io => {
       class CustomError extends Error {
         name = 'CustomError'
