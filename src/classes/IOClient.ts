@@ -286,6 +286,8 @@ export class IOClient {
    *
    * Custom validation can be performed on groups by chaining a `.validate()` method call to the group.
    *
+   * **Usage:**
+   *
    * ```typescript
    * const [name, email, age] = await io.group([
    *   io.input.text("Name"),
@@ -579,6 +581,8 @@ export class IOClient {
        *
        * **Note:** `io.confirm` is not supported within an `io.group`.
        *
+       * **Usage:**
+       *
        * ```typescript
        * const shouldDelete = await io.confirm("Delete this user account?", {
        *   helpText: "All of their data will be deleted immediately.",
@@ -592,6 +596,8 @@ export class IOClient {
        *
        * **Note:** `io.confirmIdentity` is not supported within an `io.group`.
        *
+       * **Usage:**
+       *
        * ```typescript
        * const shouldDelete = await io.confirmIdentity("This is a sensitive action.");
        * ```
@@ -602,6 +608,8 @@ export class IOClient {
 
       /**
        * Allows searching for arbitrary results from a search box.
+       *
+       * **Usage:**
        *
        * ```typescript
        * const user = await io.search("Search for a user", {
@@ -631,6 +639,8 @@ export class IOClient {
         /**
          * Requests a string value.
          *
+         * **Usage:**
+         *
          * ```typescript
          * const text = await io.input.text("Company name", {
          *   placeholder: "Acme Inc.",
@@ -641,6 +651,8 @@ export class IOClient {
         /**
          * Requests a boolean value.
          *
+         * **Usage:**
+         *
          * ```typescript
          * const shouldSubscribe = await io.input.boolean("Subscribe to our newsletter?");
          * ```
@@ -648,6 +660,8 @@ export class IOClient {
         boolean: this.createIOMethod('INPUT_BOOLEAN'),
         /**
          * Requests a numeric value.
+         *
+         * **Usage:**
          *
          * ```typescript
          * const amount = await io.input.number("Amount", {
@@ -661,6 +675,8 @@ export class IOClient {
         /**
          * Requests an email address.
          *
+         * **Usage:**
+         *
          * ```typescript
          * const email = await io.input.email("Email address", {
          *   helpText: "Please provide your work email.",
@@ -671,6 +687,8 @@ export class IOClient {
         email: this.createIOMethod('INPUT_EMAIL'),
         /**
          * Requests rich text input and returns a string of HTML.
+         *
+         * **Usage:**
          *
          * ```typescript
          * const body = await io.input.richText("Email body", {
@@ -683,6 +701,8 @@ export class IOClient {
          * Requests a URL.
          *
          * The URL is validated and an error is shown if the provided value is not a URL. You can perform additional URL validation by using the validation API with `.validate()`.
+         *
+         * **Usage:**
          *
          * ```typescript
          * const redirectUrl = await io.input.url("Redirect URL", {
@@ -700,6 +720,8 @@ export class IOClient {
         /**
          * Requests a date.
          *
+         * **Usage:**
+         *
          * ```typescript
          * const date = await io.input.date("Date");
          * ```
@@ -708,6 +730,8 @@ export class IOClient {
         /**
          * Requests a time.
          *
+         * **Usage:**
+         *
          * ```typescript
          * const time = await io.input.time("Time");
          * ```
@@ -715,6 +739,8 @@ export class IOClient {
         time: this.createIOMethod('INPUT_TIME'),
         /**
          * Requests a date & time.
+         *
+         * **Usage:**
          *
          * ```typescript
          * const datetime = await io.input.datetime("Date & time");
@@ -731,6 +757,8 @@ export class IOClient {
          *
          * You may upload the file directly to your own S3-compatible API by providing custom presigned upload and download URLs via the `generatePresignedUrls` property.
          *
+         * **Usage:**
+         *
          * ```typescript
          * const datetime = await io.input.datetime("Date & time");
          * ```
@@ -745,6 +773,8 @@ export class IOClient {
       select: {
         /**
          * Prompts the app user to select a single value from a set of provided values.
+         *
+         * **Usage:**
          *
          * ```typescript
          * const currency = await io.select.single("Currency", {
@@ -766,6 +796,8 @@ export class IOClient {
         }),
         /**
          * Prompts the app user to select a number of values from a set of provided values.
+         *
+         * **Usage:**
          *
          * ```typescript
          * const condiments = await io.select.multiple("Condiments", {
@@ -790,6 +822,8 @@ export class IOClient {
         }),
         /**
          * Prompts the app user to select a number of values from an array of tabular data.
+         *
+         * **Usage:**
          *
          * ```typescript
          * const albums = await io.select.table("Select your favorites", {
@@ -825,6 +859,8 @@ export class IOClient {
         /**
          * Displays a block of code to the action user.
          *
+         * **Usage:**
+         *
          * ```typescript
          * await io.display.code("Check out the source code", {
          *   code: 'console.log("Hello world!")',
@@ -837,6 +873,8 @@ export class IOClient {
         }),
         /**
          * Displays a heading to the action user.
+         *
+         * **Usage:**
          *
          * ```typescript
          * await io.display.heading("User created!", {
@@ -856,6 +894,8 @@ export class IOClient {
         /**
          * Displays rendered markdown to the action user. Accepts GitHub Flavored Markdown.
          *
+         * **Usage:**
+         *
          * ```typescript
          * await io.display.markdown("**Warning:** This _will_ erase user data.");
          * ```
@@ -865,6 +905,8 @@ export class IOClient {
          * Displays an image to the action user.
          *
          * One of `url` or `buffer` must be provided.
+         *
+         * **Usage:**
          *
          * ```typescript
          * await io.display.image("An animated gif", {
@@ -880,6 +922,8 @@ export class IOClient {
         }),
         /**
          * Displays a series of label/value pairs in a variety of layout options.
+         *
+         * **Usage:**
          *
          * ```typescript
          * await io.display.metadata("User info", {
@@ -908,6 +952,8 @@ export class IOClient {
         /**
          * Displays a button-styled action link to the action user. Can link to an external URL or to another action or page.
          *
+         * **Usage:**
+         *
          * ```typescript
          * await io.display.link("Run another action", {
          *   route: "usefulAction",
@@ -921,6 +967,8 @@ export class IOClient {
         }),
         /**
          * Displays an object of nested arbitrary data to the action user.
+         *
+         * **Usage:**
          *
          * ```typescript
          * await io.display.object("Example object", {
@@ -939,6 +987,8 @@ export class IOClient {
         }),
         /**
          * Displays tabular data.
+         *
+         * **Usage:**
          *
          * ```typescript
          * await io.display.table("Albums", {
@@ -975,6 +1025,8 @@ export class IOClient {
          * Grid item size can be controlled using the idealColumnWidth property. Interval will calculate a column width that is as close as possible to that number while factoring in gutter size and window width.
          *
          * Images default to a 16:9 aspect ratio with `object-fit` set to cover, and can be customized via the `image.aspectRatio` and `image.fit` properties respectively in the renderItem callback.
+         *
+         * **Usage:**
          *
          * ```typescript
          * await io.display.grid("Albums", {
@@ -1019,6 +1071,8 @@ export class IOClient {
         }),
         /**
          * Displays a video to the action user. One of url or buffer must be provided.
+         *
+         * **Usage:**
          *
          * ```typescript
          * await io.display.video("A video", {

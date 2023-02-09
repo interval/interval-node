@@ -84,6 +84,8 @@ export type ActionCtx = {
   /**
    * Logs anything from your action by printing a message in the Interval dashboard. Works with multiple arguments like JavaScript’s console.log. Logs are truncated at 10,000 characters.
    *
+   * **Usage:**
+   *
    * ```typescript
    * await ctx.log("Some prime numbers", [2, 3, 5, 7, 11, 13]);
    * ```
@@ -91,6 +93,8 @@ export type ActionCtx = {
   log: ActionLogFn
   /**
    * Sends a custom notification to Interval users via email or Slack. To send Slack notifications, you'll need to connect your Slack workspace to the Interval app in your organization settings.
+   *
+   * **Usage:**
    *
    * ```typescript
    * await ctx.notify({
@@ -111,6 +115,8 @@ export type ActionCtx = {
   notify: NotifyFn
   /**
    * Perform a redirect to another action or an external URL in the user's current browser window.
+   *
+   * **Usage:**
    *
    * ```typescript
    * // To another action

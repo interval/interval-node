@@ -39,6 +39,8 @@ export default class TransactionLoadingState {
   /**
    * Kicks off a loading spinner to provide context during any long-running action work. Can also be called with a single string argument as the title, or with no arguments to display only a spinner.
    *
+   * **Usage:**
+   *
    *```typescript
    * await ctx.loading.start({
    *   title: "Reticulating splines...",
@@ -64,6 +66,8 @@ export default class TransactionLoadingState {
 
   /**
    * Updates any existing loading spinner initated with `ctx.loading.start` to dynamically provide new loading information to the action runner.
+   *
+   * **Usage:**
    *
    *```typescript
    * await ctx.loading.start({
@@ -100,6 +104,8 @@ export default class TransactionLoadingState {
 
   /**
    * Marks a chunk of work as completed to dynamically provide granular loading progress. Can only be used after `ctx.loading.start` was called with `itemsInQueue`.
+   *
+   * **Usage:**
    *
    *```typescript
    * await ctx.loading.start({
