@@ -923,9 +923,13 @@ export default class IntervalClient {
         }
 
         const { action, transactionId, clientId } = inputs
-        const prevClientId = this.#peerIdMap.get(transactionId)
 
-        if (clientId && clientId !== prevClientId) {
+        if (this.#ioResponseHandlers.has(transactionId)) {
+          this.#logger.debug('Transaction already started, not starting again')
+          return
+        }
+
+        if (clientId) {
           this.#peerIdMap.set(transactionId, clientId)
           let set = this.#peerIdToTransactionIdsMap.get(clientId)
           if (!set) {
@@ -933,26 +937,6 @@ export default class IntervalClient {
             this.#peerIdToTransactionIdsMap.set(clientId, set)
           }
           set.add(transactionId)
-        }
-
-        if (this.#ioResponseHandlers.has(transactionId)) {
-          this.#logger.debug('Transaction already started, not starting again')
-
-          if (clientId !== prevClientId) {
-            // only resend if is a new peer connection
-            // TODO: Actually ensure this peer is the same as the original caller somehow
-            this.#resendPendingIOCalls([transactionId]).catch(err => {
-              this.#logger.debug('Failed resending pending IO calls', err)
-            })
-            this.#resendTransactionLoadingStates([transactionId]).catch(err => {
-              this.#logger.debug(
-                'Failed resending transaction loading states',
-                err
-              )
-            })
-          }
-
-          return
         }
 
         const actionHandler = intervalClient.#actionHandlers.get(action.slug)
@@ -1278,11 +1262,32 @@ export default class IntervalClient {
 
         const prevClientId = this.#peerIdMap.get(pageKey)
 
-        if (
-          clientId &&
-          clientId !== prevClientId &&
-          this.#dccMap.get(clientId)?.rpc
-        ) {
+        // if page is already opened but a new instance of the same client connects (peer connection) resend them the previous call
+        if (this.#pendingPageLayouts.has(pageKey)) {
+          if (clientId === prevClientId) {
+            this.#logger.debug('Resending previous page to new peer', pageKey)
+            this.#resendPendingPageLayouts([pageKey]).catch(err => {
+              this.#logger.debug(
+                'Failed resending page body to pageKey',
+                pageKey,
+                err
+              )
+            })
+            return {
+              type: 'SUCCESS' as const,
+              pageKey,
+            }
+          }
+
+          // This client ID is not validated for this existing page.
+          // return error and have client request with a new pageKey
+          return {
+            type: 'ERROR' as const,
+            message: 'Unauthorized client, please request a new page',
+          }
+        }
+
+        if (clientId) {
           this.#peerIdMap.set(pageKey, clientId)
           let peerPageKeys = this.#peerIdToPageKeysMap.get(clientId)
           if (!peerPageKeys) {
@@ -1290,23 +1295,6 @@ export default class IntervalClient {
             this.#peerIdToPageKeysMap.set(clientId, peerPageKeys)
           }
           peerPageKeys.add(pageKey)
-        }
-
-        // if page is already opened but a new client connects resend them the previous call
-        // TODO: Actually ensure this peer is the same as the original caller somehow
-        if (this.#pendingPageLayouts.has(pageKey)) {
-          this.#logger.debug('Resending previous page to new peer', pageKey)
-          this.#resendPendingPageLayouts([pageKey]).catch(err => {
-            this.#logger.debug(
-              'Failed resending page body to pageKey',
-              pageKey,
-              err
-            )
-          })
-          return {
-            type: 'SUCCESS' as const,
-            pageKey,
-          }
         }
 
         let { params, paramsMeta } = inputs
