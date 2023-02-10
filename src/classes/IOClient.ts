@@ -569,7 +569,7 @@ export class IOClient {
   }
 
   /**
-   * The namespace of IO functions available in action handlers.
+   * The namespace of I/O methods available in action handlers.
    */
   get io() {
     return {
@@ -633,7 +633,7 @@ export class IOClient {
       }),
 
       /**
-       * The namespace for user-provided input methods.
+       * The namespace for methods to collect user input.
        */
       input: {
         /**
@@ -768,7 +768,7 @@ export class IOClient {
         }),
       },
       /**
-       * The namespace for methods for users to select items from a predefined list.
+       * The namespace for methods which allow users to select items from a predefined list.
        */
       select: {
         /**
@@ -853,7 +853,7 @@ export class IOClient {
         }),
       },
       /**
-       * The namespace for informational display components that return `null` and can be used inside Pages as well as actions.
+       * The namespace for methods that display information to the user. These methods return `null` and can be used inside pages as well as actions.
        */
       display: {
         /**
