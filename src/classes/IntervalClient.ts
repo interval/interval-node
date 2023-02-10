@@ -272,7 +272,7 @@ export default class IntervalClient {
     return this.#logger
   }
 
-  #pageIOClients = new Map<string, IOClient>()
+  #ioClients = new Map<string, IOClient>()
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
   #pendingIOCalls = new Map<string, string>()
   #pendingPageLayouts = new Map<string, string>()
@@ -633,6 +633,27 @@ export default class IntervalClient {
             })
         )
       )
+    }
+  }
+
+  #closeTransaction(transactionId: string) {
+    this.#log.debug('Closing transaction', transactionId)
+
+    this.#pendingIOCalls.delete(transactionId)
+    this.#transactionLoadingStates.delete(transactionId)
+    this.#ioResponseHandlers.delete(transactionId)
+    const client = this.#ioClients.get(transactionId)
+    if (client) {
+      this.#ioClients.delete(transactionId)
+      for (const key of client.inlineActionKeys.values()) {
+        this.#actionHandlers.delete(key)
+      }
+    }
+
+    const peerId = this.#peerIdMap.get(transactionId)
+    if (peerId) {
+      this.#peerIdMap.delete(transactionId)
+      this.#peerIdToTransactionIdsMap.get(peerId)?.delete(transactionId)
     }
   }
 
@@ -1041,6 +1062,7 @@ export default class IntervalClient {
             intervalClient.#sendRedirect(transactionId, props),
         }
 
+        this.#ioClients.set(transactionId, client)
         const { io } = client
 
         const handleAction = () => {
@@ -1158,19 +1180,8 @@ export default class IntervalClient {
               }
             })
             .finally(() => {
-              intervalClient.#pendingIOCalls.delete(transactionId)
-              intervalClient.#transactionLoadingStates.delete(transactionId)
-              intervalClient.#ioResponseHandlers.delete(transactionId)
-              for (const key of client.inlineActionKeys.values()) {
-                intervalClient.#actionHandlers.delete(key)
-              }
-
-              const peerId = this.#peerIdMap.get(transactionId)
-              if (peerId) {
-                this.#peerIdMap.delete(transactionId)
-                this.#peerIdToTransactionIdsMap
-                  .get(peerId)
-                  ?.delete(transactionId)
+              if (!inputs.postponeCompleteCleanup) {
+                this.#closeTransaction(transactionId)
               }
             })
         }
@@ -1186,20 +1197,23 @@ export default class IntervalClient {
         return
       },
       IO_RESPONSE: async inputs => {
-        this.#log.debug('got io response', inputs)
+        this.#log.debug('Got io response', inputs)
 
         try {
           const ioResp = IO_RESPONSE.parse(JSON.parse(inputs.value))
-          const replyHandler = this.#ioResponseHandlers.get(
+          const responseHandler = this.#ioResponseHandlers.get(
             ioResp.transactionId
           )
 
-          if (!replyHandler) {
-            this.#log.debug('Missing reply handler for', inputs.transactionId)
+          if (!responseHandler) {
+            this.#log.debug(
+              'Missing response handler for transaction ID',
+              inputs.transactionId
+            )
             return
           }
 
-          replyHandler(ioResp)
+          responseHandler(ioResp)
         } catch (err) {
           if (err instanceof ZodError) {
             this.#log.error('Received invalid IO response:', inputs)
@@ -1208,6 +1222,9 @@ export default class IntervalClient {
             this.#log.error('Failed handling IO response:', err)
           }
         }
+      },
+      CLOSE_TRANSACTION: async ({ transactionId }) => {
+        this.#closeTransaction(transactionId)
       },
       OPEN_PAGE: async inputs => {
         if (!this.organization) {
@@ -1428,7 +1445,7 @@ export default class IntervalClient {
           io: { group, display },
         } = client
 
-        this.#pageIOClients.set(pageKey, client)
+        this.#ioClients.set(pageKey, client)
         this.#ioResponseHandlers.set(pageKey, client.onResponse.bind(client))
 
         const pageError = (
@@ -1585,14 +1602,14 @@ export default class IntervalClient {
         }
       },
       CLOSE_PAGE: async inputs => {
-        const client = this.#pageIOClients.get(inputs.pageKey)
+        const client = this.#ioClients.get(inputs.pageKey)
         if (client) {
           for (const key of client.inlineActionKeys.values()) {
             this.#actionHandlers.delete(key)
           }
 
           client.inlineActionKeys.clear()
-          this.#pageIOClients.delete(inputs.pageKey)
+          this.#ioClients.delete(inputs.pageKey)
         }
 
         const peerId = this.#peerIdMap.get(inputs.pageKey)
