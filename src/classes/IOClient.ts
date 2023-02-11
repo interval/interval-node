@@ -87,7 +87,8 @@ export class IOClient {
   isDemo: boolean
   // onAddInlineAction: (handler: IntervalActionHandler) => string
 
-  onResponseHandler: ResponseHandlerFn | undefined
+  previousInputGroupKey: string | undefined
+  onResponseHandlers = new Map<string, ResponseHandlerFn>()
   inlineActionKeys = new Set<string>()
   isCanceled = false
 
@@ -156,7 +157,7 @@ export class IOClient {
           await this.send(packed)
         }
 
-        this.onResponseHandler = async result => {
+        const inputGroupResponseHandler: ResponseHandlerFn = async result => {
           try {
             if (
               result.inputGroupKey &&
@@ -166,7 +167,10 @@ export class IOClient {
               return
             }
 
-            if (this.isCanceled || isReturned) {
+            if (
+              (this.isCanceled || isReturned) &&
+              (result.kind === 'RETURN' || result.kind === 'CANCELED')
+            ) {
               this.logger.debug('Received response after IO call complete')
               return
             }
@@ -261,6 +265,9 @@ export class IOClient {
             reject(err)
           }
         }
+
+        this.onResponseHandlers.set(inputGroupKey, inputGroupResponseHandler)
+        this.previousInputGroupKey = inputGroupKey
 
         for (const c of components) {
           // every time any component changes their state, we call render (again)
@@ -1097,12 +1104,27 @@ export class IOClient {
   }
 
   onResponse(result: T_IO_RESPONSE) {
-    if (this.onResponseHandler) {
-      try {
-        this.onResponseHandler(result)
-      } catch (err) {
-        this.logger.error('Error in onResponseHandler:', err)
-      }
+    const inputGroupKey = result.inputGroupKey ?? this.previousInputGroupKey
+
+    if (!inputGroupKey) {
+      this.logger.error('Received response without an inputGroupKey')
+      return
+    }
+
+    const inputGroupHandler = this.onResponseHandlers.get(inputGroupKey)
+
+    if (!inputGroupHandler) {
+      this.logger.error(
+        'No response handler defined for inputGroupKey',
+        inputGroupKey
+      )
+      return
+    }
+
+    try {
+      inputGroupHandler(result)
+    } catch (err) {
+      this.logger.error('Error in input group response handler:', err)
     }
   }
 }

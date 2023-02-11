@@ -252,6 +252,12 @@ export const wsServerSchema = {
     }),
     returns: z.boolean(),
   },
+  LEAVE_TRANSACTION: {
+    inputs: z.object({
+      transactionId: z.string(),
+    }),
+    returns: z.boolean(),
+  },
   REQUEST_PAGE: {
     inputs: z.object({
       pageKey: z.string().optional(),
@@ -538,6 +544,9 @@ export const hostSchema = {
     inputs: z.object({
       transactionId: z.string(),
       clientId: z.string().optional(),
+
+      postponeCompleteCleanup: z.boolean().optional(),
+
       // Actually slug, for backward compatibility
       // TODO: Remove breaking release, superfluous with slug below
       actionName: z.string(),
@@ -553,6 +562,12 @@ export const hostSchema = {
       }),
       params: serializableRecord,
       paramsMeta: z.any().optional(),
+    }),
+    returns: z.void().nullable(),
+  },
+  CLOSE_TRANSACTION: {
+    inputs: z.object({
+      transactionId: z.string(),
     }),
     returns: z.void().nullable(),
   },
