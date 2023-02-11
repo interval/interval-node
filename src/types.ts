@@ -20,7 +20,11 @@ import type {
   LegacyLinkProps,
   T_IO_MULTIPLEABLE_METHOD_NAMES,
 } from './ioSchema'
-import type { AccessControlDefinition, HostSchema } from './internalRpcSchema'
+import type {
+  AccessControlDefinition,
+  ActionEnvironment,
+  HostSchema,
+} from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
 import type IOComponent from './classes/IOComponent'
 import type {
@@ -43,20 +47,110 @@ import type Page from './classes/Page'
 import type { BasicLayoutConfig } from './classes/Layout'
 import type Action from './classes/Action'
 
-export type ActionCtx = Pick<
-  z.infer<HostSchema['START_TRANSACTION']['inputs']>,
-  'user' | 'params' | 'environment'
-> & {
+export type Prettify<T> = {
+  [K in keyof T]: T[K]
+} & {}
+
+export type ActionCtx = {
+  /**
+   * Basic information about the user running the action or page.
+   */
+  user: {
+    /**
+     * The email of the user running the action or page.
+     */
+    email: string
+    /**
+     * The first name of the user running the action or page, if present.
+     */
+    firstName: string | null
+    /**
+     * The last name of the user running the action or page, if present.
+     */
+    lastName: string | null
+  }
+  /**
+   * A key/value object containing the query string URL parameters of the running action or page.
+   */
+  params: SerializableRecord
+  /**
+   * The environment the action or page is running within.
+   */
+  environment: ActionEnvironment
+  /**
+   * Methods to display loading indicators to the user.
+   */
   loading: TransactionLoadingState
+  /**
+   * Logs anything from your action by printing a message in the Interval dashboard. Works with multiple arguments like JavaScript’s console.log. Logs are truncated at 10,000 characters.
+   *
+   * **Usage:**
+   *
+   * ```typescript
+   * await ctx.log("Some prime numbers", [2, 3, 5, 7, 11, 13]);
+   * ```
+   */
   log: ActionLogFn
+  /**
+   * Sends a custom notification to Interval users via email or Slack. To send Slack notifications, you'll need to connect your Slack workspace to the Interval app in your organization settings.
+   *
+   * **Usage:**
+   *
+   * ```typescript
+   * await ctx.notify({
+   *   message: "A charge of $500 was refunded",
+   *   title: "Refund over threshold",
+   *   delivery: [
+   *     {
+   *       to: "#interval-notifications",
+   *       method: "SLACK",
+   *     },
+   *     {
+   *       to: "foo@example.com",
+   *     },
+   *   ],
+   * });
+   * ```
+   */
   notify: NotifyFn
+  /**
+   * Perform a redirect to another action or an external URL in the user's current browser window.
+   *
+   * **Usage:**
+   *
+   * ```typescript
+   * // To another action
+   * await ctx.redirect({ action: "edit_user", params: { id: user.id } });
+   *
+   * // To an external URL
+   * await ctx.redirect({ url: "https://example.com" });
+   * ```
+   */
   redirect: RedirectFn
+  /**
+   * Basic information about the organization.
+   */
   organization: {
+    /**
+     * The name of the organization.
+     */
     name: string
+    /**
+     * The unique slug of the organization.
+     */
     slug: string
   }
+  /**
+   * Information about the currently running action.
+   */
   action: {
+    /**
+     * The current action's unique slug.
+     */
     slug: string
+    /**
+     * The canonical absolute URL to access the individual action execution history.
+     */
     url: string
   }
 }
@@ -65,7 +159,13 @@ export type PageCtx = Pick<
   ActionCtx,
   'user' | 'params' | 'environment' | 'organization'
 > & {
+  /**
+   * Information about the currently open page.
+   */
   page: {
+    /**
+     * The current page's unique slug.
+     */
     slug: string
   }
 }
@@ -135,7 +235,7 @@ export type IOComponentFunction<
   Output = ComponentReturnValue<MethodName>
 > = (
   label: string,
-  props?: Props
+  props?: Prettify<Props>
 ) => IOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
 export type InputIOComponentFunction<
@@ -144,7 +244,7 @@ export type InputIOComponentFunction<
   Output = ComponentReturnValue<MethodName>
 > = (
   label: string,
-  props?: Props
+  props?: Prettify<Props>
 ) => InputIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
 export type RequiredPropsInputIOComponentFunction<
@@ -153,7 +253,7 @@ export type RequiredPropsInputIOComponentFunction<
   Output = ComponentReturnValue<MethodName>
 > = (
   label: string,
-  props: Props
+  props: Prettify<Props>
 ) => InputIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
 export type MultipleableInputIOComponentFunction<
@@ -162,7 +262,7 @@ export type MultipleableInputIOComponentFunction<
   Output = ComponentReturnValue<MethodName>
 > = (
   label: string,
-  props?: Props
+  props?: Prettify<Props>
 ) => MultipleableIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
 export type RequiredPropsMultipleableInputIOComponentFunction<
@@ -171,7 +271,7 @@ export type RequiredPropsMultipleableInputIOComponentFunction<
   Output = ComponentReturnValue<MethodName>
 > = (
   label: string,
-  props: Props
+  props: Prettify<Props>
 ) => MultipleableIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
 export type DisplayIOComponentFunction<
@@ -180,7 +280,7 @@ export type DisplayIOComponentFunction<
   Output = ComponentReturnValue<MethodName>
 > = (
   label: string,
-  props?: Props
+  props?: Prettify<Props>
 ) => DisplayIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
 export type RequiredPropsDisplayIOComponentFunction<
@@ -189,7 +289,7 @@ export type RequiredPropsDisplayIOComponentFunction<
   Output = ComponentReturnValue<MethodName>
 > = (
   label: string,
-  props: Props
+  props: Prettify<Props>
 ) => DisplayIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
 export type ExclusiveIOComponentFunction<
@@ -198,7 +298,7 @@ export type ExclusiveIOComponentFunction<
   Output = ComponentReturnValue<MethodName>
 > = (
   label: string,
-  props?: Props
+  props?: Prettify<Props>
 ) => ExclusiveIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
 export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = (

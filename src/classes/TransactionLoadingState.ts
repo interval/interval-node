@@ -36,6 +36,19 @@ export default class TransactionLoadingState {
     return { ...this.#state }
   }
 
+  /**
+   * Kicks off a loading spinner to provide context during any long-running action work. Can also be called with a single string argument as the title, or with no arguments to display only a spinner.
+   *
+   * **Usage:**
+   *
+   *```typescript
+   * await ctx.loading.start({
+   *   title: "Reticulating splines...",
+   * });
+   *
+   * await ctx.loading.start("Title only shorthand");
+   *```
+   */
   async start(options?: string | LoadingOptions) {
     if (typeof options === 'string') {
       options = { title: options }
@@ -51,6 +64,23 @@ export default class TransactionLoadingState {
     return this.#sendState()
   }
 
+  /**
+   * Updates any existing loading spinner initated with `ctx.loading.start` to dynamically provide new loading information to the action runner.
+   *
+   * **Usage:**
+   *
+   *```typescript
+   * await ctx.loading.start({
+   *   title: "Something is loading",
+   *   description: "Mapping all the things",
+   * });
+   *
+   * await ctx.loading.update({
+   *   title: "Something is loading",
+   *   description: "Now reducing all the things",
+   * });
+   *```
+   */
   async update(options?: string | LoadingOptions) {
     if (!this.#state) {
       this.#logger.warn('Please call `loading.start` before `loading.update`')
@@ -72,6 +102,24 @@ export default class TransactionLoadingState {
     return this.#sendState()
   }
 
+  /**
+   * Marks a chunk of work as completed to dynamically provide granular loading progress. Can only be used after `ctx.loading.start` was called with `itemsInQueue`.
+   *
+   * **Usage:**
+   *
+   *```typescript
+   * await ctx.loading.start({
+   *   title: "Migrating users",
+   *   description: "Enabling edit button for selected users",
+   *   itemsInQueue: 100,
+   * });
+   *
+   * for (const user of users) {
+   *   migrateUser(user);
+   *   await ctx.loading.completeOne();
+   * }
+   *```
+   */
   async completeOne() {
     if (!this.#state || !this.#state.itemsInQueue) {
       this.#logger.warn(
