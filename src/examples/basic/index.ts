@@ -107,6 +107,41 @@ const prod = new Interval({
       },
     },
     actionLinks,
+    continueCmdEnter: {
+      name: 'CMD + Enter submit demo',
+      handler: async () => {
+        const [theme, label, requireCompletion] = await io.group([
+          io.select.single('Theme', {
+            options: ['primary', 'danger', 'secondary'],
+            defaultValue: 'primary',
+          }),
+          io.input.text('Label', {
+            defaultValue: 'Continue',
+          }),
+          io.input.boolean('Require completion?', {
+            defaultValue: false,
+          }),
+        ])
+
+        const [value] = await io.group(
+          [
+            io.input.text('Enter some multiline text', {
+              multiline: true,
+              defaultValue: 'Say something...',
+            }),
+            io.input.number('Enter a number').optional(!requireCompletion),
+          ],
+          {
+            continueButton: {
+              theme: theme as 'primary' | 'secondary' | 'danger',
+              label,
+            },
+          }
+        )
+
+        return `You said: ${value}`
+      },
+    },
     helloCurrentUser: {
       name: 'Hello, current user!',
       description: '👋',
