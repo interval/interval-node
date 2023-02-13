@@ -1566,6 +1566,7 @@ export default class IntervalClient {
             })
             .catch(async err => {
               this.#logger.error('Error in page:', err)
+              errors.push(pageError(err))
               const pageLayout: LayoutSchemaInput = {
                 kind: 'BASIC',
                 errors,

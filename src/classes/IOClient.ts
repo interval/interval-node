@@ -290,11 +290,31 @@ export class IOClient {
   }
 
   /**
-   * A thin wrapper around `renderComponents` that converts IOPromises into
-   * their inner components, sends those components through `renderComponents`,
-   * and transforms the response sent over the wire to the final return types
-   * for each given component using the corresponding IOPromise's `getValue`
-   * method.
+   * Combines multiple I/O method calls into a single form.
+   *
+   * Individual I/O methods await within your action until user input is provided, such that each I/O method call results in a distinct step within the generated app. `io.group` allows you to group multiple I/O methods together to request input all at once in a single step.
+   *
+   * Custom validation can be performed on groups by chaining a `.validate()` method call to the group.
+   *
+   * **Usage:**
+   *
+   * ```typescript
+   * const [name, email, age] = await io.group([
+   *   io.input.text("Name"),
+   *   io.input.email("Email"),
+   *   io.input.number("Age"),
+   * ]);
+   *
+   * ```
+   *
+   * ```typescript
+   * const { name, email, age } = await io.group({
+   *   name: io.input.text("Name"),
+   *   email: io.input.email("Email"),
+   *   age: io.input.number("Age"),
+   * });
+   *
+   * ```
    */
   group<
     IOPromises extends
@@ -563,81 +583,519 @@ export class IOClient {
   }
 
   /**
-   * The namespace of IO functions available in action handlers.
+   * The namespace of I/O methods available in action handlers.
    */
   get io() {
     return {
+      // This doc comment is on the group function above
       group: this.group.bind(this),
 
+      /**
+       * Requests confirmation of an action using a full-screen dialog box.
+       *
+       * **Note:** `io.confirm` is not supported within an `io.group`.
+       *
+       * **Usage:**
+       *
+       * ```typescript
+       * const shouldDelete = await io.confirm("Delete this user account?", {
+       *   helpText: "All of their data will be deleted immediately.",
+       * });
+       * ```
+       */
       confirm: this.createExclusiveIOMethod('CONFIRM'),
+
+      /**
+       * Requests multi-factor authentication or password confirmation of the person running the action.
+       *
+       * **Note:** `io.confirmIdentity` is not supported within an `io.group`.
+       *
+       * **Usage:**
+       *
+       * ```typescript
+       * const shouldDelete = await io.confirmIdentity("This is a sensitive action.");
+       * ```
+       */
       confirmIdentity: this.createExclusiveIOMethod('CONFIRM_IDENTITY', {
         demoUnsupported: true,
       }),
+
+      /**
+       * Allows searching for arbitrary results from a search box.
+       *
+       * **Usage:**
+       *
+       * ```typescript
+       * const user = await io.search("Search for a user", {
+       *   renderResult: user => ({
+       *     label: user.name,
+       *     description: user.email,
+       *     image: {
+       *       url: user.avatar,
+       *       size: "small",
+       *     },
+       *   }),
+       *   onSearch: async query => {
+       *     return users.filter(user => user.name.includes(query));
+       *   },
+       * });
+       * ```
+       */
       search: this.createIOMethod('SEARCH', {
         propsRequired: true,
         componentDef: search,
       }),
 
+      /**
+       * The namespace for methods to collect user input.
+       */
       input: {
+        /**
+         * Requests a string value.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const text = await io.input.text("Company name", {
+         *   placeholder: "Acme Inc.",
+         * });
+         * ```
+         */
         text: this.createIOMethod('INPUT_TEXT'),
+        /**
+         * Requests a boolean value.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const shouldSubscribe = await io.input.boolean("Subscribe to our newsletter?");
+         * ```
+         */
         boolean: this.createIOMethod('INPUT_BOOLEAN'),
+        /**
+         * Requests a numeric value.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const amount = await io.input.number("Amount", {
+         *   helpText: "Enter a number between one and ten.",
+         *   min: 1,
+         *   max: 10,
+         * });
+         * ```
+         */
         number: this.createIOMethod('INPUT_NUMBER'),
+        /**
+         * Requests an email address.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const email = await io.input.email("Email address", {
+         *   helpText: "Please provide your work email.",
+         *   placeholder: "you@example.com",
+         * });
+         * ```
+         */
         email: this.createIOMethod('INPUT_EMAIL'),
+        /**
+         * Requests rich text input and returns a string of HTML.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const body = await io.input.richText("Email body", {
+         *   helpText: "Please include user activation information.",
+         * });
+         * ```
+         */
         richText: this.createIOMethod('INPUT_RICH_TEXT'),
+        /**
+         * Requests a URL.
+         *
+         * The URL is validated and an error is shown if the provided value is not a URL. You can perform additional URL validation by using the validation API with `.validate()`.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const redirectUrl = await io.input.url("Redirect URL", {
+         *   helpText: "Please provide a URL for the redirect.",
+         *   placeholder: "https://example.com",
+         *   allowedProtocols: ["https"],
+         * });
+         *
+         *  return redirectUrl.href;
+         * ```
+         */
         url: this.createIOMethod('INPUT_URL', {
           componentDef: urlInput,
         }),
+        /**
+         * Requests a date.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const date = await io.input.date("Date");
+         * ```
+         */
         date: this.createIOMethod('INPUT_DATE', { componentDef: date }),
+        /**
+         * Requests a time.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const time = await io.input.time("Time");
+         * ```
+         */
         time: this.createIOMethod('INPUT_TIME'),
+        /**
+         * Requests a date & time.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const datetime = await io.input.datetime("Date & time");
+         * ```
+         */
         datetime: this.createIOMethod('INPUT_DATETIME', {
           componentDef: datetime,
         }),
+
+        /**
+         * Prompts the app user to select and upload a file.
+         *
+         * The resulting object points to a temporary file that expires after the action finishes running. You can access its contents in your action and optionally persist the file elsewhere if it should live longer.
+         *
+         * You may upload the file directly to your own S3-compatible API by providing custom presigned upload and download URLs via the `generatePresignedUrls` property.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const datetime = await io.input.datetime("Date & time");
+         * ```
+         */
         file: this.createIOMethod('UPLOAD_FILE', {
           componentDef: file(this.logger),
         }),
       },
+      /**
+       * The namespace for methods which allow users to select items from a predefined list.
+       */
       select: {
+        /**
+         * Prompts the app user to select a single value from a set of provided values.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const currency = await io.select.single("Currency", {
+         *   options: [
+         *     { label: "US Dollar", value: "USD" },
+         *     { label: "Canadian Dollar", value: "CAD" },
+         *     { label: "Euro", value: "EUR" },
+         *   ],
+         *   defaultValue: "USD",
+         *   helpText: "Currency for this transaction",
+         * });
+         *
+         * const currencyCode = currency.value;
+         * ```
+         */
         single: this.createIOMethod('SELECT_SINGLE', {
           propsRequired: true,
           componentDef: selectSingle(this.logger),
         }),
+        /**
+         * Prompts the app user to select a number of values from a set of provided values.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const condiments = await io.select.multiple("Condiments", {
+         *   options: [
+         *     { label: "Ketchup", value: 0 },
+         *     { label: "Mustard", value: 1 },
+         *     { label: "Mayo", value: 2 },
+         *   ],
+         *   defaultValue: [
+         *     { label: "Ketchup", value: 0 },
+         *     { label: "Mustard", value: 1 },
+         *   ],
+         *   helpText: "What goes on it?",
+         * });
+         *
+         * const condimentIds = condiments.map(condiment => condiment.value);
+         * ```
+         */
         multiple: this.createIOMethod('SELECT_MULTIPLE', {
           propsRequired: true,
           componentDef: selectMultiple(this.logger),
         }),
+        /**
+         * Prompts the app user to select a number of values from an array of tabular data.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const albums = await io.select.table("Select your favorites", {
+         *   data: [
+         *     {
+         *       album: "Exile on Main Street",
+         *       artist: "The Rolling Stones",
+         *       year: 1972,
+         *     },
+         *     {
+         *       artist: "Michael Jackson",
+         *       album: "Thriller",
+         *       year: 1982,
+         *     },
+         *     {
+         *       album: "Enter the Wu-Tang (36 Chambers)",
+         *       artist: "Wu-Tang Clan",
+         *       year: 1993,
+         *     },
+         *   ],
+         * });
+         * ```
+         */
         table: this.createIOMethod('SELECT_TABLE', {
           propsRequired: true,
           componentDef: selectTable(this.logger),
         }),
       },
+      /**
+       * The namespace for methods that display information to the user. These methods return `null` and can be used inside pages as well as actions.
+       */
       display: {
+        /**
+         * Displays a block of code to the action user.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.code("Check out the source code", {
+         *   code: 'console.log("Hello world!")',
+         *   language: "javascript",
+         * });
+         * ```
+         */
         code: this.createIOMethod('DISPLAY_CODE', {
           propsRequired: true,
         }),
+        /**
+         * Displays a heading to the action user.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.heading("User created!", {
+         *   description: "Updated 5 minutes ago",
+         *   menuItems: [
+         *     {
+         *       label: "Edit user",
+         *       action: "edit_user",
+         *       params: { userId: 12 },
+         *     },
+         *   ],
+         * });
+         * ```
+         */
         heading: this.createIOMethod('DISPLAY_HEADING'),
+
+        /**
+         * Displays rendered markdown to the action user. Accepts GitHub Flavored Markdown.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.markdown("**Warning:** This _will_ erase user data.");
+         * ```
+         */
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
+        /**
+         * Displays an image to the action user.
+         *
+         * One of `url` or `buffer` must be provided.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.image("An animated gif", {
+         *   url: "https://media.giphy.com/media/26ybw6AltpBRmyS76/giphy.gif",
+         *   alt: "Man makes like he's going to jump on a skateboard but doesn't",
+         *   size: "medium",
+         * });
+         * ```
+         */
         image: this.createIOMethod('DISPLAY_IMAGE', {
           componentDef: displayImage,
           propsRequired: true,
         }),
+        /**
+         * Displays a series of label/value pairs in a variety of layout options.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.metadata("User info", {
+         *   layout: "card",
+         *   data: [
+         *     {
+         *       label: "Name",
+         *       value: `${user.firstName} ${user.lastName}`,
+         *     },
+         *     {
+         *       label: "Email",
+         *       value: user.email,
+         *       url: `mailto:${user.email}`,
+         *     },
+         *     {
+         *       label: "Friends",
+         *       value: user.friends.length,
+         *     },
+         *   ],
+         * });
+         * ```
+         */
         metadata: this.createIOMethod('DISPLAY_METADATA', {
           propsRequired: true,
         }),
+        /**
+         * Displays a button-styled action link to the action user. Can link to an external URL or to another action or page.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.link("Run another action", {
+         *   route: "usefulAction",
+         *   theme: "danger",
+         * });
+         * ```
+         */
         link: this.createIOMethod('DISPLAY_LINK', {
           componentDef: displayLink,
           propsRequired: true,
         }),
+        /**
+         * Displays an object of nested arbitrary data to the action user.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.object("Example object", {
+         *   data: [
+         *     {
+         *       album: "Exile on Main Street",
+         *       artist: "The Rolling Stones",
+         *       year: 1972,
+         *     },
+         *   ],
+         * });
+         * ```
+         */
         object: this.createIOMethod('DISPLAY_OBJECT', {
           propsRequired: true,
         }),
+        /**
+         * Displays tabular data.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.table("Albums", {
+         *   helpText: "Includes the artist and its year of release.",
+         *   data: [
+         *     {
+         *       album: "Exile on Main Street",
+         *       artist: "The Rolling Stones",
+         *       year: 1972,
+         *     },
+         *     {
+         *       album: "Thriller",
+         *       artist: "Michael Jackson",
+         *       year: 1982,
+         *     },
+         *     {
+         *       album: "Enter the Wu-Tang (36 Chambers)",
+         *       artist: "Wu-Tang Clan",
+         *       year: 1993,
+         *     },
+         *   ],
+         * });
+         * ```
+         */
         table: this.createIOMethod('DISPLAY_TABLE', {
           propsRequired: true,
           componentDef: displayTable(this.logger),
         }),
+        /**
+         * Displays data in a grid layout.
+         *
+         * Grid items can include a title, description, image, and options menu, and can optionally link to another page, action, or external URL.
+         *
+         * Grid item size can be controlled using the idealColumnWidth property. Interval will calculate a column width that is as close as possible to that number while factoring in gutter size and window width.
+         *
+         * Images default to a 16:9 aspect ratio with `object-fit` set to cover, and can be customized via the `image.aspectRatio` and `image.fit` properties respectively in the renderItem callback.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.grid("Albums", {
+         *   idealColumnWidth: 180,
+         *   data: [
+         *     {
+         *       album: "Exile on Main Street",
+         *       artist: "The Rolling Stones",
+         *       imageUrl:
+         *         "https://upload.wikimedia.org/wikipedia/en/c/ca/ExileMainSt.jpg",
+         *       spotifyId: "1D0PTM0bg7skufClSUOxTP",
+         *     },
+         *     {
+         *       album: "Thriller",
+         *       artist: "Michael Jackson",
+         *       imageUrl:
+         *         "https://upload.wikimedia.org/wikipedia/en/5/55/Michael_Jackson_-_Thriller.png",
+         *       spotifyId: "2ANVost0y2y52ema1E9xAZ",
+         *     },
+         *     {
+         *       album: "Enter the Wu-Tang (36 Chambers)",
+         *       artist: "Wu-Tang Clan",
+         *       imageUrl:
+         *         "https://upload.wikimedia.org/wikipedia/en/5/53/Wu-TangClanEntertheWu-Tangalbumcover.jpg",
+         *       spotifyId: "6acGx168JViE5LLFR1rGRE",
+         *     },
+         *   ],
+         *   renderItem: row => ({
+         *     title: row.album,
+         *     description: row.artist,
+         *     image: {
+         *       url: row.imageUrl,
+         *       aspectRatio: 1,
+         *     },
+         *   }),
+         * });
+         * ```
+         */
         grid: this.createIOMethod('DISPLAY_GRID', {
           propsRequired: true,
           componentDef: displayGrid,
         }),
+        /**
+         * Displays a video to the action user. One of url or buffer must be provided.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.video("A video", {
+         *   url: "https://upload.wikimedia.org/wikipedia/commons/a/ad/The_Kid_scenes.ogv",
+         *   size: "medium",
+         *   muted: true,
+         * });
+         * ```
+         */
         video: this.createIOMethod('DISPLAY_VIDEO', {
           componentDef: displayVideo,
           propsRequired: true,
