@@ -374,7 +374,15 @@ export type DateTimeObject = z.infer<typeof dateTimeObject>
  * Any methods with an `immediate` property defined (at all, not just truthy)
  * will resolve immediately when awaited.
  */
-export function resolvesImmediately(methodName: T_IO_METHOD_NAMES): boolean {
+export function resolvesImmediately(
+  methodName: T_IO_METHOD_NAMES,
+  {
+    displayResolvesImmediately = false,
+  }: { displayResolvesImmediately?: boolean } = {}
+): boolean {
+  if (displayResolvesImmediately && methodName.startsWith('DISPLAY_'))
+    return true
+
   const schema = ioSchema[methodName]
   return schema && 'immediate' in schema && schema.immediate
 }

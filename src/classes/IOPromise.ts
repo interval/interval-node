@@ -39,6 +39,7 @@ interface IOPromiseProps<
     incomingState: T_IO_STATE<MethodName>
   ) => Promise<Partial<Props>>
   validator?: IOPromiseValidator<Output> | undefined
+  displayResolvesImmediately?: boolean
 }
 
 /**
@@ -65,6 +66,7 @@ export class IOPromise<
     | ((incomingState: T_IO_STATE<MethodName>) => Promise<Partial<Props>>)
     | undefined
   protected validator: IOPromiseValidator<Output> | undefined
+  protected displayResolvesImmediately: boolean | undefined
 
   constructor({
     renderer,
@@ -74,6 +76,7 @@ export class IOPromise<
     valueGetter,
     onStateChange,
     validator,
+    displayResolvesImmediately,
   }: IOPromiseProps<MethodName, Props, Output>) {
     this.renderer = renderer
     this.methodName = methodName
@@ -82,6 +85,7 @@ export class IOPromise<
     this.valueGetter = valueGetter
     this.onStateChange = onStateChange
     this.validator = validator
+    this.displayResolvesImmediately = displayResolvesImmediately
   }
 
   then(resolve: (output: Output) => void, reject?: (err: IOError) => void) {
@@ -118,6 +122,7 @@ export class IOPromise<
       label: this.label,
       initialProps: this.props,
       onStateChange: this.onStateChange,
+      displayResolvesImmediately: this.displayResolvesImmediately,
     })
   }
 }
@@ -144,6 +149,7 @@ export class InputIOPromise<
       initialProps: this.props,
       onStateChange: this.onStateChange,
       validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      displayResolvesImmediately: this.displayResolvesImmediately,
     })
   }
 
@@ -241,6 +247,7 @@ export class OptionalIOPromise<
       onStateChange: this.onStateChange,
       isOptional: true,
       validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      displayResolvesImmediately: this.displayResolvesImmediately,
     })
   }
 
@@ -302,6 +309,7 @@ export class MultipleableIOPromise<
       incomingState: T_IO_STATE<MethodName>
     ) => Promise<Partial<Props>>
     validator?: IOPromiseValidator<Output> | undefined
+    displayResolvesImmediately?: boolean
   }) {
     super(props)
     this.defaultValueGetter = defaultValueGetter
@@ -438,6 +446,7 @@ export class MultipleIOPromise<
       multipleProps: {
         defaultValue: this.defaultValue,
       },
+      displayResolvesImmediately: this.displayResolvesImmediately,
     })
   }
 
@@ -566,6 +575,7 @@ export class OptionalMultipleIOPromise<
       multipleProps: {
         defaultValue: this.defaultValue,
       },
+      displayResolvesImmediately: this.displayResolvesImmediately,
     })
   }
 }
@@ -588,6 +598,7 @@ export class ExclusiveIOPromise<
       onStateChange: this.onStateChange,
       isOptional: false,
       validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      displayResolvesImmediately: this.displayResolvesImmediately,
     })
   }
 

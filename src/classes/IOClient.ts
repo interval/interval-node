@@ -59,6 +59,7 @@ interface ClientConfig {
   logger: Logger
   send: IORenderSender
   isDemo?: boolean
+  displayResolvesImmediately?: boolean
   // onAddInlineAction: (handler: IntervalActionHandler) => string
 }
 
@@ -85,6 +86,7 @@ export class IOClient {
   logger: Logger
   send: IORenderSender
   isDemo: boolean
+  displayResolvesImmediately: boolean | undefined
   // onAddInlineAction: (handler: IntervalActionHandler) => string
 
   previousInputGroupKey: string | undefined
@@ -96,6 +98,7 @@ export class IOClient {
     this.logger = config.logger
     this.send = config.send
     this.isDemo = !!config.isDemo
+    this.displayResolvesImmediately = config.displayResolvesImmediately
     // this.onAddInlineAction = config.onAddInlineAction
   }
 
@@ -480,6 +483,7 @@ export class IOClient {
             this
           ) as ComponentRenderer<T_IO_MULTIPLEABLE_METHOD_NAMES>,
           label,
+          displayResolvesImmediately: this.displayResolvesImmediately,
         })
       }
 
@@ -501,6 +505,7 @@ export class IOClient {
               this
             ) as ComponentRenderer<T_IO_DISPLAY_METHOD_NAMES>,
             label,
+            displayResolvesImmediately: this.displayResolvesImmediately,
           })
         : new InputIOPromise({
             ...this.getPromiseProps(
@@ -519,6 +524,7 @@ export class IOClient {
               this
             ) as ComponentRenderer<T_IO_INPUT_METHOD_NAMES>,
             label,
+            displayResolvesImmediately: this.displayResolvesImmediately,
           })
     }
   }
@@ -551,6 +557,7 @@ export class IOClient {
           this
         ) as ComponentRenderer<MethodName>,
         label,
+        displayResolvesImmediately: this.displayResolvesImmediately,
       })
     }
   }

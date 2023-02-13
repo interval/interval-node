@@ -1141,7 +1141,7 @@ const interval = new Interval({
       // const user = lookupUserByEmail(email)
       // Edit user
     },
-    'Display-Does-Not-Return-Automatically': async io => {
+    'Display-Might-Return-Automatically': async io => {
       await io.group([
         io.display.markdown(`
           After you press continue, a long running task will start.
@@ -1151,17 +1151,22 @@ const interval = new Interval({
 
       console.log(1)
 
-      await io.display.heading('Blocking until you press continue')
+      await io.display.heading('Maybe? Blocking until you press continue')
 
       await sleep(2000)
 
       io.display
-        .markdown(`Can still hack immedate returns with \`.then()\``)
+        .markdown(`Can always hack immedate returns with \`.then()\``)
         .then(() => {})
 
       await sleep(2000)
 
-      io.display.markdown('See!').then(() => {})
+      await io.group([
+        io.display.markdown('Displays in a group'),
+        io.display.markdown(
+          'Will block unless auto-continue feature flag is set'
+        ),
+      ])
 
       console.log(2)
 

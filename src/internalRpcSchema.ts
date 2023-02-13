@@ -545,7 +545,7 @@ export const hostSchema = {
       transactionId: z.string(),
       clientId: z.string().optional(),
 
-      postponeCompleteCleanup: z.boolean().optional(),
+      displayResolvesImmediately: z.boolean().optional(),
 
       // Actually slug, for backward compatibility
       // TODO: Remove breaking release, superfluous with slug below

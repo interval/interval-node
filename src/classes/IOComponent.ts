@@ -97,6 +97,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     isMultiple = false,
     validator,
     multipleProps,
+    displayResolvesImmediately,
   }: {
     methodName: MethodName
     label: string
@@ -112,6 +113,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     multipleProps?: {
       defaultValue?: T_IO_RETURNS<MethodName>[]
     }
+    displayResolvesImmediately?: boolean
   }) {
     this.handleStateChange = onStateChange
     this.schema = ioSchema[methodName]
@@ -146,7 +148,10 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
 
     // Immediately resolve any methods defined as immediate in schema
     setTimeout(() => {
-      if (resolvesImmediately(methodName) && this.resolver) {
+      if (
+        resolvesImmediately(methodName, { displayResolvesImmediately }) &&
+        this.resolver
+      ) {
         this.resolver(null)
       }
     }, 0)

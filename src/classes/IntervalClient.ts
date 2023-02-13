@@ -984,6 +984,7 @@ export default class IntervalClient {
             intervalClient.#transactionLoadingStates.delete(transactionId)
           },
           isDemo: !!this.#config.getClientHandlers,
+          displayResolvesImmediately: inputs.displayResolvesImmediately,
           // onAddInlineAction: handler => {
           //   const key = v4()
           //   intervalClient.#actionHandlers.set(key, handler)
@@ -1164,7 +1165,7 @@ export default class IntervalClient {
               }
             })
             .finally(() => {
-              if (!inputs.postponeCompleteCleanup) {
+              if (!inputs.displayResolvesImmediately) {
                 this.#closeTransaction(transactionId)
               }
             })
