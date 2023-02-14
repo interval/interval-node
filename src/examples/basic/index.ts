@@ -857,15 +857,17 @@ const interval = new Interval({
         })
       }
     },
-    enter_a_number: async io => {
-      const num = await io.input.number('Enter a number')
+    enter_two_integers: async io => {
+      const num1 = await io.input.number('Enter a number')
 
-      await io.input.number(
-        `Enter a second number that's greater than ${num}`,
+      const num2 = await io.input.number(
+        `Enter a second number that's greater than ${num1}`,
         {
-          min: num + 1,
+          min: num1 + 1,
         }
       )
+
+      return { num1, num2, sum: num1 + num2 }
     },
     enter_two_numbers: async io => {
       const num1 = await io.input.number('Enter a number')
