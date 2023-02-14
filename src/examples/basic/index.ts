@@ -107,6 +107,41 @@ const prod = new Interval({
       },
     },
     actionLinks,
+    continueCmdEnter: {
+      name: 'CMD + Enter submit demo',
+      handler: async () => {
+        const [theme, label, requireCompletion] = await io.group([
+          io.select.single('Theme', {
+            options: ['primary', 'danger', 'secondary'],
+            defaultValue: 'primary',
+          }),
+          io.input.text('Label', {
+            defaultValue: 'Continue',
+          }),
+          io.input.boolean('Require completion?', {
+            defaultValue: false,
+          }),
+        ])
+
+        const [value] = await io.group(
+          [
+            io.input.text('Enter some multiline text', {
+              multiline: true,
+              defaultValue: 'Say something...',
+            }),
+            io.input.number('Enter a number').optional(!requireCompletion),
+          ],
+          {
+            continueButton: {
+              theme: theme as 'primary' | 'secondary' | 'danger',
+              label,
+            },
+          }
+        )
+
+        return `You said: ${value}`
+      },
+    },
     helloCurrentUser: {
       name: 'Hello, current user!',
       description: '👋',
@@ -857,15 +892,17 @@ const interval = new Interval({
         })
       }
     },
-    enter_a_number: async io => {
-      const num = await io.input.number('Enter a number')
+    enter_two_integers: async io => {
+      const num1 = await io.input.number('Enter a number')
 
-      await io.input.number(
-        `Enter a second number that's greater than ${num}`,
+      const num2 = await io.input.number(
+        `Enter a second number that's greater than ${num1}`,
         {
-          min: num + 1,
+          min: num1 + 1,
         }
       )
+
+      return { num1, num2, sum: num1 + num2 }
     },
     enter_two_numbers: async io => {
       const num1 = await io.input.number('Enter a number')
