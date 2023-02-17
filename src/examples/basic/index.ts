@@ -1181,12 +1181,12 @@ const interval = new Interval({
     },
     update_email_for_user: editEmailForUser,
     richText: async io => {
-      const [to, body] = await io.group([
-        io.input.email('Email address'),
+      const [body, to] = await io.group([
         io.input.richText('Enter email body', {
           defaultValue: '<h2>Welcome to Interval!</h2><p>Enjoy your stay.</p>',
           helpText: 'This will be sent to the user.',
         }),
+        io.input.email('Email address'),
       ])
 
       await io.display.markdown(`
