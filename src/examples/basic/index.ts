@@ -651,6 +651,95 @@ const interval = new Interval({
 
       return 'Done!'
     },
+    readonly_inputs: async io => {
+      let i = 0
+
+      while (i < 2) {
+        await io.group([
+          io.input
+            .text('Empty text input', {
+              placeholder: 'Text goes here',
+            })
+            .optional(),
+          io.input.text('Text input', {
+            placeholder: 'Text goes here',
+            defaultValue: 'Default value',
+          }),
+          io.input.datetime('Date & time').optional(),
+          io.input.datetime('Date & time', {
+            defaultValue: new Date(),
+          }),
+          io.input.boolean('Boolean input').optional(),
+          io.input.boolean('Boolean input', { defaultValue: true }),
+          io.select
+            .single('Select something', {
+              options: [1, 2, 3],
+            })
+            .optional(),
+          io.select.single('Select something', {
+            options: [1, 2, 3],
+            defaultValue: 1,
+          }),
+          io.input.number('Number input').optional(),
+          io.input.number('Number input', { defaultValue: 100 }),
+          io.input.email('Email input').optional(),
+          io.input.email('Email input', { defaultValue: 'hi@interval.com' }),
+          io.input.richText('Rich text input').optional(),
+          io.input.richText('Rich text input', {
+            defaultValue: 'Hello world',
+          }),
+          io
+            .search('Search for a user', {
+              renderResult: user => ({
+                label: user.name,
+                description: user.email,
+              }),
+              onSearch: async query => {
+                return [
+                  {
+                    name: 'John Doe',
+                    email: 'johndoe@example.com',
+                  },
+                ]
+              },
+            })
+            .optional(),
+          io.select
+            .multiple('Select multiple of something', {
+              options: [1, 2, 3],
+            })
+            .optional(),
+          io.select
+            .table('Select from table', {
+              data: [
+                {
+                  album: 'Exile on Main Street',
+                  artist: 'The Rolling Stones',
+                  year: 1972,
+                },
+                {
+                  artist: 'Michael Jackson',
+                  album: 'Thriller',
+                  year: 1982,
+                },
+                {
+                  album: 'Enter the Wu-Tang (36 Chambers)',
+                  artist: 'Wu-Tang Clan',
+                  year: 1993,
+                },
+              ],
+            })
+            .optional(),
+          io.input.date('Date input').optional(),
+          io.input.time('Time input').optional(),
+          io.input.file('File input').optional(),
+        ])
+
+        i++
+      }
+
+      return 'Done!'
+    },
     'long-return-string': async io => {
       return {
         date: new Date(),
@@ -1360,6 +1449,57 @@ const interval = new Interval({
           { label: "Doesn't" },
         ],
       })
+    },
+    a_readonly_demo: async io => {
+      await io.group(
+        [
+          io.input.text('Full name', { defaultValue: 'Interval' }),
+          io.input.email('Email address', {
+            defaultValue: 'hello@interval.com',
+          }),
+          io.input.date('Start date', {
+            defaultValue: new Date(),
+          }),
+          io.input.boolean('Subscribe to newsletter?', {
+            defaultValue: true,
+          }),
+        ],
+        {
+          continueButton: { label: 'Start trial' },
+        }
+      )
+
+      await io.group([
+        io.input.text('User ID', {
+          disabled: true,
+          defaultValue: 'cle6jrr5s0000ncl74lza8q6v',
+          helpText: 'This is a disabled io.input.text',
+        }),
+        io.display.table('Associated users', {
+          data: [
+            {
+              email: 'carsta.rocha@example.com',
+              phone_number: '(60) 1416-4953',
+              birthdate: '1993-08-04',
+              first_name: 'carsta',
+              last_name: 'rocha',
+              photo: 'photos/21351234.jpg',
+              website_url: 'https://example.com',
+            },
+            {
+              email: 'irene.morales@example.org',
+              phone_number: '625-790-958',
+              birthdate: '1982-04-28',
+              first_name: 'irene',
+              last_name: 'morales',
+              picture: 'photos/8321527.jpg',
+              website_url: 'https://example.org',
+            },
+          ],
+        }),
+      ])
+
+      return 'Done!'
     },
     append_ui_scroll_demo: async io => {
       let i = 0
