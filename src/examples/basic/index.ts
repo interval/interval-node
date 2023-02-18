@@ -1055,18 +1055,17 @@ const interval = new Interval({
         return
       }
 
-      await ctx.loading.start('Fetching users...')
-
-      await sleep(500)
-      await sleep(500)
-      await ctx.loading.update(
-        `Deleted ${Math.floor(Math.random() * 100)} post drafts`
-      )
-      await sleep(500)
-      await ctx.loading.update('Skipped 13 published posts')
-      await sleep(1500)
-      await ctx.loading.update('Deleted 13 comments')
-      await sleep(1500)
+      // commenting this out until we fix loading behavior in the append UI
+      // await ctx.loading.start('Fetching users...')
+      // await sleep(500)
+      // await ctx.loading.update(
+      //   `Deleted ${Math.floor(Math.random() * 100)} post drafts`
+      // )
+      // await sleep(500)
+      // await ctx.loading.update('Skipped 13 published posts')
+      // await sleep(1000)
+      // await ctx.loading.update('Deleted 13 comments')
+      // await sleep(500)
 
       return { email }
     },
