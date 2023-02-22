@@ -364,11 +364,13 @@ export const image_viewer: IntervalActionHandler = async io => {
   const data = Array(50)
     .fill(null)
     .map((_, i) => {
-      const [width, height, crazyW, crazyH] = [
+      const [width, height, crazyW, crazyH, tinyW, tinyH] = [
         faker.datatype.number({ min: 500, max: 700 }),
         faker.datatype.number({ min: 200, max: 400 }),
         faker.datatype.number({ min: 100, max: 999 }),
         faker.datatype.number({ min: 100, max: 999 }),
+        faker.datatype.number({ min: 12, max: 20 }),
+        faker.datatype.number({ min: 12, max: 20 }),
       ]
 
       return {
@@ -379,15 +381,18 @@ export const image_viewer: IntervalActionHandler = async io => {
         height,
         crazyW,
         crazyH,
+        tinyW,
+        tinyH,
         wide: faker.image.imageUrl(width, height, undefined, true),
         tall: faker.image.imageUrl(height, width, undefined, true),
         crazy: faker.image.imageUrl(crazyW, crazyH, undefined, true),
+        tiny: faker.image.imageUrl(tinyW, tinyH, undefined, true),
       }
     })
 
   await io.display.table('Images', {
     data,
-    defaultPageSize: 50,
+    defaultPageSize: 10,
     columns: [
       'id',
       {
@@ -433,14 +438,33 @@ export const image_viewer: IntervalActionHandler = async io => {
           },
         }),
       },
+      {
+        label: 'Tiny',
+        renderCell: row => ({
+          label: `${row.tinyW} x ${row.tinyH}`,
+          image: {
+            alt: 'Alt tag',
+            url: row.tiny,
+          },
+        }),
+      },
     ],
   })
 
   await io.display.table('Image sizes', {
     data,
-    defaultPageSize: 50,
+    defaultPageSize: 10,
     columns: [
       'id',
+      {
+        label: 'None',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+          },
+        }),
+      },
       {
         label: 'Thumbnail',
         renderCell: row => ({
