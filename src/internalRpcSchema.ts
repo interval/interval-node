@@ -377,6 +377,7 @@ export const wsServerSchema = {
         sdkName: z.string().optional(),
         sdkVersion: z.string().optional(),
         requestId: z.string().optional(),
+        timestamp: z.number().optional(),
       }),
       z.union([
         z.object({

@@ -1681,6 +1681,7 @@ export default class IntervalClient {
       sdkName: pkg.name,
       sdkVersion: pkg.version,
       requestId,
+      timestamp: new Date().valueOf(),
     })
 
     if (!response) {
