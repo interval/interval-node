@@ -1392,18 +1392,23 @@ const interval = new Interval({
     Progress_steps: async (io, ctx) => {
       await ctx.loading.start('Fetching users...')
 
-      await sleep(1000)
+      // await sleep(1000)
 
       const users = await fakeDb
         .find('')
-        .then(res => res.map(mapToIntervalUser))
+        .then(res => res.map(mapToIntervalUser).slice(0, 3))
 
-      await io.select.table('Users to process', {
+      await io.display.table('Users to process', {
         data: users,
       })
 
-      // typically we would wait until you press 'continue' here,
-      // but if auto-continue is enabled we'd go straight to the next step
+      const shouldContinue = await io.confirm(
+        'Are you sure you want to delete these users?'
+      )
+
+      if (!shouldContinue) {
+        throw new Error('Did not continue')
+      }
 
       await ctx.loading.start({
         title: 'Updating users',
