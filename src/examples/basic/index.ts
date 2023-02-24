@@ -1419,7 +1419,8 @@ const interval = new Interval({
         await ctx.loading.completeOne()
       }
 
-      await ctx.loading.start('Finishing up...')
+      // final text input to make sure loading isn't getting clobbered
+      await io.input.text('Your name').optional()
 
       await sleep(1000)
     },
