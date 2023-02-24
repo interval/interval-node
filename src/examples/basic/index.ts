@@ -1047,28 +1047,33 @@ const interval = new Interval({
       return { name, email }
     },
     confirmBeforeDelete: async (io, ctx) => {
-      const email = await io.input.email('Enter an email address')
-
-      const shouldDelete = await io.confirm(`Delete this user?`, {
-        helpText: 'All of their data will be removed.',
+      const email = await io.input.email('Enter an email address', {
+        defaultValue: 'hello@interval.com',
       })
 
-      if (!shouldDelete) {
-        ctx.log('Canceled by user')
-        return
-      }
+      // const shouldDelete = await io.confirm(`Delete this user?`, {
+      //   helpText: 'All of their data will be removed.',
+      // })
+
+      // if (!shouldDelete) {
+      //   ctx.log('Canceled by user')
+      //   return
+      // }
 
       // commenting this out until we fix loading behavior in the append UI
-      // await ctx.loading.start('Fetching users...')
-      // await sleep(500)
-      // await ctx.loading.update(
-      //   `Deleted ${Math.floor(Math.random() * 100)} post drafts`
-      // )
-      // await sleep(500)
-      // await ctx.loading.update('Skipped 13 published posts')
-      // await sleep(1000)
-      // await ctx.loading.update('Deleted 13 comments')
-      // await sleep(500)
+      await ctx.loading.start({
+        title: 'Fetching users...',
+        description: 'This may take a while...',
+      })
+      await sleep(10_000)
+      await ctx.loading.update(
+        `Deleted ${Math.floor(Math.random() * 100)} post drafts`
+      )
+      await sleep(10_000)
+      await ctx.loading.update('Skipped 13 published posts')
+      await sleep(10_000)
+      await ctx.loading.update('Deleted 13 comments')
+      await sleep(10_000)
 
       return { email }
     },
@@ -1393,7 +1398,7 @@ const interval = new Interval({
         .find('')
         .then(res => res.map(mapToIntervalUser))
 
-      await io.display.heading('Press continue when ready')
+      // await io.display.heading('Press continue when ready')
 
       await ctx.loading.start({
         title: 'Exporting users',
