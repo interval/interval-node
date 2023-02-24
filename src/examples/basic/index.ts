@@ -1065,15 +1065,15 @@ const interval = new Interval({
         title: 'Fetching users...',
         description: 'This may take a while...',
       })
-      await sleep(10_000)
+      await sleep(1500)
       await ctx.loading.update(
         `Deleted ${Math.floor(Math.random() * 100)} post drafts`
       )
-      await sleep(10_000)
+      await sleep(1500)
       await ctx.loading.update('Skipped 13 published posts')
-      await sleep(10_000)
+      await sleep(700)
       await ctx.loading.update('Deleted 13 comments')
-      await sleep(10_000)
+      await sleep(1000)
 
       return { email }
     },
@@ -1398,11 +1398,15 @@ const interval = new Interval({
         .find('')
         .then(res => res.map(mapToIntervalUser))
 
-      // await io.display.heading('Press continue when ready')
+      await io.select.table('Users to process', {
+        data: users,
+      })
+
+      // typically we would wait until you press 'continue' here,
+      // but if auto-continue is enabled we'd go straight to the next step
 
       await ctx.loading.start({
-        title: 'Exporting users',
-        description: "We're exporting all users. This may take a while.",
+        title: 'Updating users',
         itemsInQueue: users.length,
       })
       for (const _ of users) {
