@@ -15,7 +15,7 @@ const interval = new Interval({
         heading += ` (Message: ${ctx.params.message})`
       }
 
-      io.display.heading(heading).then(() => {})
+      await io.display.heading(heading)
     },
   },
 })
