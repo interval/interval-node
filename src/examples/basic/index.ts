@@ -1,5 +1,5 @@
 import { T_IO_PROPS } from './../../ioSchema'
-import Interval, { IOError, io, ctx, Page, Layout } from '../../index'
+import Interval, { IOError, io, ctx, Action, Page, Layout } from '../../index'
 import IntervalClient from '../../classes/IntervalClient'
 import {
   IntervalActionDefinition,
@@ -45,6 +45,35 @@ const gridsPage = new Page({
         }),
       ],
     })
+  },
+})
+
+const confirmIdentity = new Action({
+  name: 'Confirm identity',
+  handler: async () => {
+    await io.input.text('Enter your name')
+
+    const canDoSensitiveTask = await io.confirmIdentity(
+      'This action is pretty sensitive',
+      {
+        gracePeriodMs: 0,
+      }
+    )
+    let canDoSensitiveTaskAgain = false
+
+    if (canDoSensitiveTask) {
+      ctx.log('OK! Identity confirmed.')
+      await io.input.text('Enter another name')
+      canDoSensitiveTaskAgain = await io.confirmIdentity(
+        'This action is still pretty sensitive'
+      )
+    } else {
+      ctx.log('Identity not confirmed, cancelling…')
+    }
+
+    return {
+      identityConfirmed: canDoSensitiveTask && canDoSensitiveTaskAgain,
+    }
   },
 })
 
@@ -107,6 +136,7 @@ const prod = new Interval({
       },
     },
     actionLinks,
+    confirm_identity: confirmIdentity,
     continueCmdEnter: {
       name: 'CMD + Enter submit demo',
       handler: async () => {
@@ -1051,16 +1081,15 @@ const interval = new Interval({
         defaultValue: 'hello@interval.com',
       })
 
-      // const shouldDelete = await io.confirm(`Delete this user?`, {
-      //   helpText: 'All of their data will be removed.',
-      // })
+      const shouldDelete = await io.confirm(`Delete this user?`, {
+        helpText: 'All of their data will be removed.',
+      })
 
-      // if (!shouldDelete) {
-      //   ctx.log('Canceled by user')
-      //   return
-      // }
+      if (!shouldDelete) {
+        ctx.log('Canceled by user')
+        return
+      }
 
-      // commenting this out until we fix loading behavior in the append UI
       await ctx.loading.start({
         title: 'Fetching users...',
         description: 'This may take a while...',
@@ -1815,31 +1844,7 @@ const interval = new Interval({
       routes: table_actions,
     }),
     grids: gridsPage,
-    confirm_identity: async () => {
-      await io.input.text('Enter your name')
-
-      const canDoSensitiveTask = await io.confirmIdentity(
-        'This action is pretty sensitive',
-        {
-          gracePeriodMs: 0,
-        }
-      )
-      let canDoSensitiveTaskAgain = false
-
-      if (canDoSensitiveTask) {
-        ctx.log('OK! Identity confirmed.')
-        await io.input.text('Enter another name')
-        canDoSensitiveTaskAgain = await io.confirmIdentity(
-          'This action is still pretty sensitive'
-        )
-      } else {
-        ctx.log('Identity not confirmed, cancelling…')
-      }
-
-      return {
-        identityConfirmed: canDoSensitiveTask && canDoSensitiveTaskAgain,
-      }
-    },
+    confirm_identity: confirmIdentity,
   },
 })
 
