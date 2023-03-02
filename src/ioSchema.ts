@@ -841,7 +841,7 @@ export type T_IO_STATE<MN extends T_IO_METHOD_NAMES> = z.infer<
   T_IO_Schema[MN]['state']
 >
 
-type JSONPrimitive = string | number | boolean | null
+export type JSONPrimitive = string | number | boolean | null
 
 export type RawActionReturnData = Record<string, JSONPrimitive>
 
@@ -851,16 +851,9 @@ export type IOFunctionReturnType =
   | Serializable
   | undefined
 
-export type ParsedActionReturnDataValue =
-  | JSONPrimitive
-  | {
-      dataKind?: 'link'
-      value: string
-    }
-
 export type ParsedActionReturnData =
-  | Record<string, ParsedActionReturnDataValue>
-  | ParsedActionReturnDataValue
+  | Record<string, JSONPrimitive>
+  | JSONPrimitive
 
 export type ActionResultSchema = {
   schemaVersion: 0 | 1
