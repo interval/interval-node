@@ -360,6 +360,12 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
+    inputRightAfterDisplay: async () => {
+      await io.display.link('Display', {
+        url: '',
+      })
+      await io.input.text('Text')
+    },
     searches: new Page({
       name: 'Search',
       routes: {
