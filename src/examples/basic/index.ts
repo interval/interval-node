@@ -26,13 +26,33 @@ const gridsPage = new Page({
   routes: grid_actions,
   // including this to test two-column page layouts
   handler: async () => {
+    const sortAZ = ctx.params.sortAZ
+
+    const data = Object.keys(grid_actions).map(k => ({
+      name: k,
+    }))
+
+    if (ctx.params.sortAZ) {
+      data.sort((a, b) => a.name.localeCompare(b.name))
+    }
+
     return new Layout({
       title: 'Grids',
+      menuItems: [
+        sortAZ
+          ? {
+              label: 'Reset sort',
+              route: 'grids',
+            }
+          : {
+              label: 'Sort A-Z',
+              route: 'grids',
+              params: { sortAZ: true },
+            },
+      ],
       children: [
-        io.display.table('Grid layouts', {
-          data: Object.keys(grid_actions).map(k => ({
-            name: k,
-          })),
+        io.display.table(`Grid layouts (${sortAZ ? 'sorted' : 'not sorted'})`, {
+          data,
           columns: [
             {
               label: 'Name',
