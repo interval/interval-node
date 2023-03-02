@@ -11,6 +11,8 @@ import {
   T_IO_INPUT_METHOD_NAMES,
   T_IO_MULTIPLEABLE_METHOD_NAMES,
   supportsMultiple,
+  resolvesImmediately,
+  ioSchema,
 } from '../ioSchema'
 import Logger from './Logger'
 import { AnyIOComponent } from './IOComponent'
@@ -279,6 +281,17 @@ export class IOClient {
 
         // Initial render
         render()
+          .then(() => {
+            for (const c of components) {
+              if (c.resolvesImmediately) {
+                // return value type will be validated inside the function
+                c.setReturnValue(null as never)
+              }
+            }
+          })
+          .catch(err => {
+            this.logger.warn('Failed resolving component immediately', err)
+          })
 
         const response = (await Promise.all(
           components.map(comp => comp.returnValue)

@@ -77,6 +77,8 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       >
     | undefined
 
+  resolvesImmediately = false
+
   /**
    * @param options.methodName - The component's method name from ioSchema, used
    * to determine the valid types for communication with Interval.
@@ -146,15 +148,9 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       this.resolver = resolve
     })
 
-    // Immediately resolve any methods defined as immediate in schema
-    setTimeout(() => {
-      if (
-        resolvesImmediately(methodName, { displayResolvesImmediately }) &&
-        this.resolver
-      ) {
-        this.resolver(null)
-      }
-    }, 0)
+    this.resolvesImmediately = resolvesImmediately(methodName, {
+      displayResolvesImmediately,
+    })
   }
 
   async handleValidation(
