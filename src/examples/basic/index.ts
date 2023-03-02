@@ -366,6 +366,19 @@ const interval = new Interval({
       })
       await io.input.text('Text')
     },
+    loadingAfterDisplay: new Action({
+      name: 'Broken loading',
+      handler: async () => {
+        await io.display.heading('Hello from display')
+        await ctx.loading.start({
+          title: 'Waiting for external system',
+        })
+
+        await sleep(2000)
+
+        await io.display.markdown('Done!')
+      },
+    }),
     searches: new Page({
       name: 'Search',
       routes: {
