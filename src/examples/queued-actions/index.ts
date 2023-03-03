@@ -23,18 +23,18 @@ const interval = new Interval({
 interval.listen()
 
 setTimeout(async () => {
-  await interval.routes.enqueue('helloCurrentUser', {
+  await interval.enqueue('helloCurrentUser', {
     assignee: 'alex@interval.com',
     params: {
       message: 'Hello, queue!',
     },
   })
 
-  const queuedAction = await interval.routes.enqueue('helloCurrentUser', {
+  const queuedAction = await interval.enqueue('helloCurrentUser', {
     params: {
       message: 'Hello, anyone!',
     },
   })
 
-  await interval.routes.dequeue(queuedAction.id)
+  await interval.dequeue(queuedAction.id)
 }, 1000)
