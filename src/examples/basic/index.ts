@@ -406,6 +406,7 @@ const interval = new Interval({
           const [r1, r2] = await io.group([
             io.search('One', {
               onSearch: async query => fakeDb.find(query),
+              initialResults: await fakeDb.find('jo'),
               renderResult: result => ({
                 label: `${result.first_name} ${result.last_name}`,
               }),
