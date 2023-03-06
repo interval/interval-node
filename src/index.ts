@@ -232,6 +232,10 @@ export default class Interval {
     return this.#client?.close()
   }
 
+  async gracefullyShutdown(): Promise<void> {
+    return this.#client?.gracefullyShutdown()
+  }
+
   /* @internal */ get client() {
     return this.#client
   }
@@ -275,7 +279,7 @@ export default class Interval {
       return
     }
 
-    let body: z.infer<typeof NOTIFY['inputs']>
+    let body: z.infer<(typeof NOTIFY)['inputs']>
     try {
       body = NOTIFY.inputs.parse({
         ...config,

@@ -414,6 +414,20 @@ export const wsServerSchema = {
       ])
       .nullable(),
   },
+  BEGIN_HOST_SHUTDOWN: {
+    // intentional empty object to allow for future additions
+    // and to support current `skipClientCall` behavior
+    inputs: z.object({}),
+    returns: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('success'),
+      }),
+      z.object({
+        type: z.literal('error'),
+        message: z.string().optional(),
+      }),
+    ]),
+  },
 }
 
 export type WSServerSchema = typeof wsServerSchema
@@ -585,5 +599,5 @@ export const hostSchema = {
 export type HostSchema = typeof hostSchema
 
 export type PeerConnectionInitializer = (
-  inputs: z.infer<typeof INITIALIZE_PEER_CONNECTION['inputs']>
-) => Promise<z.infer<typeof INITIALIZE_PEER_CONNECTION['returns']>>
+  inputs: z.infer<(typeof INITIALIZE_PEER_CONNECTION)['inputs']>
+) => Promise<z.infer<(typeof INITIALIZE_PEER_CONNECTION)['returns']>>
