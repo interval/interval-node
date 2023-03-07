@@ -23,7 +23,7 @@ export interface ComponentInstance<MN extends keyof IoSchema> {
   isMultiple?: boolean
   validationErrorMessage?: string | undefined
   multipleProps?: {
-    defaultValue?: T_IO_RETURNS<MN>[]
+    defaultValue?: T_IO_RETURNS<MN>[] | null
   }
 }
 
@@ -113,7 +113,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       MaybeMultipleComponentReturnValue<MethodName> | undefined
     >
     multipleProps?: {
-      defaultValue?: T_IO_RETURNS<MethodName>[]
+      defaultValue?: T_IO_RETURNS<MethodName>[] | null
     }
     displayResolvesImmediately?: boolean
   }) {

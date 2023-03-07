@@ -286,7 +286,7 @@ export class MultipleableIOPromise<
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   Output = ComponentReturnValue<MethodName>,
   DefaultValue = T_IO_PROPS<MethodName> extends { defaultValue?: any }
-    ? Output
+    ? Output | null
     : never
 > extends InputIOPromise<MethodName, Props, Output> {
   defaultValueGetter:
@@ -318,9 +318,9 @@ export class MultipleableIOPromise<
   multiple({
     defaultValue,
   }: {
-    defaultValue?: DefaultValue[]
+    defaultValue?: DefaultValue[] | null
   } = {}): MultipleIOPromise<MethodName, Props, Output> {
-    let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined
+    let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
     const propsSchema = ioSchema[this.methodName].props
     if (defaultValue && 'defaultValue' in propsSchema.shape) {
       const { defaultValueGetter } = this
@@ -331,7 +331,7 @@ export class MultipleableIOPromise<
       try {
         const defaultValueSchema = propsSchema.shape.defaultValue
         transformedDefaultValue = z
-          .array(defaultValueSchema.unwrap())
+          .array(defaultValueSchema.unwrap().unwrap())
           .parse(potentialDefaultValue)
       } catch (err) {
         console.error(
@@ -362,14 +362,14 @@ export class MultipleIOPromise<
   getSingleValue:
     | ((response: ComponentReturnValue<MethodName>) => Output)
     | undefined
-  defaultValue: T_IO_RETURNS<MethodName>[] | undefined
+  defaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
 
   constructor({
     defaultValue,
     valueGetter,
     ...rest
   }: {
-    defaultValue?: T_IO_RETURNS<MethodName>[]
+    defaultValue?: T_IO_RETURNS<MethodName>[] | null
     renderer: ComponentRenderer<MethodName>
     methodName: MethodName
     label: string
@@ -485,14 +485,14 @@ export class OptionalMultipleIOPromise<
   getSingleValue:
     | ((response: ComponentReturnValue<MethodName>) => Output)
     | undefined
-  defaultValue: T_IO_RETURNS<MethodName>[] | undefined
+  defaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
 
   constructor({
     defaultValue,
     valueGetter,
     ...rest
   }: {
-    defaultValue?: T_IO_RETURNS<MethodName>[]
+    defaultValue?: T_IO_RETURNS<MethodName>[] | null
     renderer: ComponentRenderer<MethodName>
     methodName: MethodName
     label: string
