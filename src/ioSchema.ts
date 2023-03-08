@@ -310,7 +310,7 @@ export const internalTableColumn = z.object({
 })
 
 export const gridItem = z.object({
-  title: z.string().nullable().optional(),
+  label: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   image: z
     .object({
@@ -327,13 +327,23 @@ export const gridItem = z.object({
   params: serializableRecord.optional(),
 })
 
+export const backwardCompatibleGridItem = gridItem.merge(
+  z.object({
+    // @deprecated in favor of label
+    title: z.string().nullable().optional(),
+  })
+)
+
 export const internalGridItem = z.object({
-  data: gridItem,
+  data: backwardCompatibleGridItem,
   key: z.string(),
   filterValue: z.string().optional(),
 })
 
-export type GridItem = z.infer<typeof gridItem>
+export type GridItem = z.input<typeof gridItem>
+export type BackwardCompatibleGridItem = z.input<
+  typeof backwardCompatibleGridItem
+>
 export type InternalGridItem = z.infer<typeof internalGridItem>
 
 const searchResult = z.object({
