@@ -52,6 +52,14 @@ export const IO_RENDER = z.object({
       theme: buttonTheme.optional(),
     })
     .optional(),
+  submitButtons: z
+    .array(
+      z.object({
+        label: z.string().optional(),
+        theme: buttonTheme.optional(),
+      })
+    )
+    .optional(),
   kind: z.literal('RENDER'),
 })
 

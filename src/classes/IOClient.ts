@@ -124,7 +124,8 @@ export class IOClient {
   >(
     components: Components,
     groupValidator?: IOClientRenderValidator<Components>,
-    continueButton?: ButtonConfig
+    continueButton?: ButtonConfig,
+    submitButtons?: ButtonConfig[]
   ) {
     if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
