@@ -301,14 +301,26 @@ export type ExclusiveIOComponentFunction<
   props?: Prettify<Props>
 ) => ExclusiveIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
-export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = (
-  components: [IOComponent<MethodName>, ...IOComponent<MethodName>[]]
-) => Promise<
-  [
+export type SubmitValue = string | null
+
+export type ComponentRenderReturn<MethodName extends T_IO_METHOD_NAMES> = {
+  response: [
     MaybeMultipleComponentReturnValue<MethodName>,
     ...MaybeMultipleComponentReturnValue<MethodName>[]
   ]
->
+}
+
+export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = (
+  components: [IOComponent<MethodName>, ...IOComponent<MethodName>[]]
+) => Promise<ComponentRenderReturn<MethodName>>
+
+export type ComponentsRendererReturn<Components> = {
+  response: {
+    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+      ? z.infer<Components[Idx]['schema']['returns']> | undefined
+      : Components[Idx]
+  }
+}
 
 export type ComponentsRenderer<
   Components extends [AnyIOComponent, ...AnyIOComponent[]] = [
@@ -320,11 +332,7 @@ export type ComponentsRenderer<
   validator?: IOClientRenderValidator<Components>,
   continueButton?: ButtonConfig,
   submitButtons?: ButtonConfig[]
-) => Promise<{
-  [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-    ? z.infer<Components[Idx]['schema']['returns']> | undefined
-    : Components[Idx]
-}>
+) => Promise<ComponentsRendererReturn<Components>>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 

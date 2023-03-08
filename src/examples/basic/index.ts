@@ -1868,7 +1868,9 @@ const interval = new Interval({
       return 'All done!'
     },
     multiple_continues: async () => {
-      const url = await io.group([io.input.text('Important data')]).withSubmit([
+      const {
+        response: [text],
+      } = await io.group([io.input.text('Important data')]).withSubmit([
         {
           label: 'Delete the data',
           theme: 'danger',
@@ -1878,6 +1880,8 @@ const interval = new Interval({
           theme: 'secondary',
         },
       ])
+
+      ctx.log('Response:', text)
 
       return 'All done!'
     },

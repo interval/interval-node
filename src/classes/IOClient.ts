@@ -68,9 +68,11 @@ interface ClientConfig {
 export type IOClientRenderReturnValues<
   Components extends [AnyIOComponent, ...AnyIOComponent[]]
 > = {
-  [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-    ? z.infer<Components[Idx]['schema']['returns']> | undefined
-    : Components[Idx]
+  response: {
+    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+      ? z.infer<Components[Idx]['schema']['returns']> | undefined
+      : Components[Idx]
+  }
 }
 
 export type IOClientRenderValidator<
@@ -222,9 +224,9 @@ export class IOClient {
               }
 
               if (groupValidator) {
-                validationErrorMessage = await groupValidator(
-                  result.values as IOClientRenderReturnValues<typeof components>
-                )
+                validationErrorMessage = await groupValidator({
+                  response: result.values,
+                } as IOClientRenderReturnValues<typeof components>)
 
                 if (validationErrorMessage) {
                   render()
@@ -295,9 +297,9 @@ export class IOClient {
             this.logger.warn('Failed resolving component immediately', err)
           })
 
-        const response = (await Promise.all(
-          components.map(comp => comp.returnValue)
-        )) as unknown as Promise<IOClientRenderReturnValues<Components>>
+        const response = {
+          response: await Promise.all(components.map(comp => comp.returnValue)),
+        } as unknown as Promise<IOClientRenderReturnValues<Components>>
 
         resolve(response)
       }

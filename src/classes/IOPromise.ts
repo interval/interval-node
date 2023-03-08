@@ -90,7 +90,7 @@ export class IOPromise<
 
   then(resolve: (output: Output) => void, reject?: (err: IOError) => void) {
     this.renderer([this.component])
-      .then(([result]) => {
+      .then(({ response: [result] }) => {
         const parsed = ioSchema[this.methodName].returns.parse(result)
         resolve(this.getValue(parsed))
       })
@@ -217,7 +217,7 @@ export class OptionalIOPromise<
     reject?: (err: IOError) => void
   ) {
     this.renderer([this.component])
-      .then(([result]) => {
+      .then(({ response: [result] }) => {
         const parsed = ioSchema[this.methodName].returns
           .optional()
           .parse(result)
@@ -387,7 +387,7 @@ export class MultipleIOPromise<
 
   then(resolve: (output: Output[]) => void, reject?: (err: IOError) => void) {
     this.renderer([this.component])
-      .then(([results]) => {
+      .then(({ response: [results] }) => {
         resolve(this.getValue(results))
       })
       .catch(err => {
@@ -513,7 +513,7 @@ export class OptionalMultipleIOPromise<
     reject?: (err: IOError) => void
   ) {
     this.renderer([this.component])
-      .then(([results]) => {
+      .then(({ response: [results] }) => {
         resolve(this.getValue(results))
       })
       .catch(err => {
@@ -706,8 +706,8 @@ export class IOGroupPromise<
       this.#validator ? this.#handleValidation.bind(this) : undefined,
       this.#continueButtonConfig
     )
-      .then(values => {
-        let returnValues = values.map((val, i) =>
+      .then(({ response }) => {
+        let returnValues = response.map((val, i) =>
           promiseValues[i].getValue(val as never)
         )
 
@@ -744,7 +744,7 @@ export class IOGroupPromise<
 
     const promiseValues = this.promiseValues
 
-    const values = returnValues.map((v, index) =>
+    const values = returnValues.response.map((v, index) =>
       promiseValues[index].getValue(v as never)
     )
 
@@ -810,7 +810,7 @@ export class IOGroupPromiseWithSubmit<
   }
 
   then(
-    resolve: (output: ReturnValues) => void,
+    resolve: (output: { response: ReturnValues }) => void,
     reject?: (err: IOError) => void
   ) {
     const promiseValues = this.promiseValues
@@ -824,20 +824,20 @@ export class IOGroupPromiseWithSubmit<
       this.#continueButtonConfig,
       this.#submitButtons
     )
-      .then(values => {
-        let returnValues = values.map((val, i) =>
+      .then(({ response }) => {
+        let returnValues = response.map((val, i) =>
           promiseValues[i].getValue(val as never)
         )
 
         if (Array.isArray(this.promises)) {
-          resolve(returnValues as unknown as ReturnValues)
+          resolve({ response: response as unknown as ReturnValues })
         } else {
           const keys = Object.keys(this.promises)
-          resolve(
-            Object.fromEntries(
+          resolve({
+            response: Object.fromEntries(
               returnValues.map((val, i) => [keys[i], val])
-            ) as ReturnValues
-          )
+            ) as ReturnValues,
+          })
         }
       })
       .catch(err => {
@@ -862,7 +862,7 @@ export class IOGroupPromiseWithSubmit<
 
     const promiseValues = this.promiseValues
 
-    const values = returnValues.map((v, index) =>
+    const values = returnValues.response.map((v, index) =>
       promiseValues[index].getValue(v as never)
     )
 
@@ -876,5 +876,15 @@ export class IOGroupPromiseWithSubmit<
 
       return this.#validator(valueMap as ReturnValues)
     }
+  }
+
+  withSubmit(
+    submitButtons: ButtonConfig[]
+  ): IOGroupPromiseWithSubmit<IOPromises, ReturnValues> {
+    return new IOGroupPromiseWithSubmit({
+      promises: this.promises,
+      renderer: this.#renderer,
+      submitButtons,
+    })
   }
 }
