@@ -318,14 +318,13 @@ export type ComponentsRenderer<
 > = (
   components: Components,
   validator?: IOClientRenderValidator<Components>,
-  continueButton?: ButtonConfig
-) => Promise<
-  {
-    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-      ? z.infer<Components[Idx]['schema']['returns']> | undefined
-      : Components[Idx]
-  }
->
+  continueButton?: ButtonConfig,
+  submitButtons?: ButtonConfig[]
+) => Promise<{
+  [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+    ? z.infer<Components[Idx]['schema']['returns']> | undefined
+    : Components[Idx]
+}>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 

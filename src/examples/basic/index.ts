@@ -1867,6 +1867,20 @@ const interval = new Interval({
 
       return 'All done!'
     },
+    multiple_continues: async () => {
+      const url = await io.group([io.input.text('Important data')]).withSubmit([
+        {
+          label: 'Delete the data',
+          theme: 'danger',
+        },
+        {
+          label: 'Cancel',
+          theme: 'secondary',
+        },
+      ])
+
+      return 'All done!'
+    },
     select_single: async () => {
       const selected = await io.select.single('Select an item', {
         options: [

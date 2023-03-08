@@ -759,4 +759,122 @@ export class IOGroupPromise<
       return this.#validator(valueMap as ReturnValues)
     }
   }
+
+  withSubmit(
+    submitButtons: ButtonConfig[]
+  ): IOGroupPromiseWithSubmit<IOPromises, ReturnValues> {
+    return new IOGroupPromiseWithSubmit({
+      promises: this.promises,
+      renderer: this.#renderer,
+      submitButtons,
+    })
+  }
+}
+
+export class IOGroupPromiseWithSubmit<
+  IOPromises extends
+    | Record<string, MaybeOptionalGroupIOPromise>
+    | MaybeOptionalGroupIOPromise[],
+  ReturnValues = IOPromises extends Record<string, MaybeOptionalGroupIOPromise>
+    ? { [K in keyof IOPromises]: ReturnType<IOPromises[K]['getValue']> }
+    : IOPromises extends [
+        MaybeOptionalGroupIOPromise,
+        ...MaybeOptionalGroupIOPromise[]
+      ]
+    ? IOGroupReturnValues<IOPromises>
+    : unknown[]
+> {
+  promises: IOPromises
+  #renderer: ComponentsRenderer
+  #validator: IOPromiseValidator<ReturnValues> | undefined
+
+  #continueButtonConfig: ButtonConfig | undefined
+  #submitButtons: ButtonConfig[] | undefined
+
+  constructor(config: {
+    promises: IOPromises
+    renderer: ComponentsRenderer
+    continueButton?: ButtonConfig
+    submitButtons?: ButtonConfig[]
+  }) {
+    this.promises = config.promises
+    this.#renderer = config.renderer
+    this.#continueButtonConfig = config.continueButton
+    this.#submitButtons = config.submitButtons
+  }
+
+  get promiseValues(): MaybeOptionalGroupIOPromise[] {
+    return Array.isArray(this.promises)
+      ? this.promises
+      : Object.values(this.promises)
+  }
+
+  then(
+    resolve: (output: ReturnValues) => void,
+    reject?: (err: IOError) => void
+  ) {
+    const promiseValues = this.promiseValues
+
+    this.#renderer(
+      promiseValues.map(p => p.component) as unknown as [
+        AnyIOComponent,
+        ...AnyIOComponent[]
+      ],
+      this.#validator ? this.#handleValidation.bind(this) : undefined,
+      this.#continueButtonConfig,
+      this.#submitButtons
+    )
+      .then(values => {
+        let returnValues = values.map((val, i) =>
+          promiseValues[i].getValue(val as never)
+        )
+
+        if (Array.isArray(this.promises)) {
+          resolve(returnValues as unknown as ReturnValues)
+        } else {
+          const keys = Object.keys(this.promises)
+          resolve(
+            Object.fromEntries(
+              returnValues.map((val, i) => [keys[i], val])
+            ) as ReturnValues
+          )
+        }
+      })
+      .catch(err => {
+        if (reject) reject(err)
+      })
+  }
+
+  validate(validator: IOPromiseValidator<ReturnValues> | undefined): this {
+    this.#validator = validator
+
+    return this
+  }
+
+  // These types aren't as tight as they could be, but
+  // TypeScript doesn't like IOGroupComponents defined above here
+  async #handleValidation(
+    returnValues: IOClientRenderReturnValues<
+      [AnyIOComponent, ...AnyIOComponent[]]
+    >
+  ): Promise<string | undefined> {
+    if (!this.#validator) return
+
+    const promiseValues = this.promiseValues
+
+    const values = returnValues.map((v, index) =>
+      promiseValues[index].getValue(v as never)
+    )
+
+    if (Array.isArray(this.promises)) {
+      return this.#validator(values as unknown as ReturnValues)
+    } else {
+      const keys = Object.keys(this.promises)
+      const valueMap = Object.fromEntries(
+        values.map((val, i) => [keys[i], val])
+      )
+
+      return this.#validator(valueMap as ReturnValues)
+    }
+  }
 }

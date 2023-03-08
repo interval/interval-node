@@ -158,6 +158,7 @@ export class IOClient {
             validationErrorMessage,
             kind: 'RENDER',
             continueButton,
+            submitButtons,
           }
 
           await this.send(packed)
