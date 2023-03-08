@@ -37,21 +37,21 @@ export default class TransactionLoadingState {
   }
 
   /**
-   * Kicks off a loading spinner to provide context during any long-running action work. Can also be called with a single string argument as the title, or with no arguments to display only a spinner.
+   * Kicks off a loading spinner to provide context during any long-running action work. Can also be called with a single string argument as the label, or with no arguments to display only a spinner.
    *
    * **Usage:**
    *
    *```typescript
    * await ctx.loading.start({
-   *   title: "Reticulating splines...",
+   *   label: "Reticulating splines...",
    * });
    *
-   * await ctx.loading.start("Title only shorthand");
+   * await ctx.loading.start("Label only shorthand");
    *```
    */
   async start(options?: string | LoadingOptions) {
     if (typeof options === 'string') {
-      options = { title: options }
+      options = { label: options }
     } else if (options === undefined) {
       options = {}
     }
@@ -71,12 +71,12 @@ export default class TransactionLoadingState {
    *
    *```typescript
    * await ctx.loading.start({
-   *   title: "Something is loading",
+   *   label: "Something is loading",
    *   description: "Mapping all the things",
    * });
    *
    * await ctx.loading.update({
-   *   title: "Something is loading",
+   *   label: "Something is loading",
    *   description: "Now reducing all the things",
    * });
    *```
@@ -88,7 +88,7 @@ export default class TransactionLoadingState {
     }
 
     if (typeof options === 'string') {
-      options = { title: options }
+      options = { label: options }
     } else if (options === undefined) {
       options = {}
     }
@@ -109,7 +109,7 @@ export default class TransactionLoadingState {
    *
    *```typescript
    * await ctx.loading.start({
-   *   title: "Migrating users",
+   *   label: "Migrating users",
    *   description: "Enabling edit button for selected users",
    *   itemsInQueue: 100,
    * });
