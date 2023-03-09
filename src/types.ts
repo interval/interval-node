@@ -315,6 +315,7 @@ export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = (
 ) => Promise<ComponentRenderReturn<MethodName>>
 
 export type ComponentsRendererReturn<Components> = {
+  submitValue?: string
   response: {
     [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
       ? z.infer<Components[Idx]['schema']['returns']> | undefined
@@ -331,7 +332,7 @@ export type ComponentsRenderer<
   components: Components,
   validator?: IOClientRenderValidator<Components>,
   continueButton?: ButtonConfig,
-  submitButtons?: ButtonConfig[]
+  submitButtons?: SubmitButtonConfig[]
 ) => Promise<ComponentsRendererReturn<Components>>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
@@ -471,6 +472,11 @@ export type ButtonItem = {
 export type ButtonConfig = {
   label?: string
   theme?: ButtonTheme
+}
+
+export type SubmitButtonConfig = Omit<ButtonConfig, 'label'> & {
+  label: string
+  value?: string
 }
 
 export type GroupConfig = {

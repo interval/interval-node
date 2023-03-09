@@ -1869,6 +1869,7 @@ const interval = new Interval({
     },
     multiple_continues: async () => {
       const {
+        submitValue,
         response: [text],
       } = await io.group([io.input.text('Important data')]).withSubmit([
         {
@@ -1881,9 +1882,10 @@ const interval = new Interval({
         },
       ])
 
-      ctx.log('Response:', text)
-
-      return 'All done!'
+      return {
+        submitValue,
+        text,
+      }
     },
     select_single: async () => {
       const selected = await io.select.single('Select an item', {

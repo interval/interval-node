@@ -21,6 +21,7 @@ import {
   MaybeOptionalGroupIOPromise,
   OptionalGroupIOPromise,
   ButtonConfig,
+  SubmitButtonConfig,
 } from '../types'
 import { IOClientRenderReturnValues } from './IOClient'
 import { z, ZodError } from 'zod'
@@ -761,7 +762,7 @@ export class IOGroupPromise<
   }
 
   withSubmit(
-    submitButtons: ButtonConfig[]
+    submitButtons: SubmitButtonConfig[]
   ): IOGroupPromiseWithSubmit<IOPromises, ReturnValues> {
     return new IOGroupPromiseWithSubmit({
       promises: this.promises,
@@ -789,13 +790,13 @@ export class IOGroupPromiseWithSubmit<
   #validator: IOPromiseValidator<ReturnValues> | undefined
 
   #continueButtonConfig: ButtonConfig | undefined
-  #submitButtons: ButtonConfig[] | undefined
+  #submitButtons: SubmitButtonConfig[] | undefined
 
   constructor(config: {
     promises: IOPromises
     renderer: ComponentsRenderer
     continueButton?: ButtonConfig
-    submitButtons?: ButtonConfig[]
+    submitButtons?: SubmitButtonConfig[]
   }) {
     this.promises = config.promises
     this.#renderer = config.renderer
@@ -810,7 +811,7 @@ export class IOGroupPromiseWithSubmit<
   }
 
   then(
-    resolve: (output: { response: ReturnValues }) => void,
+    resolve: (output: { submitValue?: string; response: ReturnValues }) => void,
     reject?: (err: IOError) => void
   ) {
     const promiseValues = this.promiseValues
@@ -824,16 +825,20 @@ export class IOGroupPromiseWithSubmit<
       this.#continueButtonConfig,
       this.#submitButtons
     )
-      .then(({ response }) => {
+      .then(({ response, submitValue }) => {
         let returnValues = response.map((val, i) =>
           promiseValues[i].getValue(val as never)
         )
 
         if (Array.isArray(this.promises)) {
-          resolve({ response: response as unknown as ReturnValues })
+          resolve({
+            submitValue,
+            response: response as unknown as ReturnValues,
+          })
         } else {
           const keys = Object.keys(this.promises)
           resolve({
+            submitValue,
             response: Object.fromEntries(
               returnValues.map((val, i) => [keys[i], val])
             ) as ReturnValues,
@@ -879,7 +884,7 @@ export class IOGroupPromiseWithSubmit<
   }
 
   withSubmit(
-    submitButtons: ButtonConfig[]
+    submitButtons: SubmitButtonConfig[]
   ): IOGroupPromiseWithSubmit<IOPromises, ReturnValues> {
     return new IOGroupPromiseWithSubmit({
       promises: this.promises,

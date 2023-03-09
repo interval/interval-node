@@ -51,6 +51,7 @@ import {
   RequiredPropsInputIOComponentFunction,
   GroupConfig,
   ButtonConfig,
+  SubmitButtonConfig,
   RequiredPropsMultipleableInputIOComponentFunction,
   MultipleableInputIOComponentFunction,
 } from '../types'
@@ -68,6 +69,7 @@ interface ClientConfig {
 export type IOClientRenderReturnValues<
   Components extends [AnyIOComponent, ...AnyIOComponent[]]
 > = {
+  submitValue?: string
   response: {
     [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
       ? z.infer<Components[Idx]['schema']['returns']> | undefined
@@ -127,7 +129,7 @@ export class IOClient {
     components: Components,
     groupValidator?: IOClientRenderValidator<Components>,
     continueButton?: ButtonConfig,
-    submitButtons?: ButtonConfig[]
+    submitButtons?: SubmitButtonConfig[]
   ) {
     if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
@@ -140,6 +142,13 @@ export class IOClient {
       async (resolve, reject) => {
         const inputGroupKey = v4()
         let isReturned = false
+
+        let setSubmitValue: (value: string | undefined) => void
+        const submitValue: Promise<string | undefined> = new Promise(
+          resolve => {
+            setSubmitValue = resolve
+          }
+        )
 
         const render = async () => {
           const packed: T_IO_RENDER_INPUT = {
@@ -235,6 +244,7 @@ export class IOClient {
               }
 
               isReturned = true
+              setSubmitValue(result.submitValue)
 
               result.values.forEach((v, index) => {
                 // @ts-ignore
@@ -298,6 +308,7 @@ export class IOClient {
           })
 
         const response = {
+          submitValue: await submitValue,
           response: await Promise.all(components.map(comp => comp.returnValue)),
         } as unknown as Promise<IOClientRenderReturnValues<Components>>
 
