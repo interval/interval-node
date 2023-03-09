@@ -228,12 +228,12 @@ export default class Interval {
     return this.#client.listen()
   }
 
-  close() {
-    return this.#client?.close()
+  immediatelyClose() {
+    return this.#client?.immediatelyClose()
   }
 
-  async gracefullyShutdown(): Promise<void> {
-    return this.#client?.gracefullyShutdown()
+  async safelyClose(): Promise<void> {
+    return this.#client?.safelyClose()
   }
 
   /* @internal */ get client() {

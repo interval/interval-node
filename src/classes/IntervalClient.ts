@@ -374,7 +374,7 @@ export default class IntervalClient {
     return await result
   }
 
-  close() {
+  immediatelyClose() {
     this.#resolveShutdown = undefined
     this.#intentionallyClosed = true
 
@@ -396,7 +396,7 @@ export default class IntervalClient {
     this.#isConnected = false
   }
 
-  async gracefullyShutdown(): Promise<void> {
+  async safelyClose(): Promise<void> {
     const response = await this.#send(
       'BEGIN_HOST_SHUTDOWN',
       {},
@@ -412,7 +412,7 @@ export default class IntervalClient {
     }
 
     if (this.#ioResponseHandlers.size === 0) {
-      this.close()
+      this.immediatelyClose()
       return
     }
 
@@ -422,7 +422,7 @@ export default class IntervalClient {
       // doing this here and in #close just to be extra sure
       // it's not missed in any future code paths
       this.#resolveShutdown = undefined
-      this.close()
+      this.immediatelyClose()
     })
   }
 

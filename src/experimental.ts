@@ -132,7 +132,7 @@ class ExperimentalInterval extends Interval {
     const client = new IntervalClient(this, this.config)
     const response = await client.respondToRequest(requestId)
 
-    client.close()
+    client.immediatelyClose()
 
     return response
   }
@@ -141,7 +141,7 @@ class ExperimentalInterval extends Interval {
     const client = new IntervalClient(this, this.config)
     const response = await client.declareHost(httpHostId)
 
-    client.close()
+    client.immediatelyClose()
 
     return response
   }

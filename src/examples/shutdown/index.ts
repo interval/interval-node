@@ -18,7 +18,7 @@ interval.listen()
 
 process.on('SIGINT', () => {
   interval
-    .gracefullyShutdown()
+    .safelyClose()
     .then(() => {
       console.log('Shut down!')
       process.exit(0)
@@ -27,7 +27,7 @@ process.on('SIGINT', () => {
       console.error(
         'Failed shutting down gracefully, forcibly closing connection'
       )
-      interval.close()
+      interval.immediatelyClose()
       process.exit(0)
     })
 })
