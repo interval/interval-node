@@ -396,7 +396,7 @@ export default class IntervalClient {
   async declareHost(httpHostId: string) {
     await this.#walkRoutes()
 
-    const body: z.infer<typeof DECLARE_HOST['inputs']> = {
+    const body: z.infer<(typeof DECLARE_HOST)['inputs']> = {
       httpHostId,
       actions: this.#actionDefinitions,
       groups: this.#pageDefinitions,
@@ -1132,13 +1132,13 @@ export default class IntervalClient {
               if (err instanceof IOError) {
                 switch (err.kind) {
                   case 'CANCELED':
-                    intervalClient.#log.prod(
+                    intervalClient.#log.debug(
                       'Transaction canceled for action',
                       action.slug
                     )
                     break
                   case 'TRANSACTION_CLOSED':
-                    intervalClient.#log.prod(
+                    intervalClient.#log.debug(
                       'Attempted to make IO call after transaction already closed in action',
                       action.slug
                     )
