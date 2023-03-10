@@ -29,17 +29,17 @@ import { z, ZodError } from 'zod'
 interface IOPromiseProps<
   MethodName extends T_IO_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  Output = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>
 > {
   renderer: ComponentRenderer<MethodName>
   methodName: MethodName
   label: string
   props: Props
-  valueGetter?: (response: ComponentReturnValue<MethodName>) => Output
+  valueGetter?: (response: ComponentReturnValue<MethodName>) => ComponentOutput
   onStateChange?: (
     incomingState: T_IO_STATE<MethodName>
   ) => Promise<Partial<Props>>
-  validator?: IOPromiseValidator<Output> | undefined
+  validator?: IOPromiseValidator<ComponentOutput> | undefined
   displayResolvesImmediately?: boolean
 }
 
@@ -54,19 +54,19 @@ interface IOPromiseProps<
 export class IOPromise<
   MethodName extends T_IO_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  Output = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>
 > {
   protected methodName: MethodName
   protected renderer: ComponentRenderer<MethodName>
   protected label: string
   protected props: Props
   protected valueGetter:
-    | ((response: ComponentReturnValue<MethodName>) => Output)
+    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
     | undefined
   protected onStateChange:
     | ((incomingState: T_IO_STATE<MethodName>) => Promise<Partial<Props>>)
     | undefined
-  protected validator: IOPromiseValidator<Output> | undefined
+  protected validator: IOPromiseValidator<ComponentOutput> | undefined
   protected displayResolvesImmediately: boolean | undefined
 
   constructor({
@@ -78,7 +78,7 @@ export class IOPromise<
     onStateChange,
     validator,
     displayResolvesImmediately,
-  }: IOPromiseProps<MethodName, Props, Output>) {
+  }: IOPromiseProps<MethodName, Props, ComponentOutput>) {
     this.renderer = renderer
     this.methodName = methodName
     this.label = label
@@ -89,7 +89,10 @@ export class IOPromise<
     this.displayResolvesImmediately = displayResolvesImmediately
   }
 
-  then(resolve: (output: Output) => void, reject?: (err: IOError) => void) {
+  then(
+    resolve: (output: ComponentOutput) => void,
+    reject?: (err: IOError) => void
+  ) {
     this.renderer([this.component])
       .then(({ response: [result] }) => {
         const parsed = ioSchema[this.methodName].returns.parse(result)
@@ -111,10 +114,10 @@ export class IOPromise<
       })
   }
 
-  getValue(result: ComponentReturnValue<MethodName>): Output {
+  getValue(result: ComponentReturnValue<MethodName>): ComponentOutput {
     if (this.valueGetter) return this.valueGetter(result)
 
-    return result as unknown as Output
+    return result as unknown as ComponentOutput
   }
 
   get component() {
@@ -135,14 +138,14 @@ export class IOPromise<
 export class DisplayIOPromise<
   MethodName extends T_IO_DISPLAY_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  Output = ComponentReturnValue<MethodName>
-> extends IOPromise<MethodName, Props, Output> {}
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends IOPromise<MethodName, Props, ComponentOutput> {}
 
 export class InputIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  Output = ComponentReturnValue<MethodName>
-> extends IOPromise<MethodName, Props, Output> {
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends IOPromise<MethodName, Props, ComponentOutput> {
   get component() {
     return new IOComponent({
       methodName: this.methodName,
@@ -173,24 +176,28 @@ export class InputIOPromise<
     }
   }
 
-  validate(validator: IOPromiseValidator<Output>): this {
+  validate(validator: IOPromiseValidator<ComponentOutput>): this {
     this.validator = validator
 
     return this
   }
 
-  optional(isOptional?: true): OptionalIOPromise<MethodName, Props, Output>
-  optional(isOptional?: false): InputIOPromise<MethodName, Props, Output>
+  optional(
+    isOptional?: true
+  ): OptionalIOPromise<MethodName, Props, ComponentOutput>
+  optional(
+    isOptional?: false
+  ): InputIOPromise<MethodName, Props, ComponentOutput>
   optional(
     isOptional?: boolean
   ):
-    | OptionalIOPromise<MethodName, Props, Output>
-    | InputIOPromise<MethodName, Props, Output>
+    | OptionalIOPromise<MethodName, Props, ComponentOutput>
+    | InputIOPromise<MethodName, Props, ComponentOutput>
   optional(
     isOptional = true
   ):
-    | OptionalIOPromise<MethodName, Props, Output>
-    | InputIOPromise<MethodName, Props, Output> {
+    | OptionalIOPromise<MethodName, Props, ComponentOutput>
+    | InputIOPromise<MethodName, Props, ComponentOutput> {
     return isOptional
       ? new OptionalIOPromise({
           renderer: this.renderer,
@@ -211,10 +218,10 @@ export class InputIOPromise<
 export class OptionalIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  Output = ComponentReturnValue<MethodName>
-> extends InputIOPromise<MethodName, Props, Output | undefined> {
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends InputIOPromise<MethodName, Props, ComponentOutput | undefined> {
   then(
-    resolve: (output: Output | undefined) => void,
+    resolve: (output: ComponentOutput | undefined) => void,
     reject?: (err: IOError) => void
   ) {
     this.renderer([this.component])
@@ -271,25 +278,25 @@ export class OptionalIOPromise<
 
   getValue(
     result: ComponentReturnValue<MethodName> | undefined
-  ): Output | undefined {
+  ): ComponentOutput | undefined {
     if (result === undefined) return undefined
 
     if (this.valueGetter) {
       return this.valueGetter(result)
     }
 
-    return result as unknown as Output
+    return result as unknown as ComponentOutput
   }
 }
 
 export class MultipleableIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  Output = ComponentReturnValue<MethodName>,
+  ComponentOutput = ComponentReturnValue<MethodName>,
   DefaultValue = T_IO_PROPS<MethodName> extends { defaultValue?: any }
-    ? Output | null
+    ? ComponentOutput | null
     : never
-> extends InputIOPromise<MethodName, Props, Output> {
+> extends InputIOPromise<MethodName, Props, ComponentOutput> {
   defaultValueGetter:
     | ((defaultValue: DefaultValue) => T_IO_RETURNS<MethodName>)
     | undefined
@@ -302,14 +309,16 @@ export class MultipleableIOPromise<
     methodName: MethodName
     label: string
     props: Props
-    valueGetter?: (response: ComponentReturnValue<MethodName>) => Output
+    valueGetter?: (
+      response: ComponentReturnValue<MethodName>
+    ) => ComponentOutput
     defaultValueGetter?: (
       defaultValue: DefaultValue
     ) => T_IO_RETURNS<MethodName>
     onStateChange?: (
       incomingState: T_IO_STATE<MethodName>
     ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<Output> | undefined
+    validator?: IOPromiseValidator<ComponentOutput> | undefined
     displayResolvesImmediately?: boolean
   }) {
     super(props)
@@ -320,7 +329,7 @@ export class MultipleableIOPromise<
     defaultValue,
   }: {
     defaultValue?: DefaultValue[] | null
-  } = {}): MultipleIOPromise<MethodName, Props, Output> {
+  } = {}): MultipleIOPromise<MethodName, Props, ComponentOutput> {
     let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
     const propsSchema = ioSchema[this.methodName].props
     if (defaultValue && 'defaultValue' in propsSchema.shape) {
@@ -343,7 +352,7 @@ export class MultipleableIOPromise<
       }
     }
 
-    return new MultipleIOPromise<MethodName, Props, Output>({
+    return new MultipleIOPromise<MethodName, Props, ComponentOutput>({
       renderer: this.renderer,
       methodName: this.methodName,
       label: this.label,
@@ -358,10 +367,10 @@ export class MultipleableIOPromise<
 export class MultipleIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  Output = ComponentReturnValue<MethodName>
-> extends InputIOPromise<MethodName, Props, Output[]> {
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends InputIOPromise<MethodName, Props, ComponentOutput[]> {
   getSingleValue:
-    | ((response: ComponentReturnValue<MethodName>) => Output)
+    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
     | undefined
   defaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
 
@@ -375,18 +384,23 @@ export class MultipleIOPromise<
     methodName: MethodName
     label: string
     props: Props
-    valueGetter?: (response: ComponentReturnValue<MethodName>) => Output
+    valueGetter?: (
+      response: ComponentReturnValue<MethodName>
+    ) => ComponentOutput
     onStateChange?: (
       incomingState: T_IO_STATE<MethodName>
     ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<Output[]> | undefined
+    validator?: IOPromiseValidator<ComponentOutput[]> | undefined
   }) {
     super(rest)
     this.getSingleValue = valueGetter
     this.defaultValue = defaultValue
   }
 
-  then(resolve: (output: Output[]) => void, reject?: (err: IOError) => void) {
+  then(
+    resolve: (output: ComponentOutput[]) => void,
+    reject?: (err: IOError) => void
+  ) {
     this.renderer([this.component])
       .then(({ response: [results] }) => {
         resolve(this.getValue(results))
@@ -396,13 +410,15 @@ export class MultipleIOPromise<
       })
   }
 
-  validate(validator: IOPromiseValidator<Output[]>): this {
+  validate(validator: IOPromiseValidator<ComponentOutput[]>): this {
     this.validator = validator
 
     return this
   }
 
-  getValue(results: MaybeMultipleComponentReturnValue<MethodName>): Output[] {
+  getValue(
+    results: MaybeMultipleComponentReturnValue<MethodName>
+  ): ComponentOutput[] {
     if (!Array.isArray(results)) {
       results = [results]
     }
@@ -412,7 +428,7 @@ export class MultipleIOPromise<
       return results.map(result => getSingleValue(result))
     }
 
-    return results as unknown as Output[]
+    return results as unknown as ComponentOutput[]
   }
 
   async #handleValidation(
@@ -453,20 +469,22 @@ export class MultipleIOPromise<
 
   optional(
     isOptional?: true
-  ): OptionalMultipleIOPromise<MethodName, Props, Output>
-  optional(isOptional?: false): MultipleIOPromise<MethodName, Props, Output>
+  ): OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
+  optional(
+    isOptional?: false
+  ): MultipleIOPromise<MethodName, Props, ComponentOutput>
   optional(
     isOptional?: boolean
   ):
-    | OptionalMultipleIOPromise<MethodName, Props, Output>
-    | MultipleIOPromise<MethodName, Props, Output>
+    | OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
+    | MultipleIOPromise<MethodName, Props, ComponentOutput>
   optional(
     isOptional = true
   ):
-    | OptionalMultipleIOPromise<MethodName, Props, Output>
-    | MultipleIOPromise<MethodName, Props, Output> {
+    | OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
+    | MultipleIOPromise<MethodName, Props, ComponentOutput> {
     return isOptional
-      ? new OptionalMultipleIOPromise<MethodName, Props, Output>({
+      ? new OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>({
           renderer: this.renderer,
           methodName: this.methodName,
           label: this.label,
@@ -481,10 +499,10 @@ export class MultipleIOPromise<
 export class OptionalMultipleIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  Output = ComponentReturnValue<MethodName>
-> extends OptionalIOPromise<MethodName, Props, Output[]> {
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends OptionalIOPromise<MethodName, Props, ComponentOutput[]> {
   getSingleValue:
-    | ((response: ComponentReturnValue<MethodName>) => Output)
+    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
     | undefined
   defaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
 
@@ -498,11 +516,13 @@ export class OptionalMultipleIOPromise<
     methodName: MethodName
     label: string
     props: Props
-    valueGetter?: (response: ComponentReturnValue<MethodName>) => Output
+    valueGetter?: (
+      response: ComponentReturnValue<MethodName>
+    ) => ComponentOutput
     onStateChange?: (
       incomingState: T_IO_STATE<MethodName>
     ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<Output[] | undefined> | undefined
+    validator?: IOPromiseValidator<ComponentOutput[] | undefined> | undefined
   }) {
     super(rest)
     this.getSingleValue = valueGetter
@@ -510,7 +530,7 @@ export class OptionalMultipleIOPromise<
   }
 
   then(
-    resolve: (output: Output[] | undefined) => void,
+    resolve: (output: ComponentOutput[] | undefined) => void,
     reject?: (err: IOError) => void
   ) {
     this.renderer([this.component])
@@ -522,7 +542,7 @@ export class OptionalMultipleIOPromise<
       })
   }
 
-  validate(validator: IOPromiseValidator<Output[] | undefined>): this {
+  validate(validator: IOPromiseValidator<ComponentOutput[] | undefined>): this {
     this.validator = validator
 
     return this
@@ -530,7 +550,7 @@ export class OptionalMultipleIOPromise<
 
   getValue(
     results: MaybeMultipleComponentReturnValue<MethodName> | undefined
-  ): Output[] | undefined {
+  ): ComponentOutput[] | undefined {
     if (!results) return undefined
 
     if (!Array.isArray(results)) {
@@ -542,7 +562,7 @@ export class OptionalMultipleIOPromise<
       return results.map(result => getSingleValue(result))
     }
 
-    return results as unknown as Output[]
+    return results as unknown as ComponentOutput[]
   }
 
   async #handleValidation(
@@ -589,8 +609,8 @@ export class OptionalMultipleIOPromise<
 export class ExclusiveIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  Output = ComponentReturnValue<MethodName>
-> extends IOPromise<MethodName, Props, Output> {
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends IOPromise<MethodName, Props, ComponentOutput> {
   get component() {
     return new IOComponent({
       methodName: this.methodName,
@@ -622,7 +642,7 @@ export class ExclusiveIOPromise<
     }
   }
 
-  validate(validator: IOPromiseValidator<Output>): this {
+  validate(validator: IOPromiseValidator<ComponentOutput>): this {
     this.validator = validator
 
     return this
@@ -654,8 +674,8 @@ export type IOGroupComponents<
     : IOPromises[Idx]
 }
 
-export type IOPromiseValidator<Output> = (
-  returnValue: Output
+export type IOPromiseValidator<ComponentOutput> = (
+  returnValue: ComponentOutput
 ) => string | undefined | Promise<string | undefined>
 
 export class IOGroupPromise<
