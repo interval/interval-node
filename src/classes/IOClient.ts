@@ -125,12 +125,17 @@ export class IOClient {
    */
   async renderComponents<
     Components extends [AnyIOComponent, ...AnyIOComponent[]]
-  >(
-    components: Components,
-    groupValidator?: IOClientRenderValidator<Components>,
-    continueButton?: ButtonConfig,
+  >({
+    components,
+    groupValidator,
+    continueButton,
+    submitButtons,
+  }: {
+    components: Components
+    groupValidator?: IOClientRenderValidator<Components>
+    continueButton?: ButtonConfig
     submitButtons?: SubmitButtonConfig[]
-  ) {
+  }) {
     if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
       throw new IOError('TRANSACTION_CLOSED')

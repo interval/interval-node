@@ -90,14 +90,10 @@ export class IOPromise<
   }
 
   then(
-    resolve: (
-      output:
-        | ComponentOutput
-        | { submitValue?: string; response: ComponentOutput }
-    ) => void,
+    resolve: (output: ComponentOutput) => void,
     reject?: (err: IOError) => void
   ) {
-    this.renderer([this.component])
+    this.renderer({ components: [this.component] })
       .then(({ response: [result] }) => {
         const parsed = ioSchema[this.methodName].returns.parse(result)
         resolve(this.getValue(parsed))
@@ -233,28 +229,42 @@ export class WithSubmitIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>
-> extends IOPromise<MethodName, Props, ComponentOutput> {
+> {
+  protected methodName: MethodName
+  protected renderer: ComponentRenderer<MethodName>
+  protected label: string
+  protected props: Props
+  protected valueGetter:
+    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
+    | undefined
+  protected onStateChange:
+    | ((incomingState: T_IO_STATE<MethodName>) => Promise<Partial<Props>>)
+    | undefined
+  protected validator: IOPromiseValidator<ComponentOutput> | undefined
+  protected displayResolvesImmediately: boolean | undefined
   submitButtons: SubmitButtonConfig[]
 
   constructor({
+    renderer,
+    methodName,
+    label,
+    props,
+    valueGetter,
+    onStateChange,
+    validator,
+    displayResolvesImmediately,
     submitButtons,
-    ...props
-  }: {
-    renderer: ComponentRenderer<MethodName>
-    methodName: MethodName
-    label: string
-    props: Props
-    valueGetter?: (
-      response: ComponentReturnValue<MethodName>
-    ) => ComponentOutput
-    onStateChange?: (
-      incomingState: T_IO_STATE<MethodName>
-    ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<ComponentOutput> | undefined
-    displayResolvesImmediately?: boolean
+  }: IOPromiseProps<MethodName, Props, ComponentOutput> & {
     submitButtons: SubmitButtonConfig[]
   }) {
-    super(props)
+    this.renderer = renderer
+    this.methodName = methodName
+    this.label = label
+    this.props = props
+    this.valueGetter = valueGetter
+    this.onStateChange = onStateChange
+    this.validator = validator
+    this.displayResolvesImmediately = displayResolvesImmediately
     this.submitButtons = submitButtons
   }
 
@@ -265,7 +275,10 @@ export class WithSubmitIOPromise<
     }) => void,
     reject?: (err: IOError) => void
   ) {
-    this.renderer([this.component])
+    this.renderer({
+      components: [this.component],
+      submitButtons: this.submitButtons,
+    })
       .then(({ response: [result], submitValue }) => {
         const parsed = ioSchema[this.methodName].returns.parse(result)
         resolve({ submitValue, response: this.getValue(parsed) })
@@ -284,6 +297,12 @@ export class WithSubmitIOPromise<
           }
         }
       })
+  }
+
+  getValue(result: ComponentReturnValue<MethodName>): ComponentOutput {
+    if (this.valueGetter) return this.valueGetter(result)
+
+    return result as unknown as ComponentOutput
   }
 
   get component() {
@@ -374,31 +393,7 @@ export class OptionalWithSubmitIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>
-> extends IOPromise<MethodName, Props, ComponentOutput | undefined> {
-  submitButtons: SubmitButtonConfig[]
-
-  constructor({
-    submitButtons,
-    ...props
-  }: {
-    renderer: ComponentRenderer<MethodName>
-    methodName: MethodName
-    label: string
-    props: Props
-    valueGetter?: (
-      response: ComponentReturnValue<MethodName>
-    ) => ComponentOutput
-    onStateChange?: (
-      incomingState: T_IO_STATE<MethodName>
-    ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<ComponentOutput | undefined> | undefined
-    displayResolvesImmediately?: boolean
-    submitButtons: SubmitButtonConfig[]
-  }) {
-    super(props)
-    this.submitButtons = submitButtons
-  }
-
+> extends WithSubmitIOPromise<MethodName, Props, ComponentOutput | undefined> {
   then(
     resolve: (output: {
       submitValue?: string
@@ -406,7 +401,10 @@ export class OptionalWithSubmitIOPromise<
     }) => void,
     reject?: (err: IOError) => void
   ) {
-    this.renderer([this.component])
+    this.renderer({
+      components: [this.component],
+      submitButtons: this.submitButtons,
+    })
       .then(({ response: [result], submitValue }) => {
         const parsed = ioSchema[this.methodName].returns
           .optional()
@@ -507,7 +505,7 @@ export class OptionalIOPromise<
     resolve: (output: ComponentOutput | undefined) => void,
     reject?: (err: IOError) => void
   ) {
-    this.renderer([this.component])
+    this.renderer({ components: [this.component] })
       .then(({ response: [result] }) => {
         const parsed = ioSchema[this.methodName].returns
           .optional()
@@ -684,7 +682,7 @@ export class MultipleIOPromise<
     resolve: (output: ComponentOutput[]) => void,
     reject?: (err: IOError) => void
   ) {
-    this.renderer([this.component])
+    this.renderer({ components: [this.component] })
       .then(({ response: [results] }) => {
         resolve(this.getValue(results))
       })
@@ -816,7 +814,7 @@ export class OptionalMultipleIOPromise<
     resolve: (output: ComponentOutput[] | undefined) => void,
     reject?: (err: IOError) => void
   ) {
-    this.renderer([this.component])
+    this.renderer({ components: [this.component] })
       .then(({ response: [results] }) => {
         resolve(this.getValue(results))
       })
@@ -1002,14 +1000,16 @@ export class IOGroupPromise<
   ) {
     const promiseValues = this.promiseValues
 
-    this.#renderer(
-      promiseValues.map(p => p.component) as unknown as [
+    this.#renderer({
+      components: promiseValues.map(p => p.component) as unknown as [
         AnyIOComponent,
         ...AnyIOComponent[]
       ],
-      this.#validator ? this.#handleValidation.bind(this) : undefined,
-      this.#continueButtonConfig
-    )
+      validator: this.#validator
+        ? this.#handleValidation.bind(this)
+        : undefined,
+      continueButton: this.#continueButtonConfig,
+    })
       .then(({ response }) => {
         let returnValues = response.map((val, i) =>
           promiseValues[i].getValue(val as never)
@@ -1119,15 +1119,17 @@ export class IOGroupPromiseWithSubmit<
   ) {
     const promiseValues = this.promiseValues
 
-    this.#renderer(
-      promiseValues.map(p => p.component) as unknown as [
+    this.#renderer({
+      components: promiseValues.map(p => p.component) as unknown as [
         AnyIOComponent,
         ...AnyIOComponent[]
       ],
-      this.#validator ? this.#handleValidation.bind(this) : undefined,
-      this.#continueButtonConfig,
-      this.#submitButtons
-    )
+      validator: this.#validator
+        ? this.#handleValidation.bind(this)
+        : undefined,
+      continueButton: this.#continueButtonConfig,
+      submitButtons: this.#submitButtons,
+    })
       .then(({ response, submitValue }) => {
         let returnValues = response.map((val, i) =>
           promiseValues[i].getValue(val as never)

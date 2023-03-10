@@ -311,9 +311,13 @@ export type ComponentRenderReturn<MethodName extends T_IO_METHOD_NAMES> = {
   ]
 }
 
-export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = (
+export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = ({
+  components,
+  submitButtons,
+}: {
   components: [IOComponent<MethodName>, ...IOComponent<MethodName>[]]
-) => Promise<ComponentRenderReturn<MethodName>>
+  submitButtons?: SubmitButtonConfig[]
+}) => Promise<ComponentRenderReturn<MethodName>>
 
 export type ComponentsRendererReturn<Components> = {
   submitValue?: string
@@ -329,12 +333,17 @@ export type ComponentsRenderer<
     AnyIOComponent,
     ...AnyIOComponent[]
   ]
-> = (
-  components: Components,
-  validator?: IOClientRenderValidator<Components>,
-  continueButton?: ButtonConfig,
+> = ({
+  components,
+  validator,
+  continueButton,
+  submitButtons,
+}: {
+  components: Components
+  validator?: IOClientRenderValidator<Components>
+  continueButton?: ButtonConfig
   submitButtons?: SubmitButtonConfig[]
-) => Promise<ComponentsRendererReturn<Components>>
+}) => Promise<ComponentsRendererReturn<Components>>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 
