@@ -366,6 +366,8 @@ export class IOClient {
       )
     }
 
+    // TODO do something similar for withSubmit promises ^^
+
     return new IOGroupPromise({
       promises,
       renderer: this.renderComponents.bind(this),

@@ -1868,9 +1868,30 @@ const interval = new Interval({
       return 'All done!'
     },
     multiple_continues: async () => {
+      let { submitValue: singleSubmitValue, response: singleResponse } =
+        await io.input
+          .number('Enter a number')
+          .withSubmit([
+            { label: 'Make it negative', theme: 'danger', value: 'negative' },
+            { label: 'Do nothing' },
+          ])
+          .optional()
+      // .multiple() // adding this *should* be a type err, since io.input.number isn't multipleable
+
+      if (singleResponse && singleSubmitValue === 'negative') {
+        singleResponse = -singleResponse
+      }
+
+      const { submitValue: fileSubmitValue, response: fileResponse } =
+        await io.input
+          .file('Upload a file')
+          .multiple()
+          .withSubmit([{ label: 'Encrypt' }])
+      // .multiple() // TODO Should we allow arbitrary ordering of chaining?
+
       const {
-        submitValue,
-        response: [text],
+        submitValue: groupSubmitValue,
+        response: [groupReturn],
       } = await io.group([io.input.text('Important data')]).withSubmit([
         {
           label: 'Delete the data',
@@ -1883,8 +1904,8 @@ const interval = new Interval({
       ])
 
       return {
-        submitValue,
-        text,
+        groupSubmitValue,
+        groupReturn,
       }
     },
     select_single: async () => {

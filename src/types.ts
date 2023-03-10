@@ -304,6 +304,7 @@ export type ExclusiveIOComponentFunction<
 export type SubmitValue = string | null
 
 export type ComponentRenderReturn<MethodName extends T_IO_METHOD_NAMES> = {
+  submitValue?: string
   response: [
     MaybeMultipleComponentReturnValue<MethodName>,
     ...MaybeMultipleComponentReturnValue<MethodName>[]

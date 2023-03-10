@@ -90,7 +90,11 @@ export class IOPromise<
   }
 
   then(
-    resolve: (output: ComponentOutput) => void,
+    resolve: (
+      output:
+        | ComponentOutput
+        | { submitValue?: string; response: ComponentOutput }
+    ) => void,
     reject?: (err: IOError) => void
   ) {
     this.renderer([this.component])
@@ -208,6 +212,285 @@ export class InputIOPromise<
           onStateChange: this.onStateChange,
         })
       : this
+  }
+
+  withSubmit(
+    submitButtons: SubmitButtonConfig[]
+  ): WithSubmitIOPromise<MethodName, Props, ComponentOutput> {
+    return new WithSubmitIOPromise({
+      renderer: this.renderer,
+      methodName: this.methodName,
+      label: this.label,
+      props: this.props,
+      valueGetter: this.valueGetter,
+      onStateChange: this.onStateChange,
+      submitButtons,
+    })
+  }
+}
+
+export class WithSubmitIOPromise<
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends IOPromise<MethodName, Props, ComponentOutput> {
+  submitButtons: SubmitButtonConfig[]
+
+  constructor({
+    submitButtons,
+    ...props
+  }: {
+    renderer: ComponentRenderer<MethodName>
+    methodName: MethodName
+    label: string
+    props: Props
+    valueGetter?: (
+      response: ComponentReturnValue<MethodName>
+    ) => ComponentOutput
+    onStateChange?: (
+      incomingState: T_IO_STATE<MethodName>
+    ) => Promise<Partial<Props>>
+    validator?: IOPromiseValidator<ComponentOutput> | undefined
+    displayResolvesImmediately?: boolean
+    submitButtons: SubmitButtonConfig[]
+  }) {
+    super(props)
+    this.submitButtons = submitButtons
+  }
+
+  then(
+    resolve: (output: {
+      submitValue?: string
+      response: ComponentOutput
+    }) => void,
+    reject?: (err: IOError) => void
+  ) {
+    this.renderer([this.component])
+      .then(({ response: [result], submitValue }) => {
+        const parsed = ioSchema[this.methodName].returns.parse(result)
+        resolve({ submitValue, response: this.getValue(parsed) })
+      })
+      .catch(err => {
+        if (reject) {
+          if (err instanceof ZodError) {
+            // This should be caught already, primarily here for types
+            reject(
+              new IOError('BAD_RESPONSE', 'Received invalid response.', {
+                cause: err,
+              })
+            )
+          } else {
+            reject(err)
+          }
+        }
+      })
+  }
+
+  get component() {
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      displayResolvesImmediately: this.displayResolvesImmediately,
+    })
+  }
+
+  async #handleValidation(
+    returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
+  ): Promise<string | undefined> {
+    // These should be caught already, primarily here for types
+    if (returnValue === undefined) {
+      return 'This field is required.'
+    }
+
+    const parsed = ioSchema[this.methodName].returns.safeParse(returnValue)
+    if (parsed.success) {
+      if (this.validator) {
+        return this.validator(this.getValue(parsed.data))
+      }
+    } else {
+      // shouldn't be hit, but just in case
+      return 'Received invalid value for field.'
+    }
+  }
+
+  validate(validator: IOPromiseValidator<ComponentOutput>): this {
+    this.validator = validator
+
+    return this
+  }
+
+  optional(
+    isOptional?: true
+  ): OptionalWithSubmitIOPromise<MethodName, Props, ComponentOutput>
+  optional(
+    isOptional?: false
+  ): WithSubmitIOPromise<MethodName, Props, ComponentOutput>
+  optional(
+    isOptional?: boolean
+  ):
+    | OptionalWithSubmitIOPromise<MethodName, Props, ComponentOutput>
+    | WithSubmitIOPromise<MethodName, Props, ComponentOutput>
+  optional(
+    isOptional = true
+  ):
+    | OptionalWithSubmitIOPromise<
+        MethodName,
+        Props,
+        ComponentOutput | undefined
+      >
+    | WithSubmitIOPromise<MethodName, Props, ComponentOutput> {
+    return isOptional
+      ? new OptionalWithSubmitIOPromise({
+          renderer: this.renderer,
+          methodName: this.methodName,
+          label: this.label,
+          props: this.props,
+          valueGetter: this.valueGetter,
+          onStateChange: this.onStateChange,
+          submitButtons: this.submitButtons,
+        })
+      : this
+  }
+
+  withSubmit(
+    submitButtons: SubmitButtonConfig[]
+  ): WithSubmitIOPromise<MethodName, Props, ComponentOutput> {
+    return new WithSubmitIOPromise({
+      renderer: this.renderer,
+      methodName: this.methodName,
+      label: this.label,
+      props: this.props,
+      valueGetter: this.valueGetter,
+      onStateChange: this.onStateChange,
+      submitButtons,
+    })
+  }
+}
+
+export class OptionalWithSubmitIOPromise<
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends IOPromise<MethodName, Props, ComponentOutput | undefined> {
+  submitButtons: SubmitButtonConfig[]
+
+  constructor({
+    submitButtons,
+    ...props
+  }: {
+    renderer: ComponentRenderer<MethodName>
+    methodName: MethodName
+    label: string
+    props: Props
+    valueGetter?: (
+      response: ComponentReturnValue<MethodName>
+    ) => ComponentOutput
+    onStateChange?: (
+      incomingState: T_IO_STATE<MethodName>
+    ) => Promise<Partial<Props>>
+    validator?: IOPromiseValidator<ComponentOutput | undefined> | undefined
+    displayResolvesImmediately?: boolean
+    submitButtons: SubmitButtonConfig[]
+  }) {
+    super(props)
+    this.submitButtons = submitButtons
+  }
+
+  then(
+    resolve: (output: {
+      submitValue?: string
+      response: ComponentOutput | undefined
+    }) => void,
+    reject?: (err: IOError) => void
+  ) {
+    this.renderer([this.component])
+      .then(({ response: [result], submitValue }) => {
+        const parsed = ioSchema[this.methodName].returns
+          .optional()
+          .parse(result)
+        resolve({ submitValue, response: this.getValue(parsed) })
+      })
+      .catch(err => {
+        if (reject) {
+          if (err instanceof ZodError) {
+            // This should be caught already, primarily here for types
+            reject(
+              new IOError('BAD_RESPONSE', 'Received invalid response.', {
+                cause: err,
+              })
+            )
+          } else {
+            reject(err)
+          }
+        }
+      })
+  }
+
+  get component() {
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      displayResolvesImmediately: this.displayResolvesImmediately,
+    })
+  }
+
+  async #handleValidation(
+    returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
+  ): Promise<string | undefined> {
+    // These should be caught already, primarily here for types
+    const parsed = ioSchema[this.methodName].returns
+      .optional()
+      .safeParse(returnValue)
+    if (parsed.success) {
+      if (this.validator) {
+        return this.validator(this.getValue(parsed.data))
+      }
+    } else {
+      // shouldn't be hit, but just in case
+      return 'Received invalid value for field.'
+    }
+  }
+
+  validate(validator: IOPromiseValidator<ComponentOutput | undefined>): this {
+    this.validator = validator
+
+    return this
+  }
+
+  getValue(
+    result: ComponentReturnValue<MethodName> | undefined
+  ): ComponentOutput | undefined {
+    if (result === undefined) return undefined
+
+    if (this.valueGetter) {
+      return this.valueGetter(result)
+    }
+
+    return result as unknown as ComponentOutput
+  }
+
+  withSubmit(
+    submitButtons: SubmitButtonConfig[]
+  ): OptionalWithSubmitIOPromise<
+    MethodName,
+    Props,
+    ComponentOutput | undefined
+  > {
+    return new OptionalWithSubmitIOPromise({
+      renderer: this.renderer,
+      methodName: this.methodName,
+      label: this.label,
+      props: this.props,
+      valueGetter: this.valueGetter,
+      onStateChange: this.onStateChange,
+      submitButtons,
+    })
   }
 }
 
