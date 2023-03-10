@@ -6,7 +6,10 @@ type PublicProps<Row = any> = Omit<
   T_IO_PROPS<'DISPLAY_GRID'>,
   'data' | 'totalRecords' | 'isAsync'
 > & {
-  renderItem: (row: Row) => GridItem
+  renderItem: (row: Row) => GridItem & {
+    /** @deprecated Please use `label` instead. */
+    title?: string | null
+  }
 } & (
     | {
         data: Row[]

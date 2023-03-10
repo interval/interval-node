@@ -1,15 +1,18 @@
-import { LoadingOptions, LoadingState } from '../internalRpcSchema'
+import {
+  BackwardCompatibleLoadingOptions,
+  BackwardCompatibleLoadingState,
+} from '../internalRpcSchema'
 import Logger from './Logger'
 
 export interface TransactionLoadingStateConfig {
   logger: Logger
-  send: (loadingState: LoadingState) => Promise<void>
+  send: (loadingState: BackwardCompatibleLoadingState) => Promise<void>
 }
 
 export default class TransactionLoadingState {
   #logger: Logger
   #sender: TransactionLoadingStateConfig['send']
-  #state: LoadingState | undefined
+  #state: BackwardCompatibleLoadingState | undefined
   #sendTimeout: NodeJS.Timeout | null = null
   #sendTimeoutMs = 100
 
@@ -49,7 +52,7 @@ export default class TransactionLoadingState {
    * await ctx.loading.start("Label only shorthand");
    *```
    */
-  async start(options?: string | LoadingOptions) {
+  async start(options?: string | BackwardCompatibleLoadingOptions) {
     if (typeof options === 'string') {
       options = { label: options }
     } else if (options === undefined) {
@@ -81,7 +84,7 @@ export default class TransactionLoadingState {
    * });
    *```
    */
-  async update(options?: string | LoadingOptions) {
+  async update(options?: string | BackwardCompatibleLoadingOptions) {
     if (!this.#state) {
       this.#logger.warn('Please call `loading.start` before `loading.update`')
       return this.start(options)

@@ -51,7 +51,7 @@ const LOADING_STATE = z.object({
 
 const BACKWARD_COMPATIBLE_LOADING_STATE = LOADING_STATE.merge(
   z.object({
-    // @deprecated in favor of `label` (for real this time)
+    /** @deprecated in favor of `label` (for real this time) */
     title: z.string().optional(),
   })
 )
@@ -65,6 +65,10 @@ const SDK_ALERT = z.object({
 export type SdkAlert = z.infer<typeof SDK_ALERT>
 
 export type LoadingOptions = z.input<typeof LOADING_OPTIONS>
+export type BackwardCompatibleLoadingOptions = LoadingOptions & {
+  /** @deprecated Please use `label` instead. */
+  title?: string
+}
 export type LoadingState = z.input<typeof LOADING_STATE>
 export type BackwardCompatibleLoadingState = z.input<
   typeof BACKWARD_COMPATIBLE_LOADING_STATE
