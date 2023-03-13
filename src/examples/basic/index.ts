@@ -1867,7 +1867,7 @@ const interval = new Interval({
 
       return 'All done!'
     },
-    multiple_continues: async () => {
+    with_submit: async () => {
       let { submitValue: singleSubmitValue, response: singleResponse } =
         await io.input
           .number('Enter a number')
