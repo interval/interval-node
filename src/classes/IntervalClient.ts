@@ -795,7 +795,9 @@ export default class IntervalClient {
           new Date().getTime() - this.#closeUnresponsiveConnectionTimeoutMs
         ) {
           this.#logger.warn(
-            'No pong received in last three minutes, closing connection to Interval and retrying...'
+            `No pong received in last ${
+              this.#closeUnresponsiveConnectionTimeoutMs
+            }ms, closing connection to Interval and retrying...`
           )
           if (this.#pingIntervalHandle) {
             clearInterval(this.#pingIntervalHandle)
@@ -957,6 +959,9 @@ export default class IntervalClient {
       },
       START_TRANSACTION: async inputs => {
         if (this.#resolveShutdown) {
+          this.#logger.debug(
+            'In process of closing, refusing to start transaction'
+          )
           return
         }
 
