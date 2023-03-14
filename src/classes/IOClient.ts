@@ -23,6 +23,7 @@ import {
   DisplayIOPromise,
   InputIOPromise,
   MultipleableIOPromise,
+  WithSubmitIOPromise,
 } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
@@ -363,6 +364,10 @@ export class IOClient {
       pi => pi instanceof ExclusiveIOPromise
     )
 
+    const withSubmitPromises = promiseValues.filter(
+      pi => pi instanceof WithSubmitIOPromise
+    )
+
     if (exclusivePromises.length > 0) {
       throw new IntervalError(
         `Components with the following labels are not supported inside groups, please remove them from the group: ${exclusivePromises
@@ -371,7 +376,13 @@ export class IOClient {
       )
     }
 
-    // TODO do something similar for withSubmit promises ^^
+    if (withSubmitPromises.length > 0) {
+      throw new IntervalError(
+        `Components with the following labels are chained with withSubmit, which is not supported inside a group (call withSubmit on the group itself instead): ${exclusivePromises
+          .map(pi => pi.component.label)
+          .join(', ')}`
+      )
+    }
 
     return new IOGroupPromise({
       promises,
