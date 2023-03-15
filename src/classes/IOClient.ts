@@ -1047,7 +1047,7 @@ export class IOClient {
         /**
          * Displays data in a grid layout.
          *
-         * Grid items can include a title, description, image, and options menu, and can optionally link to another page, action, or external URL.
+         * Grid items can include a label, description, image, and options menu, and can optionally link to another page, action, or external URL.
          *
          * Grid item size can be controlled using the idealColumnWidth property. Interval will calculate a column width that is as close as possible to that number while factoring in gutter size and window width.
          *
@@ -1082,7 +1082,7 @@ export class IOClient {
          *     },
          *   ],
          *   renderItem: row => ({
-         *     title: row.album,
+         *     label: row.album,
          *     description: row.artist,
          *     image: {
          *       url: row.imageUrl,

@@ -24,7 +24,7 @@ export const dogs = new Action({
       data,
       idealColumnWidth: 200,
       renderItem: row => ({
-        title: row.name,
+        label: row.name,
         description: row.description,
         route: 'tables/display_table',
         image: {
@@ -49,7 +49,7 @@ export const tiktoks = new Action({
       .fill(null)
       .map((_, i) => ({
         id: i,
-        title: `video from ${faker.internet.userName()}`,
+        label: `video from ${faker.internet.userName()}`,
         description: faker.date.past().toLocaleString(),
         image: faker.image.animals(1080 / 4, 1920 / 4, true),
       }))
@@ -58,7 +58,7 @@ export const tiktoks = new Action({
       data,
       idealColumnWidth: 220,
       renderItem: row => ({
-        title: row.title,
+        label: row.label,
         description: row.description,
         image: {
           url: row.image,
@@ -86,7 +86,7 @@ export const no_images: IntervalActionHandler = async io => {
     .fill(null)
     .map((_, i) => ({
       id: i,
-      title: faker.commerce.productName(),
+      label: faker.commerce.productName(),
       description: faker.commerce.price(100, 200, 0, '$'),
     }))
 
@@ -156,7 +156,7 @@ export const music = new Action({
       data,
       idealColumnWidth: 240,
       renderItem: row => ({
-        title: row.name,
+        label: row.name,
         description: row.artists,
         image: {
           url: row.image,
@@ -206,7 +206,7 @@ export const long_descriptions = new Action({
       data,
       idealColumnWidth: 300,
       renderItem: row => ({
-        title: row.name,
+        label: row.name,
         description: row.description,
         image: {
           url: row.image,
@@ -231,7 +231,7 @@ export const empty_state = new Action({
       data: data.slice(0, 0),
       idealColumnWidth: 300,
       renderItem: row => ({
-        title: row.name,
+        label: row.name,
       }),
     })
   },
@@ -248,9 +248,9 @@ export const async_grid: IntervalActionHandler = async io => {
       image: i % 5 === 0 ? null : faker.image.imageUrl(600, 300, 'dog', true),
     }))
 
-  await io.display.grid<typeof allData[0]>('Display users', {
+  await io.display.grid<(typeof allData)[0]>('Display users', {
     renderItem: row => ({
-      title: row.name,
+      label: row.name,
       description: row.description,
       image: {
         url: row.image,

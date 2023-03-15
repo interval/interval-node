@@ -37,17 +37,24 @@ export const actionEnvironment = z.enum(['live', 'development'])
 export type ActionEnvironment = z.infer<typeof actionEnvironment>
 
 export const LOADING_OPTIONS = z.object({
-  title: z.string().optional(),
+  label: z.string().optional(),
   description: z.string().optional(),
   itemsInQueue: z.number().int().optional(),
 })
 
 const LOADING_STATE = z.object({
-  title: z.string().optional(),
+  label: z.string().optional(),
   description: z.string().optional(),
   itemsInQueue: z.number().int().optional(),
   itemsCompleted: z.number().int().optional(),
 })
+
+const BACKWARD_COMPATIBLE_LOADING_STATE = LOADING_STATE.merge(
+  z.object({
+    /** @deprecated in favor of `label` (for real this time) */
+    title: z.string().optional(),
+  })
+)
 
 const SDK_ALERT = z.object({
   minSdkVersion: z.string(),
@@ -58,7 +65,14 @@ const SDK_ALERT = z.object({
 export type SdkAlert = z.infer<typeof SDK_ALERT>
 
 export type LoadingOptions = z.input<typeof LOADING_OPTIONS>
+export type BackwardCompatibleLoadingOptions = LoadingOptions & {
+  /** @deprecated Please use `label` instead. */
+  title?: string
+}
 export type LoadingState = z.input<typeof LOADING_STATE>
+export type BackwardCompatibleLoadingState = z.input<
+  typeof BACKWARD_COMPATIBLE_LOADING_STATE
+>
 
 export const ACCESS_CONTROL_DEFINITION = z.union([
   z.literal('entire-organization'),
@@ -308,10 +322,9 @@ export const wsServerSchema = {
   },
   SEND_LOADING_CALL: {
     inputs: z.intersection(
-      LOADING_STATE,
+      BACKWARD_COMPATIBLE_LOADING_STATE,
       z.object({
         transactionId: z.string(),
-        label: z.string().optional(),
         skipClientCall: z.boolean().optional(),
       })
     ),
@@ -480,7 +493,7 @@ export const clientSchema = {
       .object({
         transactionId: z.string(),
       })
-      .merge(LOADING_STATE),
+      .merge(BACKWARD_COMPATIBLE_LOADING_STATE),
     returns: z.boolean(),
   },
   LOG: {

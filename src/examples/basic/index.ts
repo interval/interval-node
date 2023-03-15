@@ -391,7 +391,7 @@ const interval = new Interval({
       handler: async () => {
         await io.display.heading('Hello from display')
         await ctx.loading.start({
-          title: 'Waiting for external system',
+          label: 'Waiting for external system',
         })
 
         await sleep(2000)
@@ -1134,7 +1134,7 @@ const interval = new Interval({
       }
 
       await ctx.loading.start({
-        title: 'Fetching users...',
+        label: 'Fetching users...',
         description: 'This may take a while...',
       })
       await sleep(1500)
@@ -1483,7 +1483,7 @@ const interval = new Interval({
       }
 
       await ctx.loading.start({
-        title: 'Updating users',
+        label: 'Updating users',
         itemsInQueue: users.length,
       })
       for (const _ of users) {
@@ -1499,7 +1499,7 @@ const interval = new Interval({
     loading_dos: async () => {
       const itemsInQueue = 100_000
       await ctx.loading.start({
-        title: 'Migrating users',
+        label: 'Migrating users',
         description: 'There are a lot, but they are very fast',
         itemsInQueue,
       })
