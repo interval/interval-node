@@ -1871,12 +1871,11 @@ const interval = new Interval({
       let { submitValue: singleSubmitValue, response: singleResponse } =
         await io.input
           .number('Enter a number')
+          .optional()
           .withSubmit([
             { label: 'Make it negative', theme: 'danger', value: 'negative' },
             { label: 'Do nothing' },
           ])
-          .optional()
-      // .multiple() // adding this *should* be a type err, since io.input.number isn't multipleable
 
       if (singleResponse && singleSubmitValue === 'negative') {
         singleResponse = -singleResponse
@@ -1885,9 +1884,12 @@ const interval = new Interval({
       const { submitValue: fileSubmitValue, response: fileResponse } =
         await io.input
           .file('Upload a file')
-          .multiple()
           .withSubmit([{ label: 'Encrypt' }])
-      // .multiple() // TODO Should we allow arbitrary ordering of chaining?
+          .multiple()
+          .optional()
+
+      ctx.log('submitValue', fileSubmitValue)
+      ctx.log('response', fileResponse)
 
       const {
         submitValue: groupSubmitValue,
