@@ -225,6 +225,411 @@ export class InputIOPromise<
   }
 }
 
+/**
+ * A thin subclass of IOPromise that marks its inner component as
+ * "optional" and returns `undefined` if not provided by the action runner.
+ */
+export class OptionalIOPromise<
+  MethodName extends T_IO_INPUT_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends InputIOPromise<MethodName, Props, ComponentOutput | undefined> {
+  then(
+    resolve: (output: ComponentOutput | undefined) => void,
+    reject?: (err: IOError) => void
+  ) {
+    this.renderer({ components: [this.component] })
+      .then(({ response: [result] }) => {
+        const parsed = ioSchema[this.methodName].returns
+          .optional()
+          .parse(result)
+        resolve(this.getValue(parsed))
+      })
+      .catch(err => {
+        if (reject) {
+          if (err instanceof ZodError) {
+            // This should be caught already, primarily here for types
+            reject(
+              new IOError('BAD_RESPONSE', 'Received invalid response.', {
+                cause: err,
+              })
+            )
+          } else {
+            reject(err)
+          }
+        }
+      })
+  }
+
+  get component() {
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      isOptional: true,
+      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      displayResolvesImmediately: this.displayResolvesImmediately,
+    })
+  }
+
+  async #handleValidation(
+    returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
+  ): Promise<string | undefined> {
+    // These should be caught already, primarily here for types
+    const parsed = ioSchema[this.methodName].returns
+      .optional()
+      .safeParse(returnValue)
+    if (parsed.success) {
+      if (this.validator) {
+        return this.validator(this.getValue(parsed.data))
+      }
+    } else {
+      // shouldn't be hit, but just in case
+      return 'Received invalid value for field.'
+    }
+  }
+
+  getValue(
+    result: ComponentReturnValue<MethodName> | undefined
+  ): ComponentOutput | undefined {
+    if (result === undefined) return undefined
+
+    if (this.valueGetter) {
+      return this.valueGetter(result)
+    }
+
+    return result as unknown as ComponentOutput
+  }
+}
+
+export class MultipleableIOPromise<
+  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  ComponentOutput = ComponentReturnValue<MethodName>,
+  DefaultValue = T_IO_PROPS<MethodName> extends { defaultValue?: any }
+    ? ComponentOutput | null
+    : never
+> extends InputIOPromise<MethodName, Props, ComponentOutput> {
+  defaultValueGetter:
+    | ((defaultValue: DefaultValue) => T_IO_RETURNS<MethodName>)
+    | undefined
+
+  constructor({
+    defaultValueGetter,
+    ...props
+  }: {
+    renderer: ComponentRenderer<MethodName>
+    methodName: MethodName
+    label: string
+    props: Props
+    valueGetter?: (
+      response: ComponentReturnValue<MethodName>
+    ) => ComponentOutput
+    defaultValueGetter?: (
+      defaultValue: DefaultValue
+    ) => T_IO_RETURNS<MethodName>
+    onStateChange?: (
+      incomingState: T_IO_STATE<MethodName>
+    ) => Promise<Partial<Props>>
+    validator?: IOPromiseValidator<ComponentOutput> | undefined
+    displayResolvesImmediately?: boolean
+  }) {
+    super(props)
+    this.defaultValueGetter = defaultValueGetter
+  }
+
+  multiple({
+    defaultValue,
+  }: {
+    defaultValue?: DefaultValue[] | null
+  } = {}): MultipleIOPromise<MethodName, Props, ComponentOutput> {
+    let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
+    const propsSchema = ioSchema[this.methodName].props
+    if (defaultValue && 'defaultValue' in propsSchema.shape) {
+      const { defaultValueGetter } = this
+      const potentialDefaultValue = defaultValueGetter
+        ? defaultValue.map(dv => defaultValueGetter(dv))
+        : (defaultValue as unknown as T_IO_RETURNS<MethodName>[])
+
+      try {
+        const defaultValueSchema = propsSchema.shape.defaultValue
+        transformedDefaultValue = z
+          .array(defaultValueSchema.unwrap().unwrap())
+          .parse(potentialDefaultValue)
+      } catch (err) {
+        console.error(
+          `[Interval] Invalid default value found for multiple IO call with label "${this.label}": ${defaultValue}. This default value will be ignored.`
+        )
+        console.error(err)
+        transformedDefaultValue = undefined
+      }
+    }
+
+    return new MultipleIOPromise<MethodName, Props, ComponentOutput>({
+      renderer: this.renderer,
+      methodName: this.methodName,
+      label: this.label,
+      props: this.props,
+      valueGetter: this.valueGetter,
+      onStateChange: this.onStateChange,
+      defaultValue: transformedDefaultValue,
+    })
+  }
+
+  withSubmit(
+    submitButtons: SubmitButtonConfig[]
+  ): MultipleableWithSubmitIOPromise<MethodName, Props, ComponentOutput> {
+    return new MultipleableWithSubmitIOPromise({
+      renderer: this.renderer,
+      methodName: this.methodName,
+      label: this.label,
+      props: this.props,
+      valueGetter: this.valueGetter,
+      onStateChange: this.onStateChange,
+      submitButtons,
+    })
+  }
+}
+
+export class MultipleIOPromise<
+  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends InputIOPromise<MethodName, Props, ComponentOutput[]> {
+  getSingleValue:
+    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
+    | undefined
+  defaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
+
+  constructor({
+    defaultValue,
+    valueGetter,
+    ...rest
+  }: {
+    defaultValue?: T_IO_RETURNS<MethodName>[] | null
+    renderer: ComponentRenderer<MethodName>
+    methodName: MethodName
+    label: string
+    props: Props
+    valueGetter?: (
+      response: ComponentReturnValue<MethodName>
+    ) => ComponentOutput
+    onStateChange?: (
+      incomingState: T_IO_STATE<MethodName>
+    ) => Promise<Partial<Props>>
+    validator?: IOPromiseValidator<ComponentOutput[]> | undefined
+  }) {
+    super(rest)
+    this.getSingleValue = valueGetter
+    this.defaultValue = defaultValue
+  }
+
+  then(
+    resolve: (output: ComponentOutput[]) => void,
+    reject?: (err: IOError) => void
+  ) {
+    this.renderer({ components: [this.component] })
+      .then(({ response: [results] }) => {
+        resolve(this.getValue(results))
+      })
+      .catch(err => {
+        if (reject) reject(err)
+      })
+  }
+
+  validate(validator: IOPromiseValidator<ComponentOutput[]>): this {
+    this.validator = validator
+
+    return this
+  }
+
+  getValue(
+    results: MaybeMultipleComponentReturnValue<MethodName>
+  ): ComponentOutput[] {
+    if (!Array.isArray(results)) {
+      results = [results]
+    }
+
+    const { getSingleValue } = this
+    if (getSingleValue) {
+      return results.map(result => getSingleValue(result))
+    }
+
+    return results as unknown as ComponentOutput[]
+  }
+
+  async #handleValidation(
+    returnValues: MaybeMultipleComponentReturnValue<MethodName> | undefined
+  ): Promise<string | undefined> {
+    // These should be caught already, primarily here for types
+    if (!returnValues) {
+      return 'This field is required.'
+    }
+
+    const parsed = z
+      .array(ioSchema[this.methodName].returns)
+      .safeParse(returnValues)
+    if (parsed.success) {
+      if (this.validator) {
+        return this.validator(this.getValue(parsed.data))
+      }
+    } else {
+      // shouldn't be hit, but just in case
+      return 'Received invalid value for field.'
+    }
+  }
+
+  get component() {
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      isMultiple: true,
+      multipleProps: {
+        defaultValue: this.defaultValue,
+      },
+      displayResolvesImmediately: this.displayResolvesImmediately,
+    })
+  }
+
+  optional(
+    isOptional?: true
+  ): OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
+  optional(
+    isOptional?: false
+  ): MultipleIOPromise<MethodName, Props, ComponentOutput>
+  optional(
+    isOptional?: boolean
+  ):
+    | OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
+    | MultipleIOPromise<MethodName, Props, ComponentOutput>
+  optional(
+    isOptional = true
+  ):
+    | OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
+    | MultipleIOPromise<MethodName, Props, ComponentOutput> {
+    return isOptional
+      ? new OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>({
+          renderer: this.renderer,
+          methodName: this.methodName,
+          label: this.label,
+          props: this.props,
+          valueGetter: this.getSingleValue,
+          defaultValue: this.defaultValue,
+          onStateChange: this.onStateChange,
+        })
+      : this
+  }
+}
+
+export class OptionalMultipleIOPromise<
+  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  ComponentOutput = ComponentReturnValue<MethodName>
+> extends OptionalIOPromise<MethodName, Props, ComponentOutput[]> {
+  getSingleValue:
+    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
+    | undefined
+  defaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
+
+  constructor({
+    defaultValue,
+    valueGetter,
+    ...rest
+  }: {
+    defaultValue?: T_IO_RETURNS<MethodName>[] | null
+    renderer: ComponentRenderer<MethodName>
+    methodName: MethodName
+    label: string
+    props: Props
+    valueGetter?: (
+      response: ComponentReturnValue<MethodName>
+    ) => ComponentOutput
+    onStateChange?: (
+      incomingState: T_IO_STATE<MethodName>
+    ) => Promise<Partial<Props>>
+    validator?: IOPromiseValidator<ComponentOutput[] | undefined> | undefined
+  }) {
+    super(rest)
+    this.getSingleValue = valueGetter
+    this.defaultValue = defaultValue
+  }
+
+  then(
+    resolve: (output: ComponentOutput[] | undefined) => void,
+    reject?: (err: IOError) => void
+  ) {
+    this.renderer({ components: [this.component] })
+      .then(({ response: [results] }) => {
+        resolve(this.getValue(results))
+      })
+      .catch(err => {
+        if (reject) reject(err)
+      })
+  }
+
+  validate(validator: IOPromiseValidator<ComponentOutput[] | undefined>): this {
+    this.validator = validator
+
+    return this
+  }
+
+  getValue(
+    results: MaybeMultipleComponentReturnValue<MethodName> | undefined
+  ): ComponentOutput[] | undefined {
+    if (!results) return undefined
+
+    if (!Array.isArray(results)) {
+      results = [results]
+    }
+
+    const { getSingleValue } = this
+    if (getSingleValue) {
+      return results.map(result => getSingleValue(result))
+    }
+
+    return results as unknown as ComponentOutput[]
+  }
+
+  async #handleValidation(
+    returnValues: MaybeMultipleComponentReturnValue<MethodName> | undefined
+  ): Promise<string | undefined> {
+    // These should be caught already, primarily here for types
+    const parsed = z
+      .array(ioSchema[this.methodName].returns)
+      .optional()
+      .safeParse(returnValues)
+    if (parsed.success) {
+      if (this.validator) {
+        return this.validator(this.getValue(parsed.data))
+      }
+    } else {
+      console.debug(parsed)
+      // shouldn't be hit, but just in case
+      return 'Received invalid value for field.'
+    }
+  }
+
+  get component() {
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      isMultiple: true,
+      isOptional: true,
+      multipleProps: {
+        defaultValue: this.defaultValue,
+      },
+      displayResolvesImmediately: this.displayResolvesImmediately,
+    })
+  }
+}
+
 export class WithSubmitIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
@@ -686,411 +1091,6 @@ export class MultipleWithSubmitIOPromise<
           submitButtons: this.submitButtons,
         })
       : this
-  }
-}
-
-/**
- * A thin subclass of IOPromise that marks its inner component as
- * "optional" and returns `undefined` if not provided by the action runner.
- */
-export class OptionalIOPromise<
-  MethodName extends T_IO_INPUT_METHOD_NAMES,
-  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
-> extends InputIOPromise<MethodName, Props, ComponentOutput | undefined> {
-  then(
-    resolve: (output: ComponentOutput | undefined) => void,
-    reject?: (err: IOError) => void
-  ) {
-    this.renderer({ components: [this.component] })
-      .then(({ response: [result] }) => {
-        const parsed = ioSchema[this.methodName].returns
-          .optional()
-          .parse(result)
-        resolve(this.getValue(parsed))
-      })
-      .catch(err => {
-        if (reject) {
-          if (err instanceof ZodError) {
-            // This should be caught already, primarily here for types
-            reject(
-              new IOError('BAD_RESPONSE', 'Received invalid response.', {
-                cause: err,
-              })
-            )
-          } else {
-            reject(err)
-          }
-        }
-      })
-  }
-
-  get component() {
-    return new IOComponent({
-      methodName: this.methodName,
-      label: this.label,
-      initialProps: this.props,
-      onStateChange: this.onStateChange,
-      isOptional: true,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
-      displayResolvesImmediately: this.displayResolvesImmediately,
-    })
-  }
-
-  async #handleValidation(
-    returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
-  ): Promise<string | undefined> {
-    // These should be caught already, primarily here for types
-    const parsed = ioSchema[this.methodName].returns
-      .optional()
-      .safeParse(returnValue)
-    if (parsed.success) {
-      if (this.validator) {
-        return this.validator(this.getValue(parsed.data))
-      }
-    } else {
-      // shouldn't be hit, but just in case
-      return 'Received invalid value for field.'
-    }
-  }
-
-  getValue(
-    result: ComponentReturnValue<MethodName> | undefined
-  ): ComponentOutput | undefined {
-    if (result === undefined) return undefined
-
-    if (this.valueGetter) {
-      return this.valueGetter(result)
-    }
-
-    return result as unknown as ComponentOutput
-  }
-}
-
-export class MultipleableIOPromise<
-  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
-  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>,
-  DefaultValue = T_IO_PROPS<MethodName> extends { defaultValue?: any }
-    ? ComponentOutput | null
-    : never
-> extends InputIOPromise<MethodName, Props, ComponentOutput> {
-  defaultValueGetter:
-    | ((defaultValue: DefaultValue) => T_IO_RETURNS<MethodName>)
-    | undefined
-
-  constructor({
-    defaultValueGetter,
-    ...props
-  }: {
-    renderer: ComponentRenderer<MethodName>
-    methodName: MethodName
-    label: string
-    props: Props
-    valueGetter?: (
-      response: ComponentReturnValue<MethodName>
-    ) => ComponentOutput
-    defaultValueGetter?: (
-      defaultValue: DefaultValue
-    ) => T_IO_RETURNS<MethodName>
-    onStateChange?: (
-      incomingState: T_IO_STATE<MethodName>
-    ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<ComponentOutput> | undefined
-    displayResolvesImmediately?: boolean
-  }) {
-    super(props)
-    this.defaultValueGetter = defaultValueGetter
-  }
-
-  multiple({
-    defaultValue,
-  }: {
-    defaultValue?: DefaultValue[] | null
-  } = {}): MultipleIOPromise<MethodName, Props, ComponentOutput> {
-    let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
-    const propsSchema = ioSchema[this.methodName].props
-    if (defaultValue && 'defaultValue' in propsSchema.shape) {
-      const { defaultValueGetter } = this
-      const potentialDefaultValue = defaultValueGetter
-        ? defaultValue.map(dv => defaultValueGetter(dv))
-        : (defaultValue as unknown as T_IO_RETURNS<MethodName>[])
-
-      try {
-        const defaultValueSchema = propsSchema.shape.defaultValue
-        transformedDefaultValue = z
-          .array(defaultValueSchema.unwrap().unwrap())
-          .parse(potentialDefaultValue)
-      } catch (err) {
-        console.error(
-          `[Interval] Invalid default value found for multiple IO call with label "${this.label}": ${defaultValue}. This default value will be ignored.`
-        )
-        console.error(err)
-        transformedDefaultValue = undefined
-      }
-    }
-
-    return new MultipleIOPromise<MethodName, Props, ComponentOutput>({
-      renderer: this.renderer,
-      methodName: this.methodName,
-      label: this.label,
-      props: this.props,
-      valueGetter: this.valueGetter,
-      onStateChange: this.onStateChange,
-      defaultValue: transformedDefaultValue,
-    })
-  }
-
-  withSubmit(
-    submitButtons: SubmitButtonConfig[]
-  ): MultipleableWithSubmitIOPromise<MethodName, Props, ComponentOutput> {
-    return new MultipleableWithSubmitIOPromise({
-      renderer: this.renderer,
-      methodName: this.methodName,
-      label: this.label,
-      props: this.props,
-      valueGetter: this.valueGetter,
-      onStateChange: this.onStateChange,
-      submitButtons,
-    })
-  }
-}
-
-export class MultipleIOPromise<
-  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
-  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
-> extends InputIOPromise<MethodName, Props, ComponentOutput[]> {
-  getSingleValue:
-    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
-    | undefined
-  defaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
-
-  constructor({
-    defaultValue,
-    valueGetter,
-    ...rest
-  }: {
-    defaultValue?: T_IO_RETURNS<MethodName>[] | null
-    renderer: ComponentRenderer<MethodName>
-    methodName: MethodName
-    label: string
-    props: Props
-    valueGetter?: (
-      response: ComponentReturnValue<MethodName>
-    ) => ComponentOutput
-    onStateChange?: (
-      incomingState: T_IO_STATE<MethodName>
-    ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<ComponentOutput[]> | undefined
-  }) {
-    super(rest)
-    this.getSingleValue = valueGetter
-    this.defaultValue = defaultValue
-  }
-
-  then(
-    resolve: (output: ComponentOutput[]) => void,
-    reject?: (err: IOError) => void
-  ) {
-    this.renderer({ components: [this.component] })
-      .then(({ response: [results] }) => {
-        resolve(this.getValue(results))
-      })
-      .catch(err => {
-        if (reject) reject(err)
-      })
-  }
-
-  validate(validator: IOPromiseValidator<ComponentOutput[]>): this {
-    this.validator = validator
-
-    return this
-  }
-
-  getValue(
-    results: MaybeMultipleComponentReturnValue<MethodName>
-  ): ComponentOutput[] {
-    if (!Array.isArray(results)) {
-      results = [results]
-    }
-
-    const { getSingleValue } = this
-    if (getSingleValue) {
-      return results.map(result => getSingleValue(result))
-    }
-
-    return results as unknown as ComponentOutput[]
-  }
-
-  async #handleValidation(
-    returnValues: MaybeMultipleComponentReturnValue<MethodName> | undefined
-  ): Promise<string | undefined> {
-    // These should be caught already, primarily here for types
-    if (!returnValues) {
-      return 'This field is required.'
-    }
-
-    const parsed = z
-      .array(ioSchema[this.methodName].returns)
-      .safeParse(returnValues)
-    if (parsed.success) {
-      if (this.validator) {
-        return this.validator(this.getValue(parsed.data))
-      }
-    } else {
-      // shouldn't be hit, but just in case
-      return 'Received invalid value for field.'
-    }
-  }
-
-  get component() {
-    return new IOComponent({
-      methodName: this.methodName,
-      label: this.label,
-      initialProps: this.props,
-      onStateChange: this.onStateChange,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
-      isMultiple: true,
-      multipleProps: {
-        defaultValue: this.defaultValue,
-      },
-      displayResolvesImmediately: this.displayResolvesImmediately,
-    })
-  }
-
-  optional(
-    isOptional?: true
-  ): OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
-  optional(
-    isOptional?: false
-  ): MultipleIOPromise<MethodName, Props, ComponentOutput>
-  optional(
-    isOptional?: boolean
-  ):
-    | OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
-    | MultipleIOPromise<MethodName, Props, ComponentOutput>
-  optional(
-    isOptional = true
-  ):
-    | OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
-    | MultipleIOPromise<MethodName, Props, ComponentOutput> {
-    return isOptional
-      ? new OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>({
-          renderer: this.renderer,
-          methodName: this.methodName,
-          label: this.label,
-          props: this.props,
-          valueGetter: this.getSingleValue,
-          defaultValue: this.defaultValue,
-          onStateChange: this.onStateChange,
-        })
-      : this
-  }
-}
-
-export class OptionalMultipleIOPromise<
-  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
-  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
-> extends OptionalIOPromise<MethodName, Props, ComponentOutput[]> {
-  getSingleValue:
-    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
-    | undefined
-  defaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
-
-  constructor({
-    defaultValue,
-    valueGetter,
-    ...rest
-  }: {
-    defaultValue?: T_IO_RETURNS<MethodName>[] | null
-    renderer: ComponentRenderer<MethodName>
-    methodName: MethodName
-    label: string
-    props: Props
-    valueGetter?: (
-      response: ComponentReturnValue<MethodName>
-    ) => ComponentOutput
-    onStateChange?: (
-      incomingState: T_IO_STATE<MethodName>
-    ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<ComponentOutput[] | undefined> | undefined
-  }) {
-    super(rest)
-    this.getSingleValue = valueGetter
-    this.defaultValue = defaultValue
-  }
-
-  then(
-    resolve: (output: ComponentOutput[] | undefined) => void,
-    reject?: (err: IOError) => void
-  ) {
-    this.renderer({ components: [this.component] })
-      .then(({ response: [results] }) => {
-        resolve(this.getValue(results))
-      })
-      .catch(err => {
-        if (reject) reject(err)
-      })
-  }
-
-  validate(validator: IOPromiseValidator<ComponentOutput[] | undefined>): this {
-    this.validator = validator
-
-    return this
-  }
-
-  getValue(
-    results: MaybeMultipleComponentReturnValue<MethodName> | undefined
-  ): ComponentOutput[] | undefined {
-    if (!results) return undefined
-
-    if (!Array.isArray(results)) {
-      results = [results]
-    }
-
-    const { getSingleValue } = this
-    if (getSingleValue) {
-      return results.map(result => getSingleValue(result))
-    }
-
-    return results as unknown as ComponentOutput[]
-  }
-
-  async #handleValidation(
-    returnValues: MaybeMultipleComponentReturnValue<MethodName> | undefined
-  ): Promise<string | undefined> {
-    // These should be caught already, primarily here for types
-    const parsed = z
-      .array(ioSchema[this.methodName].returns)
-      .optional()
-      .safeParse(returnValues)
-    if (parsed.success) {
-      if (this.validator) {
-        return this.validator(this.getValue(parsed.data))
-      }
-    } else {
-      console.debug(parsed)
-      // shouldn't be hit, but just in case
-      return 'Received invalid value for field.'
-    }
-  }
-
-  get component() {
-    return new IOComponent({
-      methodName: this.methodName,
-      label: this.label,
-      initialProps: this.props,
-      onStateChange: this.onStateChange,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
-      isMultiple: true,
-      isOptional: true,
-      multipleProps: {
-        defaultValue: this.defaultValue,
-      },
-      displayResolvesImmediately: this.displayResolvesImmediately,
-    })
   }
 }
 
