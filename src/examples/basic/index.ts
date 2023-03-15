@@ -727,7 +727,7 @@ const interval = new Interval({
       let i = 0
 
       while (i < 2) {
-        await io.group([
+        const responses = await io.group([
           io.input
             .text('Empty text input', {
               placeholder: 'Text goes here',
@@ -742,7 +742,7 @@ const interval = new Interval({
             defaultValue: new Date(),
           }),
           io.input.boolean('Boolean input').optional(),
-          io.input.boolean('Boolean input', { defaultValue: true }),
+          io.input.boolean('Boolean input', { defaultValue: null }),
           io.select
             .single('Select something', {
               options: [1, 2, 3],
@@ -752,11 +752,13 @@ const interval = new Interval({
             options: [1, 2, 3],
             defaultValue: 1,
           }),
-          io.input.number('Number input').optional(),
+          io.input.number('Number input', { defaultValue: null }).optional(),
           io.input.number('Number input', { defaultValue: 100 }),
           io.input.email('Email input').optional(),
           io.input.email('Email input', { defaultValue: 'hi@interval.com' }),
-          io.input.richText('Rich text input').optional(),
+          io.input
+            .richText('Rich text input', { defaultValue: null })
+            .optional(),
           io.input.richText('Rich text input', {
             defaultValue: 'Hello world',
           }),
@@ -806,6 +808,8 @@ const interval = new Interval({
           io.input.time('Time input').optional(),
           io.input.file('File input').optional(),
         ])
+
+        console.debug(responses)
 
         i++
       }

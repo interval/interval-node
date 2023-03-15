@@ -17,11 +17,13 @@ export const INPUT_COMPONENT_TO_RENDER = DISPLAY_COMPONENT_TO_RENDER.merge(
     isMultiple: z.boolean().optional().default(false),
     isOptional: z.boolean().optional().default(false),
     validationErrorMessage: z.string().nullish(),
-    multipleProps: z.optional(
-      z.object({
-        defaultValue: z.optional(z.array(z.any())),
-      })
-    ),
+    multipleProps: z
+      .optional(
+        z.object({
+          defaultValue: z.optional(z.array(z.any())).nullable(),
+        })
+      )
+      .nullable(),
   })
 )
 
@@ -558,7 +560,7 @@ const INPUT_SCHEMA = {
     props: z.object({
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
-      defaultValue: z.optional(z.string()),
+      defaultValue: z.optional(z.string()).nullable(),
       multiline: z.optional(z.boolean()),
       lines: z.optional(z.number()),
       minLength: z.optional(z.number().int().positive()),
@@ -572,7 +574,7 @@ const INPUT_SCHEMA = {
     props: z.object({
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
-      defaultValue: z.optional(z.string()),
+      defaultValue: z.optional(z.string()).nullable(),
       disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.null(),
@@ -585,7 +587,7 @@ const INPUT_SCHEMA = {
       prepend: z.optional(z.string()),
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
-      defaultValue: z.optional(z.number()),
+      defaultValue: z.optional(z.number()).nullable(),
       decimals: z.optional(z.number().positive().int()),
       currency: z.optional(currencyCode),
       disabled: z.optional(z.boolean().default(false)),
@@ -597,7 +599,7 @@ const INPUT_SCHEMA = {
     props: z.object({
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
-      defaultValue: z.optional(z.string()),
+      defaultValue: z.optional(z.string()).nullable(),
       allowedProtocols: z.array(z.string()).default(['http', 'https']),
       disabled: z.optional(z.boolean().default(false)),
     }),
@@ -607,7 +609,11 @@ const INPUT_SCHEMA = {
   INPUT_BOOLEAN: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.boolean().default(false),
+      defaultValue: z
+        .boolean()
+        .nullable()
+        .default(false)
+        .transform(val => !!val),
       disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.null(),
@@ -617,7 +623,7 @@ const INPUT_SCHEMA = {
     props: z.object({
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
-      defaultValue: z.optional(z.string()),
+      defaultValue: z.optional(z.string()).nullable(),
       disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.null(),
@@ -626,7 +632,7 @@ const INPUT_SCHEMA = {
   INPUT_DATE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(dateObject),
+      defaultValue: z.optional(dateObject).nullable(),
       min: z.optional(dateObject),
       max: z.optional(dateObject),
       disabled: z.optional(z.boolean().default(false)),
@@ -637,7 +643,7 @@ const INPUT_SCHEMA = {
   INPUT_TIME: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(timeObject),
+      defaultValue: z.optional(timeObject).nullable(),
       min: z.optional(timeObject),
       max: z.optional(timeObject),
       disabled: z.optional(z.boolean().default(false)),
@@ -648,7 +654,7 @@ const INPUT_SCHEMA = {
   INPUT_DATETIME: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(dateTimeObject),
+      defaultValue: z.optional(dateTimeObject).nullable(),
       min: z.optional(dateTimeObject),
       max: z.optional(dateTimeObject),
       disabled: z.optional(z.boolean().default(false)),
@@ -659,7 +665,7 @@ const INPUT_SCHEMA = {
   INPUT_SPREADSHEET: {
     props: z.object({
       helpText: z.string().optional(),
-      defaultValue: z.optional(z.array(deserializableRecord)),
+      defaultValue: z.optional(z.array(deserializableRecord)).nullable(),
       columns: z.record(typeValue),
     }),
     state: z.null(),
@@ -709,7 +715,7 @@ const INPUT_SCHEMA = {
   SEARCH: {
     props: z.object({
       results: z.array(searchResult),
-      defaultValue: z.optional(z.string()),
+      defaultValue: z.optional(z.string()).nullable(),
       placeholder: z.optional(z.string()),
       helpText: z.optional(z.string()),
       disabled: z.optional(z.boolean().default(false)),
@@ -769,7 +775,7 @@ const INPUT_SCHEMA = {
     props: z.object({
       options: z.array(richSelectOption),
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(richSelectOption),
+      defaultValue: z.optional(richSelectOption).nullable(),
       searchable: z.optional(z.boolean()),
       disabled: z.optional(z.boolean().default(false)),
     }),
@@ -782,7 +788,9 @@ const INPUT_SCHEMA = {
       helpText: z.optional(z.string()),
       defaultValue: z
         .array(labelValue)
-        .default([] as z.infer<typeof labelValue>[]),
+        .nullable()
+        .default([] as z.infer<typeof labelValue>[])
+        .transform(val => val ?? []),
       minSelections: z.optional(z.number().int().min(0)),
       maxSelections: z.optional(z.number().positive().int()),
       disabled: z.optional(z.boolean().default(false)),
