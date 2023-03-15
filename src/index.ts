@@ -231,8 +231,12 @@ export default class Interval {
     return this.#client.listen()
   }
 
-  close() {
-    return this.#client?.close()
+  immediatelyClose() {
+    return this.#client?.immediatelyClose()
+  }
+
+  async safelyClose(): Promise<void> {
+    return this.#client?.safelyClose()
   }
 
   /* @internal */ get client() {
@@ -278,7 +282,7 @@ export default class Interval {
       return
     }
 
-    let body: z.infer<typeof NOTIFY['inputs']>
+    let body: z.infer<(typeof NOTIFY)['inputs']>
     try {
       body = NOTIFY.inputs.parse({
         ...config,
