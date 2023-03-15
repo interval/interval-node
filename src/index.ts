@@ -224,6 +224,9 @@ export default class Interval {
     return this.#client?.isConnected ?? false
   }
 
+  /**
+   * Establish the persistent connection to Interval.
+   */
   async listen() {
     if (!this.#client) {
       this.#client = new IntervalClient(this, this.config)
@@ -231,10 +234,16 @@ export default class Interval {
     return this.#client.listen()
   }
 
+  /**
+   * Immediately terminate the connection to interval, terminating any actions currently in progress.
+   */
   immediatelyClose() {
     return this.#client?.immediatelyClose()
   }
 
+  /**
+   * Safely close the connection to Interval, preventing new actions from being launched and closing the persistent connection afterward. Resolves when the connection is successfully safely closed.
+   */
   async safelyClose(): Promise<void> {
     return this.#client?.safelyClose()
   }
@@ -256,6 +265,27 @@ export default class Interval {
     return parsed
   }
 
+  /**
+   * Sends a custom notification to Interval users via email or Slack. To send Slack notifications, you'll need to connect your Slack workspace to the Interval app in your organization settings.
+   *
+   * **Usage:**
+   *
+   * ```typescript
+   * await ctx.notify({
+   *   message: "A charge of $500 was refunded",
+   *   title: "Refund over threshold",
+   *   delivery: [
+   *     {
+   *       to: "#interval-notifications",
+   *       method: "SLACK",
+   *     },
+   *     {
+   *       to: "foo@example.com",
+   *     },
+   *   ],
+   * });
+   * ```
+   */
   async notify(config: NotifyConfig): Promise<void> {
     if (
       !config.transactionId &&
@@ -324,11 +354,14 @@ export default class Interval {
     return `${this.#httpEndpoint}/api/actions/${path}`
   }
 
+  /**
+   * Enqueue an action to be completed, with an optional `assignee` email to assign the action to, and optional `params` which will be passed to the action as `ctx.params`. Assigned actions will be displayed in users' dashboards as a task list.
+   */
   async enqueue(
     slug: string,
     { assignee, params }: Pick<QueuedAction, 'assignee' | 'params'> = {}
   ): Promise<QueuedAction> {
-    let body: z.infer<typeof ENQUEUE_ACTION['inputs']>
+    let body: z.infer<(typeof ENQUEUE_ACTION)['inputs']>
     try {
       const { json, meta } = params
         ? superjson.serialize(params)
@@ -372,8 +405,11 @@ export default class Interval {
     }
   }
 
+  /**
+   * Dequeue a previously assigned action which was created with `interval.enqueue()`.
+   */
   async dequeue(id: string): Promise<QueuedAction> {
-    let body: z.infer<typeof DEQUEUE_ACTION['inputs']>
+    let body: z.infer<(typeof DEQUEUE_ACTION)['inputs']>
     try {
       body = DEQUEUE_ACTION.inputs.parse({
         id,
