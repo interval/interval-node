@@ -128,12 +128,12 @@ export class IOClient {
     Components extends [AnyIOComponent, ...AnyIOComponent[]]
   >({
     components,
-    groupValidator,
+    validator: groupValidator,
     continueButton,
     submitButtons,
   }: {
     components: Components
-    groupValidator?: IOClientRenderValidator<Components>
+    validator?: IOClientRenderValidator<Components>
     continueButton?: ButtonConfig
     submitButtons?: SubmitButtonConfig[]
   }) {
