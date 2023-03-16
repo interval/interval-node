@@ -364,10 +364,6 @@ export class IOClient {
       pi => pi instanceof ExclusiveIOPromise
     )
 
-    const withSubmitPromises = promiseValues.filter(
-      pi => pi instanceof WithSubmitIOPromise
-    )
-
     if (exclusivePromises.length > 0) {
       throw new IntervalError(
         `Components with the following labels are not supported inside groups, please remove them from the group: ${exclusivePromises
@@ -375,6 +371,10 @@ export class IOClient {
           .join(', ')}`
       )
     }
+
+    const withSubmitPromises = promiseValues.filter(
+      pi => pi instanceof WithSubmitIOPromise
+    )
 
     if (withSubmitPromises.length > 0) {
       throw new IntervalError(
