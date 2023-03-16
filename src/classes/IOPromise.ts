@@ -139,7 +139,21 @@ export class DisplayIOPromise<
   MethodName extends T_IO_DISPLAY_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>
-> extends IOPromise<MethodName, Props, ComponentOutput> {}
+> extends IOPromise<MethodName, Props, ComponentOutput> {
+  withSubmit(
+    submitButtons: SubmitButtonConfig[]
+  ): DisplayWithSubmitIOPromise<MethodName, Props, ComponentOutput> {
+    return new DisplayWithSubmitIOPromise({
+      renderer: this.renderer,
+      methodName: this.methodName,
+      label: this.label,
+      props: this.props,
+      valueGetter: this.valueGetter,
+      onStateChange: this.onStateChange,
+      submitButtons,
+    })
+  }
+}
 
 export class InputIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
@@ -626,6 +640,112 @@ export class OptionalMultipleIOPromise<
         defaultValue: this.defaultValue,
       },
       displayResolvesImmediately: this.displayResolvesImmediately,
+    })
+  }
+}
+
+export class DisplayWithSubmitIOPromise<
+  MethodName extends T_IO_DISPLAY_METHOD_NAMES,
+  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
+  ComponentOutput = ComponentReturnValue<MethodName>
+> {
+  protected methodName: MethodName
+  protected renderer: ComponentRenderer<MethodName>
+  protected label: string
+  protected props: Props
+  protected valueGetter:
+    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
+    | undefined
+  protected onStateChange:
+    | ((incomingState: T_IO_STATE<MethodName>) => Promise<Partial<Props>>)
+    | undefined
+  protected validator: IOPromiseValidator<ComponentOutput> | undefined
+  protected displayResolvesImmediately: boolean | undefined
+  submitButtons: SubmitButtonConfig[]
+
+  constructor({
+    renderer,
+    methodName,
+    label,
+    props,
+    valueGetter,
+    onStateChange,
+    validator,
+    displayResolvesImmediately,
+    submitButtons,
+  }: IOPromiseProps<MethodName, Props, ComponentOutput> & {
+    submitButtons: SubmitButtonConfig[]
+  }) {
+    this.renderer = renderer
+    this.methodName = methodName
+    this.label = label
+    this.props = props
+    this.valueGetter = valueGetter
+    this.onStateChange = onStateChange
+    this.validator = validator
+    this.displayResolvesImmediately = displayResolvesImmediately
+    this.submitButtons = submitButtons
+  }
+
+  then(
+    resolve: (output: {
+      submitValue?: string
+      response: ComponentOutput
+    }) => void,
+    reject?: (err: IOError) => void
+  ) {
+    this.renderer({
+      components: [this.component],
+      submitButtons: this.submitButtons,
+    })
+      .then(({ response: [result], submitValue }) => {
+        const parsed = ioSchema[this.methodName].returns.parse(result)
+        resolve({ submitValue, response: this.getValue(parsed) })
+      })
+      .catch(err => {
+        if (reject) {
+          if (err instanceof ZodError) {
+            // This should be caught already, primarily here for types
+            reject(
+              new IOError('BAD_RESPONSE', 'Received invalid response.', {
+                cause: err,
+              })
+            )
+          } else {
+            reject(err)
+          }
+        }
+      })
+  }
+
+  getValue(result: ComponentReturnValue<MethodName>): ComponentOutput {
+    if (this.valueGetter) return this.valueGetter(result)
+
+    return result as unknown as ComponentOutput
+  }
+
+  get component() {
+    return new IOComponent({
+      methodName: this.methodName,
+      label: this.label,
+      initialProps: this.props,
+      onStateChange: this.onStateChange,
+      validator: undefined,
+      displayResolvesImmediately: this.displayResolvesImmediately,
+    })
+  }
+
+  withSubmit(
+    submitButtons: SubmitButtonConfig[]
+  ): DisplayWithSubmitIOPromise<MethodName, Props, ComponentOutput> {
+    return new DisplayWithSubmitIOPromise({
+      renderer: this.renderer,
+      methodName: this.methodName,
+      label: this.label,
+      props: this.props,
+      valueGetter: this.valueGetter,
+      onStateChange: this.onStateChange,
+      submitButtons,
     })
   }
 }

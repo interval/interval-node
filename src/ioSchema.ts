@@ -39,7 +39,6 @@ export const DISPLAY_RENDER = z.object({
 
 // `default` deprecated in 0.31.0
 const buttonTheme = z.enum(['default', 'primary', 'secondary', 'danger'])
-const submitButtonTheme = z.enum(['primary', 'secondary', 'danger'])
 export type ButtonTheme = 'primary' | 'secondary' | 'danger'
 
 export const IO_RENDER = z.object({
@@ -57,7 +56,7 @@ export const IO_RENDER = z.object({
     .array(
       z.object({
         label: z.string(),
-        theme: submitButtonTheme.optional(),
+        theme: buttonTheme.optional(),
         value: z.string().optional(),
       })
     )

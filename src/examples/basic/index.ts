@@ -1881,6 +1881,14 @@ const interval = new Interval({
         singleResponse = -singleResponse
       }
 
+      await io.display
+        .heading(`The number is now ${singleResponse}`)
+        .withSubmit([
+          {
+            label: 'OK!',
+          },
+        ])
+
       const { submitValue: fileSubmitValue, response: fileResponse } =
         await io.input
           .file('Upload a file')
