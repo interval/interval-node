@@ -46,7 +46,7 @@ export const IO_RENDER = z.object({
   inputGroupKey: z.string(),
   toRender: z.array(COMPONENT_TO_RENDER),
   validationErrorMessage: z.string().nullish(),
-  submitButtons: z
+  choiceButtons: z
     .array(
       z.object({
         label: z.string(),
@@ -67,7 +67,7 @@ export const IO_RESPONSE = z.object({
     z.literal('SET_STATE'),
     z.literal('CANCELED'),
   ]),
-  submitValue: z.string().optional(),
+  choice: z.string().optional(),
   values: z.array(z.any()),
   valuesMeta: z.any().optional(),
 })

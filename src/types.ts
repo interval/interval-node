@@ -301,11 +301,9 @@ export type ExclusiveIOComponentFunction<
   props?: Prettify<Props>
 ) => ExclusiveIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
-export type SubmitValue = string | null
-
 export type ComponentRenderReturn<MethodName extends T_IO_METHOD_NAMES> = {
-  submitValue?: string
-  response: [
+  choice?: string
+  returnValue: [
     MaybeMultipleComponentReturnValue<MethodName>,
     ...MaybeMultipleComponentReturnValue<MethodName>[]
   ]
@@ -313,15 +311,15 @@ export type ComponentRenderReturn<MethodName extends T_IO_METHOD_NAMES> = {
 
 export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = ({
   components,
-  submitButtons,
+  choiceButtons,
 }: {
   components: [IOComponent<MethodName>, ...IOComponent<MethodName>[]]
-  submitButtons?: SubmitButtonConfig[]
+  choiceButtons?: ChoiceButtonConfig[]
 }) => Promise<ComponentRenderReturn<MethodName>>
 
 export type ComponentsRendererReturn<Components> = {
-  submitValue?: string
-  response: {
+  choice?: string
+  returnValue: {
     [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
       ? z.infer<Components[Idx]['schema']['returns']> | undefined
       : Components[Idx]
@@ -336,11 +334,11 @@ export type ComponentsRenderer<
 > = ({
   components,
   validator,
-  submitButtons,
+  choiceButtons,
 }: {
   components: Components
   validator?: IOClientRenderValidator<Components>
-  submitButtons?: SubmitButtonConfig[]
+  choiceButtons?: ChoiceButtonConfig[]
 }) => Promise<ComponentsRendererReturn<Components>>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
@@ -482,7 +480,7 @@ export type ButtonConfig = {
   theme?: ButtonTheme
 }
 
-export type SubmitButtonConfig = Omit<ButtonConfig, 'label'> & {
+export type ChoiceButtonConfig = Omit<ButtonConfig, 'label'> & {
   label: string
   value?: string
 }

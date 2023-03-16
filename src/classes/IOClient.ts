@@ -23,7 +23,7 @@ import {
   DisplayIOPromise,
   InputIOPromise,
   MultipleableIOPromise,
-  WithSubmitIOPromise,
+  WithChoicesIOPromise,
 } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
@@ -52,7 +52,7 @@ import {
   RequiredPropsInputIOComponentFunction,
   GroupConfig,
   ButtonConfig,
-  SubmitButtonConfig,
+  ChoiceButtonConfig,
   RequiredPropsMultipleableInputIOComponentFunction,
   MultipleableInputIOComponentFunction,
 } from '../types'
@@ -70,8 +70,8 @@ interface ClientConfig {
 export type IOClientRenderReturnValues<
   Components extends [AnyIOComponent, ...AnyIOComponent[]]
 > = {
-  submitValue?: string
-  response: {
+  choice?: string
+  returnValue: {
     [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
       ? z.infer<Components[Idx]['schema']['returns']> | undefined
       : Components[Idx]
@@ -129,11 +129,11 @@ export class IOClient {
   >({
     components,
     validator: groupValidator,
-    submitButtons,
+    choiceButtons,
   }: {
     components: Components
     validator?: IOClientRenderValidator<Components>
-    submitButtons?: SubmitButtonConfig[]
+    choiceButtons?: ChoiceButtonConfig[]
   }) {
     if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
@@ -147,12 +147,10 @@ export class IOClient {
         const inputGroupKey = v4()
         let isReturned = false
 
-        let setSubmitValue: (value: string | undefined) => void
-        const submitValue: Promise<string | undefined> = new Promise(
-          resolve => {
-            setSubmitValue = resolve
-          }
-        )
+        let setChoice: (value: string | undefined) => void
+        const choice: Promise<string | undefined> = new Promise(resolve => {
+          setChoice = resolve
+        })
 
         const render = async () => {
           const packed: T_IO_RENDER_INPUT = {
@@ -172,7 +170,7 @@ export class IOClient {
               }),
             validationErrorMessage,
             kind: 'RENDER',
-            submitButtons,
+            choiceButtons,
           }
 
           await this.send(packed)
@@ -237,7 +235,7 @@ export class IOClient {
 
               if (groupValidator) {
                 validationErrorMessage = await groupValidator({
-                  response: result.values,
+                  returnValue: result.values,
                 } as IOClientRenderReturnValues<typeof components>)
 
                 if (validationErrorMessage) {
@@ -247,7 +245,7 @@ export class IOClient {
               }
 
               isReturned = true
-              setSubmitValue(result.submitValue)
+              setChoice(result.choice)
 
               result.values.forEach((v, index) => {
                 // @ts-ignore
@@ -311,8 +309,10 @@ export class IOClient {
           })
 
         const response = {
-          submitValue: await submitValue,
-          response: await Promise.all(components.map(comp => comp.returnValue)),
+          choice: await choice,
+          returnValue: await Promise.all(
+            components.map(comp => comp.returnValue)
+          ),
         } as unknown as Promise<IOClientRenderReturnValues<Components>>
 
         resolve(response)
@@ -369,13 +369,13 @@ export class IOClient {
       )
     }
 
-    const withSubmitPromises = promiseValues.filter(
-      pi => pi instanceof WithSubmitIOPromise
+    const withChoicesPromises = promiseValues.filter(
+      pi => pi instanceof WithChoicesIOPromise
     )
 
-    if (withSubmitPromises.length > 0) {
+    if (withChoicesPromises.length > 0) {
       throw new IntervalError(
-        `Components with the following labels are chained with withSubmit, which is not supported inside a group (call withSubmit on the group itself instead): ${exclusivePromises
+        `Components with the following labels are chained with withChoices, which is not supported inside a group (call withChoices on the group itself instead): ${exclusivePromises
           .map(pi => pi.component.label)
           .join(', ')}`
       )

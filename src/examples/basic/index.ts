@@ -1867,42 +1867,42 @@ const interval = new Interval({
 
       return 'All done!'
     },
-    with_submit: async () => {
-      let { submitValue: singleSubmitValue, response: singleResponse } =
+    with_choices: async () => {
+      let { choice: singleChoice, returnValue: singleReturnValue } =
         await io.input
           .number('Enter a number')
           .optional()
-          .withSubmit([
+          .withChoices([
             { label: 'Make it negative', theme: 'danger', value: 'negative' },
             { label: 'Do nothing' },
           ])
 
-      if (singleResponse && singleSubmitValue === 'negative') {
-        singleResponse = -singleResponse
+      if (singleReturnValue && singleChoice === 'negative') {
+        singleReturnValue = -singleReturnValue
       }
 
       await io.display
-        .heading(`The number is now ${singleResponse}`)
-        .withSubmit([
+        .heading(`The number is now ${singleReturnValue}`)
+        .withChoices([
           {
             label: 'OK!',
           },
         ])
 
-      const { submitValue: fileSubmitValue, response: fileResponse } =
+      const { choice: fileChoice, returnValue: fileReturnValue } =
         await io.input
           .file('Upload a file')
-          .withSubmit([{ label: 'Encrypt' }])
+          .withChoices([{ label: 'Encrypt' }])
           .multiple()
           .optional()
 
-      ctx.log('submitValue', fileSubmitValue)
-      ctx.log('response', fileResponse)
+      ctx.log('choice', fileChoice)
+      ctx.log('returnValue', fileReturnValue)
 
       const {
-        submitValue: groupSubmitValue,
-        response: [groupReturn],
-      } = await io.group([io.input.text('Important data')]).withSubmit([
+        choice: groupChoice,
+        returnValue: [groupReturn],
+      } = await io.group([io.input.text('Important data')]).withChoices([
         {
           label: 'Delete the data',
           theme: 'danger',
@@ -1914,7 +1914,7 @@ const interval = new Interval({
       ])
 
       return {
-        groupSubmitValue,
+        groupChoice,
         groupReturn,
       }
     },

@@ -21,7 +21,7 @@ import {
   MaybeOptionalGroupIOPromise,
   OptionalGroupIOPromise,
   ButtonConfig,
-  SubmitButtonConfig,
+  ChoiceButtonConfig,
 } from '../types'
 import { IOClientRenderReturnValues } from './IOClient'
 import { z, ZodError } from 'zod'
@@ -94,7 +94,7 @@ export class IOPromise<
     reject?: (err: IOError) => void
   ) {
     this.renderer({ components: [this.component] })
-      .then(({ response: [result] }) => {
+      .then(({ returnValue: [result] }) => {
         const parsed = ioSchema[this.methodName].returns.parse(result)
         resolve(this.getValue(parsed))
       })
@@ -140,17 +140,17 @@ export class DisplayIOPromise<
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>
 > extends IOPromise<MethodName, Props, ComponentOutput> {
-  withSubmit(
-    submitButtons: SubmitButtonConfig[]
-  ): DisplayWithSubmitIOPromise<MethodName, Props, ComponentOutput> {
-    return new DisplayWithSubmitIOPromise({
+  withChoices(
+    choiceButtons: ChoiceButtonConfig[]
+  ): DisplayWithChoicesIOPromise<MethodName, Props, ComponentOutput> {
+    return new DisplayWithChoicesIOPromise({
       renderer: this.renderer,
       methodName: this.methodName,
       label: this.label,
       props: this.props,
       valueGetter: this.valueGetter,
       onStateChange: this.onStateChange,
-      submitButtons,
+      choiceButtons,
     })
   }
 }
@@ -224,17 +224,17 @@ export class InputIOPromise<
       : this
   }
 
-  withSubmit(
-    submitButtons: SubmitButtonConfig[]
-  ): WithSubmitIOPromise<MethodName, Props, ComponentOutput> {
-    return new WithSubmitIOPromise({
+  withChoices(
+    choiceButtons: ChoiceButtonConfig[]
+  ): WithChoicesIOPromise<MethodName, Props, ComponentOutput> {
+    return new WithChoicesIOPromise({
       renderer: this.renderer,
       methodName: this.methodName,
       label: this.label,
       props: this.props,
       valueGetter: this.valueGetter,
       onStateChange: this.onStateChange,
-      submitButtons,
+      choiceButtons,
     })
   }
 }
@@ -253,7 +253,7 @@ export class OptionalIOPromise<
     reject?: (err: IOError) => void
   ) {
     this.renderer({ components: [this.component] })
-      .then(({ response: [result] }) => {
+      .then(({ returnValue: [result] }) => {
         const parsed = ioSchema[this.methodName].returns
           .optional()
           .parse(result)
@@ -391,17 +391,17 @@ export class MultipleableIOPromise<
     })
   }
 
-  withSubmit(
-    submitButtons: SubmitButtonConfig[]
-  ): MultipleableWithSubmitIOPromise<MethodName, Props, ComponentOutput> {
-    return new MultipleableWithSubmitIOPromise({
+  withChoices(
+    choiceButtons: ChoiceButtonConfig[]
+  ): MultipleableWithChoicesIOPromise<MethodName, Props, ComponentOutput> {
+    return new MultipleableWithChoicesIOPromise({
       renderer: this.renderer,
       methodName: this.methodName,
       label: this.label,
       props: this.props,
       valueGetter: this.valueGetter,
       onStateChange: this.onStateChange,
-      submitButtons,
+      choiceButtons,
     })
   }
 }
@@ -444,7 +444,7 @@ export class MultipleIOPromise<
     reject?: (err: IOError) => void
   ) {
     this.renderer({ components: [this.component] })
-      .then(({ response: [results] }) => {
+      .then(({ returnValue: [results] }) => {
         resolve(this.getValue(results))
       })
       .catch(err => {
@@ -577,7 +577,7 @@ export class OptionalMultipleIOPromise<
     reject?: (err: IOError) => void
   ) {
     this.renderer({ components: [this.component] })
-      .then(({ response: [results] }) => {
+      .then(({ returnValue: [results] }) => {
         resolve(this.getValue(results))
       })
       .catch(err => {
@@ -644,7 +644,7 @@ export class OptionalMultipleIOPromise<
   }
 }
 
-export class DisplayWithSubmitIOPromise<
+export class DisplayWithChoicesIOPromise<
   MethodName extends T_IO_DISPLAY_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>
@@ -661,7 +661,7 @@ export class DisplayWithSubmitIOPromise<
     | undefined
   protected validator: IOPromiseValidator<ComponentOutput> | undefined
   protected displayResolvesImmediately: boolean | undefined
-  submitButtons: SubmitButtonConfig[]
+  choiceButtons: ChoiceButtonConfig[]
 
   constructor({
     renderer,
@@ -672,9 +672,9 @@ export class DisplayWithSubmitIOPromise<
     onStateChange,
     validator,
     displayResolvesImmediately,
-    submitButtons,
+    choiceButtons,
   }: IOPromiseProps<MethodName, Props, ComponentOutput> & {
-    submitButtons: SubmitButtonConfig[]
+    choiceButtons: ChoiceButtonConfig[]
   }) {
     this.renderer = renderer
     this.methodName = methodName
@@ -684,23 +684,23 @@ export class DisplayWithSubmitIOPromise<
     this.onStateChange = onStateChange
     this.validator = validator
     this.displayResolvesImmediately = displayResolvesImmediately
-    this.submitButtons = submitButtons
+    this.choiceButtons = choiceButtons
   }
 
   then(
     resolve: (output: {
-      submitValue?: string
-      response: ComponentOutput
+      choice?: string
+      returnValue: ComponentOutput
     }) => void,
     reject?: (err: IOError) => void
   ) {
     this.renderer({
       components: [this.component],
-      submitButtons: this.submitButtons,
+      choiceButtons: this.choiceButtons,
     })
-      .then(({ response: [result], submitValue }) => {
+      .then(({ returnValue: [result], choice }) => {
         const parsed = ioSchema[this.methodName].returns.parse(result)
-        resolve({ submitValue, response: this.getValue(parsed) })
+        resolve({ choice, returnValue: this.getValue(parsed) })
       })
       .catch(err => {
         if (reject) {
@@ -735,22 +735,22 @@ export class DisplayWithSubmitIOPromise<
     })
   }
 
-  withSubmit(
-    submitButtons: SubmitButtonConfig[]
-  ): DisplayWithSubmitIOPromise<MethodName, Props, ComponentOutput> {
-    return new DisplayWithSubmitIOPromise({
+  withChoices(
+    choiceButtons: ChoiceButtonConfig[]
+  ): DisplayWithChoicesIOPromise<MethodName, Props, ComponentOutput> {
+    return new DisplayWithChoicesIOPromise({
       renderer: this.renderer,
       methodName: this.methodName,
       label: this.label,
       props: this.props,
       valueGetter: this.valueGetter,
       onStateChange: this.onStateChange,
-      submitButtons,
+      choiceButtons,
     })
   }
 }
 
-export class WithSubmitIOPromise<
+export class WithChoicesIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>
@@ -767,7 +767,7 @@ export class WithSubmitIOPromise<
     | undefined
   protected validator: IOPromiseValidator<ComponentOutput> | undefined
   protected displayResolvesImmediately: boolean | undefined
-  submitButtons: SubmitButtonConfig[]
+  choiceButtons: ChoiceButtonConfig[]
 
   constructor({
     renderer,
@@ -778,9 +778,9 @@ export class WithSubmitIOPromise<
     onStateChange,
     validator,
     displayResolvesImmediately,
-    submitButtons,
+    choiceButtons,
   }: IOPromiseProps<MethodName, Props, ComponentOutput> & {
-    submitButtons: SubmitButtonConfig[]
+    choiceButtons: ChoiceButtonConfig[]
   }) {
     this.renderer = renderer
     this.methodName = methodName
@@ -790,23 +790,23 @@ export class WithSubmitIOPromise<
     this.onStateChange = onStateChange
     this.validator = validator
     this.displayResolvesImmediately = displayResolvesImmediately
-    this.submitButtons = submitButtons
+    this.choiceButtons = choiceButtons
   }
 
   then(
     resolve: (output: {
-      submitValue?: string
-      response: ComponentOutput
+      choice?: string
+      returnValue: ComponentOutput
     }) => void,
     reject?: (err: IOError) => void
   ) {
     this.renderer({
       components: [this.component],
-      submitButtons: this.submitButtons,
+      choiceButtons: this.choiceButtons,
     })
-      .then(({ response: [result], submitValue }) => {
+      .then(({ returnValue: [result], choice }) => {
         const parsed = ioSchema[this.methodName].returns.parse(result)
-        resolve({ submitValue, response: this.getValue(parsed) })
+        resolve({ choice, returnValue: this.getValue(parsed) })
       })
       .catch(err => {
         if (reject) {
@@ -868,73 +868,73 @@ export class WithSubmitIOPromise<
 
   optional(
     isOptional?: true
-  ): OptionalWithSubmitIOPromise<MethodName, Props, ComponentOutput>
+  ): OptionalWithChoicesIOPromise<MethodName, Props, ComponentOutput>
   optional(
     isOptional?: false
-  ): WithSubmitIOPromise<MethodName, Props, ComponentOutput>
+  ): WithChoicesIOPromise<MethodName, Props, ComponentOutput>
   optional(
     isOptional?: boolean
   ):
-    | OptionalWithSubmitIOPromise<MethodName, Props, ComponentOutput>
-    | WithSubmitIOPromise<MethodName, Props, ComponentOutput>
+    | OptionalWithChoicesIOPromise<MethodName, Props, ComponentOutput>
+    | WithChoicesIOPromise<MethodName, Props, ComponentOutput>
   optional(
     isOptional = true
   ):
-    | OptionalWithSubmitIOPromise<
+    | OptionalWithChoicesIOPromise<
         MethodName,
         Props,
         ComponentOutput | undefined
       >
-    | WithSubmitIOPromise<MethodName, Props, ComponentOutput> {
+    | WithChoicesIOPromise<MethodName, Props, ComponentOutput> {
     return isOptional
-      ? new OptionalWithSubmitIOPromise({
+      ? new OptionalWithChoicesIOPromise({
           renderer: this.renderer,
           methodName: this.methodName,
           label: this.label,
           props: this.props,
           valueGetter: this.valueGetter,
           onStateChange: this.onStateChange,
-          submitButtons: this.submitButtons,
+          choiceButtons: this.choiceButtons,
         })
       : this
   }
 
-  withSubmit(
-    submitButtons: SubmitButtonConfig[]
-  ): WithSubmitIOPromise<MethodName, Props, ComponentOutput> {
-    return new WithSubmitIOPromise({
+  withChoices(
+    choiceButtons: ChoiceButtonConfig[]
+  ): WithChoicesIOPromise<MethodName, Props, ComponentOutput> {
+    return new WithChoicesIOPromise({
       renderer: this.renderer,
       methodName: this.methodName,
       label: this.label,
       props: this.props,
       valueGetter: this.valueGetter,
       onStateChange: this.onStateChange,
-      submitButtons,
+      choiceButtons,
     })
   }
 }
 
-export class OptionalWithSubmitIOPromise<
+export class OptionalWithChoicesIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>
-> extends WithSubmitIOPromise<MethodName, Props, ComponentOutput | undefined> {
+> extends WithChoicesIOPromise<MethodName, Props, ComponentOutput | undefined> {
   then(
     resolve: (output: {
-      submitValue?: string
-      response: ComponentOutput | undefined
+      choice?: string
+      returnValue: ComponentOutput | undefined
     }) => void,
     reject?: (err: IOError) => void
   ) {
     this.renderer({
       components: [this.component],
-      submitButtons: this.submitButtons,
+      choiceButtons: this.choiceButtons,
     })
-      .then(({ response: [result], submitValue }) => {
+      .then(({ returnValue: [result], choice }) => {
         const parsed = ioSchema[this.methodName].returns
           .optional()
           .parse(result)
-        resolve({ submitValue, response: this.getValue(parsed) })
+        resolve({ choice, returnValue: this.getValue(parsed) })
       })
       .catch(err => {
         if (reject) {
@@ -998,33 +998,33 @@ export class OptionalWithSubmitIOPromise<
     return result as unknown as ComponentOutput
   }
 
-  withSubmit(
-    submitButtons: SubmitButtonConfig[]
-  ): OptionalWithSubmitIOPromise<
+  withChoices(
+    choiceButtons: ChoiceButtonConfig[]
+  ): OptionalWithChoicesIOPromise<
     MethodName,
     Props,
     ComponentOutput | undefined
   > {
-    return new OptionalWithSubmitIOPromise({
+    return new OptionalWithChoicesIOPromise({
       renderer: this.renderer,
       methodName: this.methodName,
       label: this.label,
       props: this.props,
       valueGetter: this.valueGetter,
       onStateChange: this.onStateChange,
-      submitButtons,
+      choiceButtons,
     })
   }
 }
 
-export class MultipleableWithSubmitIOPromise<
+export class MultipleableWithChoicesIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>,
   DefaultValue = T_IO_PROPS<MethodName> extends { defaultValue?: any }
     ? ComponentOutput | null
     : never
-> extends WithSubmitIOPromise<MethodName, Props, ComponentOutput> {
+> extends WithChoicesIOPromise<MethodName, Props, ComponentOutput> {
   defaultValueGetter:
     | ((defaultValue: DefaultValue) => T_IO_RETURNS<MethodName>)
     | undefined
@@ -1033,7 +1033,7 @@ export class MultipleableWithSubmitIOPromise<
     defaultValue,
   }: {
     defaultValue?: DefaultValue[] | null
-  } = {}): MultipleWithSubmitIOPromise<MethodName, Props, ComponentOutput> {
+  } = {}): MultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput> {
     let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
     const propsSchema = ioSchema[this.methodName].props
     if (defaultValue && 'defaultValue' in propsSchema.shape) {
@@ -1056,24 +1056,26 @@ export class MultipleableWithSubmitIOPromise<
       }
     }
 
-    return new MultipleWithSubmitIOPromise<MethodName, Props, ComponentOutput>({
-      renderer: this.renderer,
-      methodName: this.methodName,
-      label: this.label,
-      props: this.props,
-      valueGetter: this.valueGetter,
-      onStateChange: this.onStateChange,
-      defaultValue: transformedDefaultValue,
-      submitButtons: this.submitButtons,
-    })
+    return new MultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>(
+      {
+        renderer: this.renderer,
+        methodName: this.methodName,
+        label: this.label,
+        props: this.props,
+        valueGetter: this.valueGetter,
+        onStateChange: this.onStateChange,
+        defaultValue: transformedDefaultValue,
+        choiceButtons: this.choiceButtons,
+      }
+    )
   }
 }
 
-export class MultipleWithSubmitIOPromise<
+export class MultipleWithChoicesIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>
-> extends WithSubmitIOPromise<MethodName, Props, ComponentOutput[]> {
+> extends WithChoicesIOPromise<MethodName, Props, ComponentOutput[]> {
   getSingleValue:
     | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
     | undefined
@@ -1096,7 +1098,7 @@ export class MultipleWithSubmitIOPromise<
       incomingState: T_IO_STATE<MethodName>
     ) => Promise<Partial<Props>>
     validator?: IOPromiseValidator<ComponentOutput[]> | undefined
-    submitButtons: SubmitButtonConfig[]
+    choiceButtons: ChoiceButtonConfig[]
   }) {
     super(rest)
     this.getSingleValue = valueGetter
@@ -1105,17 +1107,17 @@ export class MultipleWithSubmitIOPromise<
 
   then(
     resolve: (output: {
-      submitValue?: string
-      response: ComponentOutput[]
+      choice?: string
+      returnValue: ComponentOutput[]
     }) => void,
     reject?: (err: IOError) => void
   ) {
     this.renderer({
       components: [this.component],
-      submitButtons: this.submitButtons,
+      choiceButtons: this.choiceButtons,
     })
-      .then(({ submitValue, response: [results] }) => {
-        resolve({ submitValue, response: this.getValue(results) })
+      .then(({ choice, returnValue: [results] }) => {
+        resolve({ choice, returnValue: this.getValue(results) })
       })
       .catch(err => {
         if (reject) reject(err)
@@ -1181,22 +1183,22 @@ export class MultipleWithSubmitIOPromise<
 
   optional(
     isOptional?: true
-  ): OptionalMultipleWithSubmitIOPromise<MethodName, Props, ComponentOutput>
+  ): OptionalMultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>
   optional(
     isOptional?: false
-  ): MultipleWithSubmitIOPromise<MethodName, Props, ComponentOutput>
+  ): MultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>
   optional(
     isOptional?: boolean
   ):
-    | OptionalMultipleWithSubmitIOPromise<MethodName, Props, ComponentOutput>
-    | MultipleWithSubmitIOPromise<MethodName, Props, ComponentOutput>
+    | OptionalMultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>
+    | MultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>
   optional(
     isOptional = true
   ):
-    | OptionalMultipleWithSubmitIOPromise<MethodName, Props, ComponentOutput>
-    | MultipleWithSubmitIOPromise<MethodName, Props, ComponentOutput> {
+    | OptionalMultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>
+    | MultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput> {
     return isOptional
-      ? new OptionalMultipleWithSubmitIOPromise<
+      ? new OptionalMultipleWithChoicesIOPromise<
           MethodName,
           Props,
           ComponentOutput
@@ -1208,17 +1210,17 @@ export class MultipleWithSubmitIOPromise<
           valueGetter: this.getSingleValue,
           onStateChange: this.onStateChange,
           defaultValue: this.defaultValue,
-          submitButtons: this.submitButtons,
+          choiceButtons: this.choiceButtons,
         })
       : this
   }
 }
 
-export class OptionalMultipleWithSubmitIOPromise<
+export class OptionalMultipleWithChoicesIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>
-> extends OptionalWithSubmitIOPromise<MethodName, Props, ComponentOutput[]> {
+> extends OptionalWithChoicesIOPromise<MethodName, Props, ComponentOutput[]> {
   getSingleValue:
     | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
     | undefined
@@ -1241,7 +1243,7 @@ export class OptionalMultipleWithSubmitIOPromise<
       incomingState: T_IO_STATE<MethodName>
     ) => Promise<Partial<Props>>
     validator?: IOPromiseValidator<ComponentOutput[] | undefined> | undefined
-    submitButtons: SubmitButtonConfig[]
+    choiceButtons: ChoiceButtonConfig[]
   }) {
     super(rest)
     this.getSingleValue = valueGetter
@@ -1250,17 +1252,17 @@ export class OptionalMultipleWithSubmitIOPromise<
 
   then(
     resolve: (output: {
-      submitValue?: string
-      response: ComponentOutput[] | undefined
+      choice?: string
+      returnValue: ComponentOutput[] | undefined
     }) => void,
     reject?: (err: IOError) => void
   ) {
     this.renderer({
       components: [this.component],
-      submitButtons: this.submitButtons,
+      choiceButtons: this.choiceButtons,
     })
-      .then(({ submitValue, response: [results] }) => {
-        resolve({ submitValue, response: this.getValue(results) })
+      .then(({ choice, returnValue: [results] }) => {
+        resolve({ choice, returnValue: this.getValue(results) })
       })
       .catch(err => {
         if (reject) reject(err)
@@ -1420,7 +1422,7 @@ export class IOGroupPromise<
   #renderer: ComponentsRenderer
   #validator: IOPromiseValidator<ReturnValues> | undefined
 
-  #submitButtons: SubmitButtonConfig[] | undefined
+  #choiceButtons: ChoiceButtonConfig[] | undefined
 
   constructor(config: {
     promises: IOPromises
@@ -1429,7 +1431,7 @@ export class IOGroupPromise<
   }) {
     this.promises = config.promises
     this.#renderer = config.renderer
-    this.#submitButtons = config.continueButton
+    this.#choiceButtons = config.continueButton
       ? [
           {
             label: config.continueButton.label || 'Continue',
@@ -1459,10 +1461,10 @@ export class IOGroupPromise<
       validator: this.#validator
         ? this.#handleValidation.bind(this)
         : undefined,
-      submitButtons: this.#submitButtons,
+      choiceButtons: this.#choiceButtons,
     })
-      .then(({ response }) => {
-        let returnValues = response.map((val, i) =>
+      .then(({ returnValue }) => {
+        let returnValues = returnValue.map((val, i) =>
           promiseValues[i].getValue(val as never)
         )
 
@@ -1499,7 +1501,7 @@ export class IOGroupPromise<
 
     const promiseValues = this.promiseValues
 
-    const values = returnValues.response.map((v, index) =>
+    const values = returnValues.returnValue.map((v, index) =>
       promiseValues[index].getValue(v as never)
     )
 
@@ -1515,18 +1517,18 @@ export class IOGroupPromise<
     }
   }
 
-  withSubmit(
-    submitButtons: SubmitButtonConfig[]
-  ): IOGroupPromiseWithSubmit<IOPromises, ReturnValues> {
-    return new IOGroupPromiseWithSubmit({
+  withChoices(
+    choiceButtons: ChoiceButtonConfig[]
+  ): IOGroupPromiseWithChoices<IOPromises, ReturnValues> {
+    return new IOGroupPromiseWithChoices({
       promises: this.promises,
       renderer: this.#renderer,
-      submitButtons,
+      choiceButtons,
     })
   }
 }
 
-export class IOGroupPromiseWithSubmit<
+export class IOGroupPromiseWithChoices<
   IOPromises extends
     | Record<string, MaybeOptionalGroupIOPromise>
     | MaybeOptionalGroupIOPromise[],
@@ -1543,16 +1545,16 @@ export class IOGroupPromiseWithSubmit<
   #renderer: ComponentsRenderer
   #validator: IOPromiseValidator<ReturnValues> | undefined
 
-  #submitButtons: SubmitButtonConfig[] | undefined
+  #choiceButtons: ChoiceButtonConfig[] | undefined
 
   constructor(config: {
     promises: IOPromises
     renderer: ComponentsRenderer
-    submitButtons?: SubmitButtonConfig[]
+    choiceButtons?: ChoiceButtonConfig[]
   }) {
     this.promises = config.promises
     this.#renderer = config.renderer
-    this.#submitButtons = config.submitButtons
+    this.#choiceButtons = config.choiceButtons
   }
 
   get promiseValues(): MaybeOptionalGroupIOPromise[] {
@@ -1562,7 +1564,7 @@ export class IOGroupPromiseWithSubmit<
   }
 
   then(
-    resolve: (output: { submitValue?: string; response: ReturnValues }) => void,
+    resolve: (output: { choice?: string; returnValue: ReturnValues }) => void,
     reject?: (err: IOError) => void
   ) {
     const promiseValues = this.promiseValues
@@ -1575,23 +1577,23 @@ export class IOGroupPromiseWithSubmit<
       validator: this.#validator
         ? this.#handleValidation.bind(this)
         : undefined,
-      submitButtons: this.#submitButtons,
+      choiceButtons: this.#choiceButtons,
     })
-      .then(({ response, submitValue }) => {
-        let returnValues = response.map((val, i) =>
+      .then(({ returnValue, choice }) => {
+        let returnValues = returnValue.map((val, i) =>
           promiseValues[i].getValue(val as never)
         )
 
         if (Array.isArray(this.promises)) {
           resolve({
-            submitValue,
-            response: response as unknown as ReturnValues,
+            choice,
+            returnValue: returnValue as unknown as ReturnValues,
           })
         } else {
           const keys = Object.keys(this.promises)
           resolve({
-            submitValue,
-            response: Object.fromEntries(
+            choice,
+            returnValue: Object.fromEntries(
               returnValues.map((val, i) => [keys[i], val])
             ) as ReturnValues,
           })
@@ -1619,7 +1621,7 @@ export class IOGroupPromiseWithSubmit<
 
     const promiseValues = this.promiseValues
 
-    const values = returnValues.response.map((v, index) =>
+    const values = returnValues.returnValue.map((v, index) =>
       promiseValues[index].getValue(v as never)
     )
 
@@ -1635,13 +1637,13 @@ export class IOGroupPromiseWithSubmit<
     }
   }
 
-  withSubmit(
-    submitButtons: SubmitButtonConfig[]
-  ): IOGroupPromiseWithSubmit<IOPromises, ReturnValues> {
-    return new IOGroupPromiseWithSubmit({
+  withChoices(
+    choiceButtons: ChoiceButtonConfig[]
+  ): IOGroupPromiseWithChoices<IOPromises, ReturnValues> {
+    return new IOGroupPromiseWithChoices({
       promises: this.promises,
       renderer: this.#renderer,
-      submitButtons,
+      choiceButtons,
     })
   }
 }
