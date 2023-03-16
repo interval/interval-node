@@ -1420,7 +1420,7 @@ export class IOGroupPromise<
   #renderer: ComponentsRenderer
   #validator: IOPromiseValidator<ReturnValues> | undefined
 
-  #continueButtonConfig: ButtonConfig | undefined
+  #submitButtons: SubmitButtonConfig[] | undefined
 
   constructor(config: {
     promises: IOPromises
@@ -1429,7 +1429,14 @@ export class IOGroupPromise<
   }) {
     this.promises = config.promises
     this.#renderer = config.renderer
-    this.#continueButtonConfig = config.continueButton
+    this.#submitButtons = config.continueButton
+      ? [
+          {
+            label: config.continueButton.label || 'Continue',
+            theme: config.continueButton.theme,
+          },
+        ]
+      : undefined
   }
 
   get promiseValues(): MaybeOptionalGroupIOPromise[] {
@@ -1452,7 +1459,7 @@ export class IOGroupPromise<
       validator: this.#validator
         ? this.#handleValidation.bind(this)
         : undefined,
-      continueButton: this.#continueButtonConfig,
+      submitButtons: this.#submitButtons,
     })
       .then(({ response }) => {
         let returnValues = response.map((val, i) =>
@@ -1536,18 +1543,15 @@ export class IOGroupPromiseWithSubmit<
   #renderer: ComponentsRenderer
   #validator: IOPromiseValidator<ReturnValues> | undefined
 
-  #continueButtonConfig: ButtonConfig | undefined
   #submitButtons: SubmitButtonConfig[] | undefined
 
   constructor(config: {
     promises: IOPromises
     renderer: ComponentsRenderer
-    continueButton?: ButtonConfig
     submitButtons?: SubmitButtonConfig[]
   }) {
     this.promises = config.promises
     this.#renderer = config.renderer
-    this.#continueButtonConfig = config.continueButton
     this.#submitButtons = config.submitButtons
   }
 
@@ -1571,7 +1575,6 @@ export class IOGroupPromiseWithSubmit<
       validator: this.#validator
         ? this.#handleValidation.bind(this)
         : undefined,
-      continueButton: this.#continueButtonConfig,
       submitButtons: this.#submitButtons,
     })
       .then(({ response, submitValue }) => {

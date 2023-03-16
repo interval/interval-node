@@ -46,12 +46,6 @@ export const IO_RENDER = z.object({
   inputGroupKey: z.string(),
   toRender: z.array(COMPONENT_TO_RENDER),
   validationErrorMessage: z.string().nullish(),
-  continueButton: z
-    .object({
-      label: z.string().optional(),
-      theme: buttonTheme.optional(),
-    })
-    .optional(),
   submitButtons: z
     .array(
       z.object({

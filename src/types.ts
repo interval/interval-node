@@ -336,12 +336,10 @@ export type ComponentsRenderer<
 > = ({
   components,
   validator,
-  continueButton,
   submitButtons,
 }: {
   components: Components
   validator?: IOClientRenderValidator<Components>
-  continueButton?: ButtonConfig
   submitButtons?: SubmitButtonConfig[]
 }) => Promise<ComponentsRendererReturn<Components>>
 

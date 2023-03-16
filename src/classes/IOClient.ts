@@ -129,12 +129,10 @@ export class IOClient {
   >({
     components,
     validator: groupValidator,
-    continueButton,
     submitButtons,
   }: {
     components: Components
     validator?: IOClientRenderValidator<Components>
-    continueButton?: ButtonConfig
     submitButtons?: SubmitButtonConfig[]
   }) {
     if (this.isCanceled) {
@@ -174,7 +172,6 @@ export class IOClient {
               }),
             validationErrorMessage,
             kind: 'RENDER',
-            continueButton,
             submitButtons,
           }
 
