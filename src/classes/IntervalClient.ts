@@ -52,7 +52,7 @@ import type {
   IntervalRouteDefinitions,
   IntervalPageHandler,
 } from '../types'
-import type DataChannelConnection from './DataChannelConnection'
+import type { DataChannelConnection } from './DataChannelConnection'
 import type { IceServer } from './DataChannelConnection'
 import TransactionLoadingState from './TransactionLoadingState'
 import { Interval, InternalConfig, IntervalError } from '..'
@@ -225,8 +225,8 @@ export default class IntervalClient {
 
     if (typeof window === 'undefined' && this.#config.routesDirectory) {
       try {
-        const { default: loadRoutesFromFileSystem } = await import(
-          '../utils/fileActionLoader'
+        const { loadRoutesFromFileSystem } = await import(
+          '../utils/fileActionLoader.js'
         )
         fileSystemRoutes = await loadRoutesFromFileSystem(
           this.#config.routesDirectory,
@@ -825,8 +825,8 @@ export default class IntervalClient {
           this.#logger.debug('INITIALIZE_PEER_CONNECTION:', inputs)
           switch (inputs.type) {
             case 'offer': {
-              const { default: DataChannelConnection } = await import(
-                './DataChannelConnection'
+              const { DataChannelConnection } = await import(
+                './DataChannelConnection.js'
               )
 
               const iceConfig = await this.#interval.fetchIceConfig()
