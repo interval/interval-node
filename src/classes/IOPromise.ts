@@ -56,8 +56,8 @@ export class IOPromise<
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>
 > {
-  protected methodName: MethodName
-  protected renderer: ComponentRenderer<MethodName>
+  /* @internal */ methodName: MethodName
+  /* @internal */ renderer: ComponentRenderer<MethodName>
   protected label: string
   protected props: Props
   protected valueGetter:
@@ -66,7 +66,7 @@ export class IOPromise<
   protected onStateChange:
     | ((incomingState: T_IO_STATE<MethodName>) => Promise<Partial<Props>>)
     | undefined
-  protected validator: IOPromiseValidator<ComponentOutput> | undefined
+  /* @internal */ validator: IOPromiseValidator<ComponentOutput> | undefined
   protected displayResolvesImmediately: boolean | undefined
 
   constructor({
@@ -142,14 +142,9 @@ export class DisplayIOPromise<
 > extends IOPromise<MethodName, Props, ComponentOutput> {
   withChoices(
     choiceButtons: ChoiceButtonConfig[]
-  ): DisplayWithChoicesIOPromise<MethodName, Props, ComponentOutput> {
-    return new DisplayWithChoicesIOPromise({
-      renderer: this.renderer,
-      methodName: this.methodName,
-      label: this.label,
-      props: this.props,
-      valueGetter: this.valueGetter,
-      onStateChange: this.onStateChange,
+  ): WithChoicesIOPromise<MethodName, Props, ComponentOutput, typeof this> {
+    return new WithChoicesIOPromise({
+      internalPromise: this,
       choiceButtons,
     })
   }
@@ -226,14 +221,9 @@ export class InputIOPromise<
 
   withChoices(
     choiceButtons: ChoiceButtonConfig[]
-  ): WithChoicesIOPromise<MethodName, Props, ComponentOutput> {
+  ): WithChoicesIOPromise<MethodName, Props, ComponentOutput, typeof this> {
     return new WithChoicesIOPromise({
-      renderer: this.renderer,
-      methodName: this.methodName,
-      label: this.label,
-      props: this.props,
-      valueGetter: this.valueGetter,
-      onStateChange: this.onStateChange,
+      internalPromise: this,
       choiceButtons,
     })
   }
@@ -393,14 +383,9 @@ export class MultipleableIOPromise<
 
   withChoices(
     choiceButtons: ChoiceButtonConfig[]
-  ): MultipleableWithChoicesIOPromise<MethodName, Props, ComponentOutput> {
-    return new MultipleableWithChoicesIOPromise({
-      renderer: this.renderer,
-      methodName: this.methodName,
-      label: this.label,
-      props: this.props,
-      valueGetter: this.valueGetter,
-      onStateChange: this.onStateChange,
+  ): WithChoicesIOPromise<MethodName, Props, ComponentOutput, typeof this> {
+    return new WithChoicesIOPromise({
+      internalPromise: this,
       choiceButtons,
     })
   }
@@ -644,152 +629,27 @@ export class OptionalMultipleIOPromise<
   }
 }
 
-export class DisplayWithChoicesIOPromise<
-  MethodName extends T_IO_DISPLAY_METHOD_NAMES,
-  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
-> {
-  protected methodName: MethodName
-  protected renderer: ComponentRenderer<MethodName>
-  protected label: string
-  protected props: Props
-  protected valueGetter:
-    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
-    | undefined
-  protected onStateChange:
-    | ((incomingState: T_IO_STATE<MethodName>) => Promise<Partial<Props>>)
-    | undefined
-  protected validator: IOPromiseValidator<ComponentOutput> | undefined
-  protected displayResolvesImmediately: boolean | undefined
-  choiceButtons: ChoiceButtonConfig[]
-
-  constructor({
-    renderer,
-    methodName,
-    label,
-    props,
-    valueGetter,
-    onStateChange,
-    validator,
-    displayResolvesImmediately,
-    choiceButtons,
-  }: IOPromiseProps<MethodName, Props, ComponentOutput> & {
-    choiceButtons: ChoiceButtonConfig[]
-  }) {
-    this.renderer = renderer
-    this.methodName = methodName
-    this.label = label
-    this.props = props
-    this.valueGetter = valueGetter
-    this.onStateChange = onStateChange
-    this.validator = validator
-    this.displayResolvesImmediately = displayResolvesImmediately
-    this.choiceButtons = choiceButtons
-  }
-
-  then(
-    resolve: (output: {
-      choice?: string
-      returnValue: ComponentOutput
-    }) => void,
-    reject?: (err: IOError) => void
-  ) {
-    this.renderer({
-      components: [this.component],
-      choiceButtons: this.choiceButtons,
-    })
-      .then(({ returnValue: [result], choice }) => {
-        const parsed = ioSchema[this.methodName].returns.parse(result)
-        resolve({ choice, returnValue: this.getValue(parsed) })
-      })
-      .catch(err => {
-        if (reject) {
-          if (err instanceof ZodError) {
-            // This should be caught already, primarily here for types
-            reject(
-              new IOError('BAD_RESPONSE', 'Received invalid response.', {
-                cause: err,
-              })
-            )
-          } else {
-            reject(err)
-          }
-        }
-      })
-  }
-
-  getValue(result: ComponentReturnValue<MethodName>): ComponentOutput {
-    if (this.valueGetter) return this.valueGetter(result)
-
-    return result as unknown as ComponentOutput
-  }
-
-  get component() {
-    return new IOComponent({
-      methodName: this.methodName,
-      label: this.label,
-      initialProps: this.props,
-      onStateChange: this.onStateChange,
-      validator: undefined,
-      displayResolvesImmediately: this.displayResolvesImmediately,
-    })
-  }
-
-  withChoices(
-    choiceButtons: ChoiceButtonConfig[]
-  ): DisplayWithChoicesIOPromise<MethodName, Props, ComponentOutput> {
-    return new DisplayWithChoicesIOPromise({
-      renderer: this.renderer,
-      methodName: this.methodName,
-      label: this.label,
-      props: this.props,
-      valueGetter: this.valueGetter,
-      onStateChange: this.onStateChange,
-      choiceButtons,
-    })
-  }
-}
-
 export class WithChoicesIOPromise<
-  MethodName extends T_IO_INPUT_METHOD_NAMES,
+  MethodName extends T_IO_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>,
+  InternalPromise extends IOPromise<
+    MethodName,
+    Props,
+    ComponentOutput
+  > = IOPromise<MethodName, Props, ComponentOutput>
 > {
-  protected methodName: MethodName
-  protected renderer: ComponentRenderer<MethodName>
-  protected label: string
-  protected props: Props
-  protected valueGetter:
-    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
-    | undefined
-  protected onStateChange:
-    | ((incomingState: T_IO_STATE<MethodName>) => Promise<Partial<Props>>)
-    | undefined
-  protected validator: IOPromiseValidator<ComponentOutput> | undefined
-  protected displayResolvesImmediately: boolean | undefined
+  internalPromise: InternalPromise
   choiceButtons: ChoiceButtonConfig[]
 
   constructor({
-    renderer,
-    methodName,
-    label,
-    props,
-    valueGetter,
-    onStateChange,
-    validator,
-    displayResolvesImmediately,
+    internalPromise,
     choiceButtons,
-  }: IOPromiseProps<MethodName, Props, ComponentOutput> & {
+  }: {
+    internalPromise: InternalPromise
     choiceButtons: ChoiceButtonConfig[]
   }) {
-    this.renderer = renderer
-    this.methodName = methodName
-    this.label = label
-    this.props = props
-    this.valueGetter = valueGetter
-    this.onStateChange = onStateChange
-    this.validator = validator
-    this.displayResolvesImmediately = displayResolvesImmediately
+    this.internalPromise = internalPromise
     this.choiceButtons = choiceButtons
   }
 
@@ -800,13 +660,28 @@ export class WithChoicesIOPromise<
     }) => void,
     reject?: (err: IOError) => void
   ) {
-    this.renderer({
-      components: [this.component],
-      choiceButtons: this.choiceButtons,
-    })
+    this.internalPromise
+      .renderer({
+        components: [this.component],
+        choiceButtons: this.choiceButtons,
+      })
       .then(({ returnValue: [result], choice }) => {
-        const parsed = ioSchema[this.methodName].returns.parse(result)
-        resolve({ choice, returnValue: this.getValue(parsed) })
+        const methodName = this.internalPromise.methodName
+        const parsed =
+          this.internalPromise instanceof MultipleIOPromise ||
+          this.internalPromise instanceof OptionalMultipleIOPromise
+            ? result
+            : this.internalPromise instanceof OptionalIOPromise
+            ? ioSchema[methodName].returns.optional().parse(result)
+            : ioSchema[methodName].returns.parse(result)
+
+        // Need a cast here because can't really prove statically, the checks above should be correct though
+        resolve({
+          choice,
+          returnValue: this.getValue(
+            parsed as ComponentReturnValue<MethodName>
+          ),
+        })
       })
       .catch(err => {
         if (reject) {
@@ -824,507 +699,219 @@ export class WithChoicesIOPromise<
       })
   }
 
-  getValue(result: ComponentReturnValue<MethodName>): ComponentOutput {
-    if (this.valueGetter) return this.valueGetter(result)
-
-    return result as unknown as ComponentOutput
+  get getValue() {
+    return this.internalPromise.getValue.bind(this.internalPromise)
   }
 
   get component() {
-    return new IOComponent({
-      methodName: this.methodName,
-      label: this.label,
-      initialProps: this.props,
-      onStateChange: this.onStateChange,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
-      displayResolvesImmediately: this.displayResolvesImmediately,
-    })
-  }
-
-  async #handleValidation(
-    returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
-  ): Promise<string | undefined> {
-    // These should be caught already, primarily here for types
-    if (returnValue === undefined) {
-      return 'This field is required.'
-    }
-
-    const parsed = ioSchema[this.methodName].returns.safeParse(returnValue)
-    if (parsed.success) {
-      if (this.validator) {
-        return this.validator(this.getValue(parsed.data))
-      }
-    } else {
-      // shouldn't be hit, but just in case
-      return 'Received invalid value for field.'
-    }
+    return this.internalPromise.component
   }
 
   validate(validator: IOPromiseValidator<ComponentOutput>): this {
-    this.validator = validator
+    this.internalPromise.validator = validator
 
     return this
   }
 
-  optional(
+  // These overrides are pretty disgusting but are unavoidable I think
+  optional<
+    MethodName extends T_IO_INPUT_METHOD_NAMES,
+    Props extends T_IO_PROPS<MethodName>,
+    ComponentOutput = ComponentReturnValue<MethodName>
+  >(
+    this: WithChoicesIOPromise<
+      MethodName,
+      Props,
+      ComponentOutput,
+      InputIOPromise<MethodName, Props, ComponentOutput>
+    >,
     isOptional?: true
-  ): OptionalWithChoicesIOPromise<MethodName, Props, ComponentOutput>
-  optional(
-    isOptional?: false
-  ): WithChoicesIOPromise<MethodName, Props, ComponentOutput>
-  optional(
-    isOptional?: boolean
-  ):
-    | OptionalWithChoicesIOPromise<MethodName, Props, ComponentOutput>
-    | WithChoicesIOPromise<MethodName, Props, ComponentOutput>
-  optional(
-    isOptional = true
-  ):
-    | OptionalWithChoicesIOPromise<
-        MethodName,
-        Props,
-        ComponentOutput | undefined
-      >
-    | WithChoicesIOPromise<MethodName, Props, ComponentOutput> {
-    return isOptional
-      ? new OptionalWithChoicesIOPromise({
-          renderer: this.renderer,
-          methodName: this.methodName,
-          label: this.label,
-          props: this.props,
-          valueGetter: this.valueGetter,
-          onStateChange: this.onStateChange,
-          choiceButtons: this.choiceButtons,
-        })
-      : this
-  }
-
-  withChoices(
-    choiceButtons: ChoiceButtonConfig[]
-  ): WithChoicesIOPromise<MethodName, Props, ComponentOutput> {
-    return new WithChoicesIOPromise({
-      renderer: this.renderer,
-      methodName: this.methodName,
-      label: this.label,
-      props: this.props,
-      valueGetter: this.valueGetter,
-      onStateChange: this.onStateChange,
-      choiceButtons,
-    })
-  }
-}
-
-export class OptionalWithChoicesIOPromise<
-  MethodName extends T_IO_INPUT_METHOD_NAMES,
-  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
-> extends WithChoicesIOPromise<MethodName, Props, ComponentOutput | undefined> {
-  then(
-    resolve: (output: {
-      choice?: string
-      returnValue: ComponentOutput | undefined
-    }) => void,
-    reject?: (err: IOError) => void
-  ) {
-    this.renderer({
-      components: [this.component],
-      choiceButtons: this.choiceButtons,
-    })
-      .then(({ returnValue: [result], choice }) => {
-        const parsed = ioSchema[this.methodName].returns
-          .optional()
-          .parse(result)
-        resolve({ choice, returnValue: this.getValue(parsed) })
-      })
-      .catch(err => {
-        if (reject) {
-          if (err instanceof ZodError) {
-            // This should be caught already, primarily here for types
-            reject(
-              new IOError('BAD_RESPONSE', 'Received invalid response.', {
-                cause: err,
-              })
-            )
-          } else {
-            reject(err)
-          }
-        }
-      })
-  }
-
-  get component() {
-    return new IOComponent({
-      methodName: this.methodName,
-      label: this.label,
-      initialProps: this.props,
-      onStateChange: this.onStateChange,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
-      displayResolvesImmediately: this.displayResolvesImmediately,
-    })
-  }
-
-  async #handleValidation(
-    returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
-  ): Promise<string | undefined> {
-    // These should be caught already, primarily here for types
-    const parsed = ioSchema[this.methodName].returns
-      .optional()
-      .safeParse(returnValue)
-    if (parsed.success) {
-      if (this.validator) {
-        return this.validator(this.getValue(parsed.data))
-      }
-    } else {
-      // shouldn't be hit, but just in case
-      return 'Received invalid value for field.'
-    }
-  }
-
-  validate(validator: IOPromiseValidator<ComponentOutput | undefined>): this {
-    this.validator = validator
-
-    return this
-  }
-
-  getValue(
-    result: ComponentReturnValue<MethodName> | undefined
-  ): ComponentOutput | undefined {
-    if (result === undefined) return undefined
-
-    if (this.valueGetter) {
-      return this.valueGetter(result)
-    }
-
-    return result as unknown as ComponentOutput
-  }
-
-  withChoices(
-    choiceButtons: ChoiceButtonConfig[]
-  ): OptionalWithChoicesIOPromise<
+  ): WithChoicesIOPromise<
     MethodName,
     Props,
-    ComponentOutput | undefined
-  > {
-    return new OptionalWithChoicesIOPromise({
-      renderer: this.renderer,
-      methodName: this.methodName,
-      label: this.label,
-      props: this.props,
-      valueGetter: this.valueGetter,
-      onStateChange: this.onStateChange,
-      choiceButtons,
-    })
-  }
-}
-
-export class MultipleableWithChoicesIOPromise<
-  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
-  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>,
-  DefaultValue = T_IO_PROPS<MethodName> extends { defaultValue?: any }
-    ? ComponentOutput | null
-    : never
-> extends WithChoicesIOPromise<MethodName, Props, ComponentOutput> {
-  defaultValueGetter:
-    | ((defaultValue: DefaultValue) => T_IO_RETURNS<MethodName>)
-    | undefined
-
-  multiple({
-    defaultValue,
-  }: {
-    defaultValue?: DefaultValue[] | null
-  } = {}): MultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput> {
-    let transformedDefaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
-    const propsSchema = ioSchema[this.methodName].props
-    if (defaultValue && 'defaultValue' in propsSchema.shape) {
-      const { defaultValueGetter } = this
-      const potentialDefaultValue = defaultValueGetter
-        ? defaultValue.map(dv => defaultValueGetter(dv))
-        : (defaultValue as unknown as T_IO_RETURNS<MethodName>[])
-
-      try {
-        const defaultValueSchema = propsSchema.shape.defaultValue
-        transformedDefaultValue = z
-          .array(defaultValueSchema.unwrap().unwrap())
-          .parse(potentialDefaultValue)
-      } catch (err) {
-        console.error(
-          `[Interval] Invalid default value found for multiple IO call with label "${this.label}": ${defaultValue}. This default value will be ignored.`
-        )
-        console.error(err)
-        transformedDefaultValue = undefined
-      }
-    }
-
-    return new MultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>(
-      {
-        renderer: this.renderer,
-        methodName: this.methodName,
-        label: this.label,
-        props: this.props,
-        valueGetter: this.valueGetter,
-        onStateChange: this.onStateChange,
-        defaultValue: transformedDefaultValue,
-        choiceButtons: this.choiceButtons,
-      }
-    )
-  }
-}
-
-export class MultipleWithChoicesIOPromise<
-  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
-  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
-> extends WithChoicesIOPromise<MethodName, Props, ComponentOutput[]> {
-  getSingleValue:
-    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
-    | undefined
-  defaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
-
-  constructor({
-    defaultValue,
-    valueGetter,
-    ...rest
-  }: {
-    defaultValue?: T_IO_RETURNS<MethodName>[] | null
-    renderer: ComponentRenderer<MethodName>
-    methodName: MethodName
-    label: string
-    props: Props
-    valueGetter?: (
-      response: ComponentReturnValue<MethodName>
-    ) => ComponentOutput
-    onStateChange?: (
-      incomingState: T_IO_STATE<MethodName>
-    ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<ComponentOutput[]> | undefined
-    choiceButtons: ChoiceButtonConfig[]
-  }) {
-    super(rest)
-    this.getSingleValue = valueGetter
-    this.defaultValue = defaultValue
-  }
-
-  then(
-    resolve: (output: {
-      choice?: string
-      returnValue: ComponentOutput[]
-    }) => void,
-    reject?: (err: IOError) => void
-  ) {
-    this.renderer({
-      components: [this.component],
-      choiceButtons: this.choiceButtons,
-    })
-      .then(({ choice, returnValue: [results] }) => {
-        resolve({ choice, returnValue: this.getValue(results) })
-      })
-      .catch(err => {
-        if (reject) reject(err)
-      })
-  }
-
-  validate(validator: IOPromiseValidator<ComponentOutput[]>): this {
-    this.validator = validator
-
-    return this
-  }
-
-  getValue(
-    results: MaybeMultipleComponentReturnValue<MethodName>
-  ): ComponentOutput[] {
-    if (!Array.isArray(results)) {
-      results = [results]
-    }
-
-    const { getSingleValue } = this
-    if (getSingleValue) {
-      return results.map(result => getSingleValue(result))
-    }
-
-    return results as unknown as ComponentOutput[]
-  }
-
-  async #handleValidation(
-    returnValues: MaybeMultipleComponentReturnValue<MethodName> | undefined
-  ): Promise<string | undefined> {
-    // These should be caught already, primarily here for types
-    if (!returnValues) {
-      return 'This field is required.'
-    }
-
-    const parsed = z
-      .array(ioSchema[this.methodName].returns)
-      .safeParse(returnValues)
-    if (parsed.success) {
-      if (this.validator) {
-        return this.validator(this.getValue(parsed.data))
-      }
-    } else {
-      // shouldn't be hit, but just in case
-      return 'Received invalid value for field.'
-    }
-  }
-
-  get component() {
-    return new IOComponent({
-      methodName: this.methodName,
-      label: this.label,
-      initialProps: this.props,
-      onStateChange: this.onStateChange,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
-      isMultiple: true,
-      multipleProps: {
-        defaultValue: this.defaultValue,
-      },
-      displayResolvesImmediately: this.displayResolvesImmediately,
-    })
-  }
-
-  optional(
-    isOptional?: true
-  ): OptionalMultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>
-  optional(
+    ComponentOutput | undefined,
+    OptionalIOPromise<MethodName, Props, ComponentOutput>
+  >
+  optional<
+    MethodName extends T_IO_INPUT_METHOD_NAMES,
+    Props extends T_IO_PROPS<MethodName>,
+    ComponentOutput = ComponentReturnValue<MethodName>
+  >(
+    this: WithChoicesIOPromise<
+      MethodName,
+      Props,
+      ComponentOutput,
+      InputIOPromise<MethodName, Props, ComponentOutput>
+    >,
     isOptional?: false
-  ): MultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>
-  optional(
+  ): WithChoicesIOPromise<
+    MethodName,
+    Props,
+    ComponentOutput,
+    InputIOPromise<MethodName, Props, ComponentOutput>
+  >
+  optional<
+    MethodName extends T_IO_INPUT_METHOD_NAMES,
+    Props extends T_IO_PROPS<MethodName>,
+    ComponentOutput = ComponentReturnValue<MethodName>
+  >(
+    this: WithChoicesIOPromise<
+      MethodName,
+      Props,
+      ComponentOutput,
+      InputIOPromise<MethodName, Props, ComponentOutput>
+    >,
     isOptional?: boolean
   ):
-    | OptionalMultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>
-    | MultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>
-  optional(
+    | WithChoicesIOPromise<
+        MethodName,
+        Props,
+        ComponentOutput | undefined,
+        OptionalIOPromise<MethodName, Props, ComponentOutput>
+      >
+    | WithChoicesIOPromise<
+        MethodName,
+        Props,
+        ComponentOutput,
+        InputIOPromise<MethodName, Props, ComponentOutput>
+      >
+  optional<
+    MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+    Props extends T_IO_PROPS<MethodName>,
+    ComponentOutput = ComponentReturnValue<MethodName>
+  >(
+    this: WithChoicesIOPromise<
+      MethodName,
+      Props,
+      ComponentOutput[],
+      MultipleIOPromise<MethodName, Props, ComponentOutput>
+    >,
+    isOptional?: true
+  ): WithChoicesIOPromise<
+    MethodName,
+    Props,
+    ComponentOutput[] | undefined,
+    OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
+  >
+  optional<
+    MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+    Props extends T_IO_PROPS<MethodName>,
+    ComponentOutput = ComponentReturnValue<MethodName>
+  >(
+    this: WithChoicesIOPromise<
+      MethodName,
+      Props,
+      ComponentOutput[],
+      MultipleIOPromise<MethodName, Props, ComponentOutput>
+    >,
+    isOptional?: false
+  ): WithChoicesIOPromise<
+    MethodName,
+    Props,
+    ComponentOutput[],
+    MultipleIOPromise<MethodName, Props, ComponentOutput>
+  >
+  optional<
+    MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+    Props extends T_IO_PROPS<MethodName>,
+    ComponentOutput = ComponentReturnValue<MethodName>
+  >(
+    this: WithChoicesIOPromise<
+      MethodName,
+      Props,
+      ComponentOutput[],
+      MultipleIOPromise<MethodName, Props, ComponentOutput>
+    >,
+    isOptional?: boolean
+  ):
+    | WithChoicesIOPromise<
+        MethodName,
+        Props,
+        ComponentOutput[] | undefined,
+        OptionalMultipleIOPromise<MethodName, Props, ComponentOutput>
+      >
+    | WithChoicesIOPromise<
+        MethodName,
+        Props,
+        ComponentOutput[],
+        MultipleIOPromise<MethodName, Props, ComponentOutput>
+      >
+  optional<
+    MethodName extends T_IO_INPUT_METHOD_NAMES,
+    Props extends T_IO_PROPS<MethodName>,
+    ComponentOutput = ComponentReturnValue<MethodName>
+  >(
+    this: WithChoicesIOPromise<
+      MethodName,
+      Props,
+      ComponentOutput,
+      InputIOPromise<MethodName, Props, ComponentOutput>
+    >,
     isOptional = true
   ):
-    | OptionalMultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput>
-    | MultipleWithChoicesIOPromise<MethodName, Props, ComponentOutput> {
+    | WithChoicesIOPromise<
+        MethodName,
+        Props,
+        ComponentOutput | undefined,
+        OptionalIOPromise<MethodName, Props, ComponentOutput>
+      >
+    | WithChoicesIOPromise<
+        MethodName,
+        Props,
+        ComponentOutput,
+        InputIOPromise<MethodName, Props, ComponentOutput>
+      > {
+    if (!(this.internalPromise instanceof InputIOPromise)) {
+      throw new Error('Not implemented.')
+    }
+
     return isOptional
-      ? new OptionalMultipleWithChoicesIOPromise<
-          MethodName,
-          Props,
-          ComponentOutput
-        >({
-          renderer: this.renderer,
-          methodName: this.methodName,
-          label: this.label,
-          props: this.props,
-          valueGetter: this.getSingleValue,
-          onStateChange: this.onStateChange,
-          defaultValue: this.defaultValue,
+      ? new WithChoicesIOPromise({
+          internalPromise: this.internalPromise.optional(isOptional),
           choiceButtons: this.choiceButtons,
         })
       : this
   }
-}
 
-export class OptionalMultipleWithChoicesIOPromise<
-  MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
-  Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
-> extends OptionalWithChoicesIOPromise<MethodName, Props, ComponentOutput[]> {
-  getSingleValue:
-    | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
-    | undefined
-  defaultValue: T_IO_RETURNS<MethodName>[] | undefined | null
+  multiple<
+    MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
+    Props extends T_IO_PROPS<MethodName>,
+    ComponentOutput = ComponentReturnValue<MethodName>,
+    DefaultValue = T_IO_PROPS<MethodName> extends { defaultValue?: any }
+      ? ComponentOutput | null
+      : never
+  >(
+    this: WithChoicesIOPromise<
+      MethodName,
+      Props,
+      ComponentOutput,
+      MultipleableIOPromise<MethodName, Props, ComponentOutput, DefaultValue>
+    >,
+    {
+      defaultValue,
+    }: {
+      defaultValue?: DefaultValue[] | null
+    } = {}
+  ): WithChoicesIOPromise<
+    MethodName,
+    Props,
+    ComponentOutput[],
+    MultipleIOPromise<MethodName, Props, ComponentOutput>
+  > {
+    if (!(this.internalPromise instanceof MultipleableIOPromise)) {
+      throw new Error('Not implemented.')
+    }
 
-  constructor({
-    defaultValue,
-    valueGetter,
-    ...rest
-  }: {
-    defaultValue?: T_IO_RETURNS<MethodName>[] | null
-    renderer: ComponentRenderer<MethodName>
-    methodName: MethodName
-    label: string
-    props: Props
-    valueGetter?: (
-      response: ComponentReturnValue<MethodName>
-    ) => ComponentOutput
-    onStateChange?: (
-      incomingState: T_IO_STATE<MethodName>
-    ) => Promise<Partial<Props>>
-    validator?: IOPromiseValidator<ComponentOutput[] | undefined> | undefined
-    choiceButtons: ChoiceButtonConfig[]
-  }) {
-    super(rest)
-    this.getSingleValue = valueGetter
-    this.defaultValue = defaultValue
-  }
-
-  then(
-    resolve: (output: {
-      choice?: string
-      returnValue: ComponentOutput[] | undefined
-    }) => void,
-    reject?: (err: IOError) => void
-  ) {
-    this.renderer({
-      components: [this.component],
+    return new WithChoicesIOPromise({
+      internalPromise: this.internalPromise.multiple({ defaultValue }),
       choiceButtons: this.choiceButtons,
     })
-      .then(({ choice, returnValue: [results] }) => {
-        resolve({ choice, returnValue: this.getValue(results) })
-      })
-      .catch(err => {
-        if (reject) reject(err)
-      })
   }
 
-  validate(validator: IOPromiseValidator<ComponentOutput[] | undefined>): this {
-    this.validator = validator
+  withChoices(choiceButtons: ChoiceButtonConfig[]) {
+    this.choiceButtons = choiceButtons
 
     return this
-  }
-
-  getValue(
-    results: MaybeMultipleComponentReturnValue<MethodName> | undefined
-  ): ComponentOutput[] | undefined {
-    if (!results) return undefined
-
-    if (!Array.isArray(results)) {
-      results = [results]
-    }
-
-    const { getSingleValue } = this
-    if (getSingleValue) {
-      return results.map(result => getSingleValue(result))
-    }
-
-    return results as unknown as ComponentOutput[]
-  }
-
-  async #handleValidation(
-    returnValues: MaybeMultipleComponentReturnValue<MethodName> | undefined
-  ): Promise<string | undefined> {
-    // These should be caught already, primarily here for types
-    const parsed = z
-      .array(ioSchema[this.methodName].returns)
-      .optional()
-      .safeParse(returnValues)
-    if (parsed.success) {
-      if (this.validator) {
-        return this.validator(this.getValue(parsed.data))
-      }
-    } else {
-      console.debug(parsed)
-      // shouldn't be hit, but just in case
-      return 'Received invalid value for field.'
-    }
-  }
-
-  get component() {
-    return new IOComponent({
-      methodName: this.methodName,
-      label: this.label,
-      initialProps: this.props,
-      onStateChange: this.onStateChange,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
-      isMultiple: true,
-      isOptional: true,
-      multipleProps: {
-        defaultValue: this.defaultValue,
-      },
-      displayResolvesImmediately: this.displayResolvesImmediately,
-    })
   }
 }
 
