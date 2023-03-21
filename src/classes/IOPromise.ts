@@ -22,6 +22,7 @@ import {
   OptionalGroupIOPromise,
   ButtonConfig,
   ChoiceButtonConfig,
+  ComponentsRendererReturn,
 } from '../types'
 import { IOClientRenderReturnValues } from './IOClient'
 import { z, ZodError } from 'zod'
@@ -144,7 +145,7 @@ export class DisplayIOPromise<
     choiceButtons: ChoiceButtonConfig[]
   ): WithChoicesIOPromise<MethodName, Props, ComponentOutput, typeof this> {
     return new WithChoicesIOPromise({
-      internalPromise: this,
+      innerPromise: this,
       choiceButtons,
     })
   }
@@ -223,7 +224,7 @@ export class InputIOPromise<
     choiceButtons: ChoiceButtonConfig[]
   ): WithChoicesIOPromise<MethodName, Props, ComponentOutput, typeof this> {
     return new WithChoicesIOPromise({
-      internalPromise: this,
+      innerPromise: this,
       choiceButtons,
     })
   }
@@ -385,7 +386,7 @@ export class MultipleableIOPromise<
     choiceButtons: ChoiceButtonConfig[]
   ): WithChoicesIOPromise<MethodName, Props, ComponentOutput, typeof this> {
     return new WithChoicesIOPromise({
-      internalPromise: this,
+      innerPromise: this,
       choiceButtons,
     })
   }
@@ -633,23 +634,23 @@ export class WithChoicesIOPromise<
   MethodName extends T_IO_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>,
-  InternalPromise extends IOPromise<
+  InnerPromise extends IOPromise<
     MethodName,
     Props,
     ComponentOutput
   > = IOPromise<MethodName, Props, ComponentOutput>
 > {
-  internalPromise: InternalPromise
+  innerPromise: InnerPromise
   choiceButtons: ChoiceButtonConfig[]
 
   constructor({
-    internalPromise,
+    innerPromise,
     choiceButtons,
   }: {
-    internalPromise: InternalPromise
+    innerPromise: InnerPromise
     choiceButtons: ChoiceButtonConfig[]
   }) {
-    this.internalPromise = internalPromise
+    this.innerPromise = innerPromise
     this.choiceButtons = choiceButtons
   }
 
@@ -660,18 +661,18 @@ export class WithChoicesIOPromise<
     }) => void,
     reject?: (err: IOError) => void
   ) {
-    this.internalPromise
+    this.innerPromise
       .renderer({
         components: [this.component],
         choiceButtons: this.choiceButtons,
       })
       .then(({ returnValue: [result], choice }) => {
-        const methodName = this.internalPromise.methodName
+        const methodName = this.innerPromise.methodName
         const parsed =
-          this.internalPromise instanceof MultipleIOPromise ||
-          this.internalPromise instanceof OptionalMultipleIOPromise
+          this.innerPromise instanceof MultipleIOPromise ||
+          this.innerPromise instanceof OptionalMultipleIOPromise
             ? result
-            : this.internalPromise instanceof OptionalIOPromise
+            : this.innerPromise instanceof OptionalIOPromise
             ? ioSchema[methodName].returns.optional().parse(result)
             : ioSchema[methodName].returns.parse(result)
 
@@ -700,15 +701,15 @@ export class WithChoicesIOPromise<
   }
 
   get getValue() {
-    return this.internalPromise.getValue.bind(this.internalPromise)
+    return this.innerPromise.getValue.bind(this.innerPromise)
   }
 
   get component() {
-    return this.internalPromise.component
+    return this.innerPromise.component
   }
 
   validate(validator: IOPromiseValidator<ComponentOutput>): this {
-    this.internalPromise.validator = validator
+    this.innerPromise.validator = validator
 
     return this
   }
@@ -861,13 +862,13 @@ export class WithChoicesIOPromise<
         ComponentOutput,
         InputIOPromise<MethodName, Props, ComponentOutput>
       > {
-    if (!(this.internalPromise instanceof InputIOPromise)) {
+    if (!(this.innerPromise instanceof InputIOPromise)) {
       throw new Error('Not implemented.')
     }
 
     return isOptional
       ? new WithChoicesIOPromise({
-          internalPromise: this.internalPromise.optional(isOptional),
+          innerPromise: this.innerPromise.optional(isOptional),
           choiceButtons: this.choiceButtons,
         })
       : this
@@ -898,12 +899,12 @@ export class WithChoicesIOPromise<
     ComponentOutput[],
     MultipleIOPromise<MethodName, Props, ComponentOutput>
   > {
-    if (!(this.internalPromise instanceof MultipleableIOPromise)) {
+    if (!(this.innerPromise instanceof MultipleableIOPromise)) {
       throw new Error('Not implemented.')
     }
 
     return new WithChoicesIOPromise({
-      internalPromise: this.internalPromise.multiple({ defaultValue }),
+      innerPromise: this.innerPromise.multiple({ defaultValue }),
       choiceButtons: this.choiceButtons,
     })
   }
@@ -1005,9 +1006,9 @@ export class IOGroupPromise<
     ? IOGroupReturnValues<IOPromises>
     : unknown[]
 > {
-  promises: IOPromises
-  #renderer: ComponentsRenderer
-  #validator: IOPromiseValidator<ReturnValues> | undefined
+  /* @internal */ promises: IOPromises
+  /* @internal */ renderer: ComponentsRenderer
+  /* @internal */ validator: IOPromiseValidator<ReturnValues> | undefined
 
   #choiceButtons: ChoiceButtonConfig[] | undefined
 
@@ -1017,7 +1018,7 @@ export class IOGroupPromise<
     continueButton?: ButtonConfig
   }) {
     this.promises = config.promises
-    this.#renderer = config.renderer
+    this.renderer = config.renderer
     this.#choiceButtons = config.continueButton
       ? [
           {
@@ -1028,7 +1029,14 @@ export class IOGroupPromise<
       : undefined
   }
 
-  get promiseValues(): MaybeOptionalGroupIOPromise[] {
+  /* @internal */ get components(): [AnyIOComponent, ...AnyIOComponent[]] {
+    return this.promiseValues.map(p => p.component) as unknown as [
+      AnyIOComponent,
+      ...AnyIOComponent[]
+    ]
+  }
+
+  /* @internal */ get promiseValues(): MaybeOptionalGroupIOPromise[] {
     return Array.isArray(this.promises)
       ? this.promises
       : Object.values(this.promises)
@@ -1038,53 +1046,52 @@ export class IOGroupPromise<
     resolve: (output: ReturnValues) => void,
     reject?: (err: IOError) => void
   ) {
-    const promiseValues = this.promiseValues
-
-    this.#renderer({
-      components: promiseValues.map(p => p.component) as unknown as [
-        AnyIOComponent,
-        ...AnyIOComponent[]
-      ],
-      validator: this.#validator
-        ? this.#handleValidation.bind(this)
-        : undefined,
+    this.renderer({
+      components: this.components,
+      validator: this.validator ? this.handleValidation.bind(this) : undefined,
       choiceButtons: this.#choiceButtons,
     })
-      .then(({ returnValue }) => {
-        let returnValues = returnValue.map((val, i) =>
-          promiseValues[i].getValue(val as never)
-        )
-
-        if (Array.isArray(this.promises)) {
-          resolve(returnValues as unknown as ReturnValues)
-        } else {
-          const keys = Object.keys(this.promises)
-          resolve(
-            Object.fromEntries(
-              returnValues.map((val, i) => [keys[i], val])
-            ) as ReturnValues
-          )
-        }
+      .then(response => {
+        resolve(this.getValues(response))
       })
       .catch(err => {
         if (reject) reject(err)
       })
   }
 
+  /* @internal */ getValues({
+    returnValue,
+  }: ComponentsRendererReturn<
+    [AnyIOComponent, ...AnyIOComponent[]]
+  >): ReturnValues {
+    let returnValues = returnValue.map((val, i) =>
+      this.promiseValues[i].getValue(val as never)
+    )
+
+    if (Array.isArray(this.promises)) {
+      return returnValues as unknown as ReturnValues
+    } else {
+      const keys = Object.keys(this.promises)
+      return Object.fromEntries(
+        returnValues.map((val, i) => [keys[i], val])
+      ) as ReturnValues
+    }
+  }
+
   validate(validator: IOPromiseValidator<ReturnValues> | undefined): this {
-    this.#validator = validator
+    this.validator = validator
 
     return this
   }
 
   // These types aren't as tight as they could be, but
   // TypeScript doesn't like IOGroupComponents defined above here
-  async #handleValidation(
+  /* @internal */ async handleValidation(
     returnValues: IOClientRenderReturnValues<
       [AnyIOComponent, ...AnyIOComponent[]]
     >
   ): Promise<string | undefined> {
-    if (!this.#validator) return
+    if (!this.validator) return
 
     const promiseValues = this.promiseValues
 
@@ -1093,29 +1100,28 @@ export class IOGroupPromise<
     )
 
     if (Array.isArray(this.promises)) {
-      return this.#validator(values as unknown as ReturnValues)
+      return this.validator(values as unknown as ReturnValues)
     } else {
       const keys = Object.keys(this.promises)
       const valueMap = Object.fromEntries(
         values.map((val, i) => [keys[i], val])
       )
 
-      return this.#validator(valueMap as ReturnValues)
+      return this.validator(valueMap as ReturnValues)
     }
   }
 
   withChoices(
     choiceButtons: ChoiceButtonConfig[]
-  ): IOGroupPromiseWithChoices<IOPromises, ReturnValues> {
-    return new IOGroupPromiseWithChoices({
-      promises: this.promises,
-      renderer: this.#renderer,
+  ): WithChoicesIOGroupPromise<IOPromises, ReturnValues, typeof this> {
+    return new WithChoicesIOGroupPromise({
+      innerPromise: this,
       choiceButtons,
     })
   }
 }
 
-export class IOGroupPromiseWithChoices<
+export class WithChoicesIOGroupPromise<
   IOPromises extends
     | Record<string, MaybeOptionalGroupIOPromise>
     | MaybeOptionalGroupIOPromise[],
@@ -1126,65 +1132,38 @@ export class IOGroupPromiseWithChoices<
         ...MaybeOptionalGroupIOPromise[]
       ]
     ? IOGroupReturnValues<IOPromises>
-    : unknown[]
+    : unknown[],
+  InnerPromise extends IOGroupPromise<
+    IOPromises,
+    ReturnValues
+  > = IOGroupPromise<IOPromises, ReturnValues>
 > {
-  promises: IOPromises
-  #renderer: ComponentsRenderer
-  #validator: IOPromiseValidator<ReturnValues> | undefined
-
+  #innerPromise: InnerPromise
   #choiceButtons: ChoiceButtonConfig[] | undefined
 
   constructor(config: {
-    promises: IOPromises
-    renderer: ComponentsRenderer
+    innerPromise: InnerPromise
     choiceButtons?: ChoiceButtonConfig[]
   }) {
-    this.promises = config.promises
-    this.#renderer = config.renderer
+    this.#innerPromise = config.innerPromise
     this.#choiceButtons = config.choiceButtons
-  }
-
-  get promiseValues(): MaybeOptionalGroupIOPromise[] {
-    return Array.isArray(this.promises)
-      ? this.promises
-      : Object.values(this.promises)
   }
 
   then(
     resolve: (output: { choice?: string; returnValue: ReturnValues }) => void,
     reject?: (err: IOError) => void
   ) {
-    const promiseValues = this.promiseValues
-
-    this.#renderer({
-      components: promiseValues.map(p => p.component) as unknown as [
-        AnyIOComponent,
-        ...AnyIOComponent[]
-      ],
-      validator: this.#validator
-        ? this.#handleValidation.bind(this)
-        : undefined,
-      choiceButtons: this.#choiceButtons,
-    })
-      .then(({ returnValue, choice }) => {
-        let returnValues = returnValue.map((val, i) =>
-          promiseValues[i].getValue(val as never)
-        )
-
-        if (Array.isArray(this.promises)) {
-          resolve({
-            choice,
-            returnValue: returnValue as unknown as ReturnValues,
-          })
-        } else {
-          const keys = Object.keys(this.promises)
-          resolve({
-            choice,
-            returnValue: Object.fromEntries(
-              returnValues.map((val, i) => [keys[i], val])
-            ) as ReturnValues,
-          })
-        }
+    this.#innerPromise
+      .renderer({
+        components: this.#innerPromise.components,
+        validator: this.#innerPromise.validator
+          ? this.#innerPromise.handleValidation.bind(this)
+          : undefined,
+        choiceButtons: this.#choiceButtons,
+      })
+      .then(response => {
+        const returnValue = this.#innerPromise.getValues(response)
+        resolve({ choice: response.choice, returnValue })
       })
       .catch(err => {
         if (reject) reject(err)
@@ -1192,45 +1171,13 @@ export class IOGroupPromiseWithChoices<
   }
 
   validate(validator: IOPromiseValidator<ReturnValues> | undefined): this {
-    this.#validator = validator
-
+    this.#innerPromise.validate(validator)
     return this
   }
 
-  // These types aren't as tight as they could be, but
-  // TypeScript doesn't like IOGroupComponents defined above here
-  async #handleValidation(
-    returnValues: IOClientRenderReturnValues<
-      [AnyIOComponent, ...AnyIOComponent[]]
-    >
-  ): Promise<string | undefined> {
-    if (!this.#validator) return
+  withChoices(choiceButtons: ChoiceButtonConfig[]): typeof this {
+    this.#choiceButtons = choiceButtons
 
-    const promiseValues = this.promiseValues
-
-    const values = returnValues.returnValue.map((v, index) =>
-      promiseValues[index].getValue(v as never)
-    )
-
-    if (Array.isArray(this.promises)) {
-      return this.#validator(values as unknown as ReturnValues)
-    } else {
-      const keys = Object.keys(this.promises)
-      const valueMap = Object.fromEntries(
-        values.map((val, i) => [keys[i], val])
-      )
-
-      return this.#validator(valueMap as ReturnValues)
-    }
-  }
-
-  withChoices(
-    choiceButtons: ChoiceButtonConfig[]
-  ): IOGroupPromiseWithChoices<IOPromises, ReturnValues> {
-    return new IOGroupPromiseWithChoices({
-      promises: this.promises,
-      renderer: this.#renderer,
-      choiceButtons,
-    })
+    return this
   }
 }
