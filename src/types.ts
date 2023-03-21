@@ -486,6 +486,7 @@ export type ChoiceButtonConfig = Omit<ButtonConfig, 'label'> & {
 }
 
 export type GroupConfig = {
+  /** @deprecated Please use the chained .withSubmit() method instead. */
   continueButton: ButtonConfig
 }
 
