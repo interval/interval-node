@@ -1901,17 +1901,19 @@ const interval = new Interval({
 
       const {
         choice: groupChoice,
-        returnValue: [groupReturn],
-      } = await io.group([io.input.text('Important data')]).withChoices([
-        {
-          label: 'Delete the data',
-          theme: 'danger',
-        },
-        {
-          label: 'Cancel',
-          theme: 'secondary',
-        },
-      ])
+        returnValue: { data: groupReturn },
+      } = await io
+        .group({ data: io.input.text('Important data') })
+        .withChoices([
+          {
+            label: 'Delete the data',
+            theme: 'danger',
+          },
+          {
+            label: 'Cancel',
+            theme: 'secondary',
+          },
+        ])
 
       return {
         groupChoice,
