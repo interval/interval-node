@@ -26,6 +26,7 @@ import {
 } from '../types'
 import { IOClientRenderReturnValues } from './IOClient'
 import { z, ZodError } from 'zod'
+import IntervalError from './IntervalError'
 
 interface IOPromiseProps<
   MethodName extends T_IO_METHOD_NAMES,
@@ -863,7 +864,9 @@ export class WithChoicesIOPromise<
         InputIOPromise<MethodName, Props, ComponentOutput>
       > {
     if (!(this.innerPromise instanceof InputIOPromise)) {
-      throw new Error('Not implemented.')
+      throw new IntervalError(
+        'Only input IO methods can be marked as .optional().'
+      )
     }
 
     return isOptional
@@ -900,7 +903,7 @@ export class WithChoicesIOPromise<
     MultipleIOPromise<MethodName, Props, ComponentOutput>
   > {
     if (!(this.innerPromise instanceof MultipleableIOPromise)) {
-      throw new Error('Not implemented.')
+      throw new IntervalError('.multiple() is not allowed on this IO method.')
     }
 
     return new WithChoicesIOPromise({
