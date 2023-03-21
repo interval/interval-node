@@ -2,11 +2,13 @@
  * Loads actions from the file system
  */
 import path from 'path'
-import fs from 'fs/promises'
+import fsRoot from 'fs'
 
 import Action from '../classes/Action'
 import Page from '../classes/Page'
 import Logger from '../classes/Logger'
+
+const fs = fsRoot.promises
 
 async function loadFolder(currentDirectory: string, logger: Logger) {
   const absPath = path.resolve(currentDirectory)
@@ -70,7 +72,7 @@ async function loadFolder(currentDirectory: string, logger: Logger) {
   return router
 }
 
-export default async function loadRoutesFromFileSystem(
+export async function loadRoutesFromFileSystem(
   dirPath: string,
   logger: Logger
 ) {
