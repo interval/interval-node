@@ -865,7 +865,7 @@ export class WithChoicesIOPromise<
       > {
     if (!(this.innerPromise instanceof InputIOPromise)) {
       throw new IntervalError(
-        'Only input IO methods can be marked as .optional().'
+        `Invalid chained method call: only input IO methods can be marked as .optional(). Invalid call on the method with label "${this.component.label}".`
       )
     }
 
@@ -903,7 +903,9 @@ export class WithChoicesIOPromise<
     MultipleIOPromise<MethodName, Props, ComponentOutput>
   > {
     if (!(this.innerPromise instanceof MultipleableIOPromise)) {
-      throw new IntervalError('.multiple() is not allowed on this IO method.')
+      throw new IntervalError(
+        `Invalid chained method call: .multiple() is not allowed on the IO method with label "${this.component.label}".`
+      )
     }
 
     return new WithChoicesIOPromise({
