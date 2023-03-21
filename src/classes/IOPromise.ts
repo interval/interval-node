@@ -1018,6 +1018,7 @@ export class IOGroupPromise<
   constructor(config: {
     promises: IOPromises
     renderer: ComponentsRenderer
+    /** @deprecated Please use the chained .withSubmit() method instead. */
     continueButton?: ButtonConfig
   }) {
     this.promises = config.promises
