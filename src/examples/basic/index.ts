@@ -141,6 +141,18 @@ const actionLinks: IntervalActionHandler = async () => {
   ])
 }
 
+const echoContext = new Action(async () => {
+  await io.display.object('Context', {
+    data: {
+      organization: ctx.organization,
+      aciton: ctx.action,
+      environment: ctx.environment,
+      params: ctx.params,
+      user: ctx.user,
+    },
+  })
+})
+
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3000/websocket',
@@ -156,6 +168,7 @@ const prod = new Interval({
       },
     },
     actionLinks,
+    echoContext,
     confirm_identity: confirmIdentity,
     continueCmdEnter: {
       name: 'CMD + Enter submit demo',
@@ -263,13 +276,6 @@ const prod = new Interval({
       ctx.log('Received 3', num)
 
       return { num }
-    },
-    echoParams: async (io, ctx) => {
-      ctx.log(ctx.params)
-      await io.display.object('Params', {
-        data: ctx.params,
-      })
-      return ctx.params
     },
     perform_redirect_flow: async () => {
       let startedWork = false
@@ -380,6 +386,7 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
+    echoContext,
     inputRightAfterDisplay: async () => {
       await io.display.link('Display', {
         url: '',

@@ -32,7 +32,11 @@ export type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
 
 export const TRANSACTION_RESULT_SCHEMA_VERSION = 1
 
-export const actionEnvironment = z.enum(['live', 'development'])
+export const actionMode = z.enum(['live', 'console'])
+
+export const actionEnvironment = z
+  .enum(['production', 'development'])
+  .or(z.string())
 
 export type ActionEnvironment = z.infer<typeof actionEnvironment>
 
@@ -276,7 +280,7 @@ export const wsServerSchema = {
     inputs: z.object({
       pageKey: z.string().optional(),
       pageSlug: z.string(),
-      actionEnvironment,
+      actionMode,
       organizationEnvironmentId: z.string(),
       params: serializableRecord.optional(),
     }),
