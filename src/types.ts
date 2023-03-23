@@ -480,10 +480,15 @@ export type ButtonConfig = {
   theme?: ButtonTheme
 }
 
-export type ChoiceButtonConfig = Omit<ButtonConfig, 'label'> & {
+export type ChoiceButtonConfig = {
   label: string
-  value?: string
+  value: string
+  theme?: ButtonTheme
 }
+
+export type ChoiceButtonConfigOrShorthand<Choice> =
+  | Choice
+  | (ChoiceButtonConfig & { value: Choice })
 
 export type GroupConfig = {
   /** @deprecated Please use the chained .withSubmit() method instead. */

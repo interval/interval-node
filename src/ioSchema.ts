@@ -50,8 +50,8 @@ export const IO_RENDER = z.object({
     .array(
       z.object({
         label: z.string(),
+        value: z.string(),
         theme: buttonTheme.optional(),
-        value: z.string().optional(),
       })
     )
     .optional(),

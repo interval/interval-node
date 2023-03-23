@@ -1873,7 +1873,7 @@ const interval = new Interval({
           .optional()
           .withChoices([
             { label: 'Make it negative', theme: 'danger', value: 'negative' },
-            { label: 'Do nothing' },
+            { label: 'Do nothing', value: 'nothing' },
           ])
 
       if (singleReturnValue && singleChoice === 'negative') {
@@ -1885,13 +1885,14 @@ const interval = new Interval({
         .withChoices([
           {
             label: 'OK!',
+            value: 'ok',
           },
         ])
 
       const { choice: fileChoice, returnValue: fileReturnValue } =
         await io.input
           .file('Upload a file')
-          .withChoices([{ label: 'Encrypt' }])
+          .withChoices(['Encrypt'])
           .multiple()
           .optional()
 
@@ -1906,10 +1907,12 @@ const interval = new Interval({
         .withChoices([
           {
             label: 'Delete the data',
+            value: 'delete',
             theme: 'danger',
           },
           {
             label: 'Cancel',
+            value: 'cancel',
             theme: 'secondary',
           },
         ])
