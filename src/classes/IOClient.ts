@@ -309,10 +309,18 @@ export class IOClient {
           })
 
         const response = {
-          choice: await choice,
           returnValue: await Promise.all(
             components.map(comp => comp.returnValue)
-          ),
+          ).then(returnValue => {
+            // If all the components have resolved without return being called
+            // then they must be immediately resolved, so return now if no choices required.
+            if (!isReturned && !choiceButtons?.length) {
+              setChoice(undefined)
+            }
+
+            return returnValue
+          }),
+          choice: await choice,
         } as unknown as Promise<IOClientRenderReturnValues<Components>>
 
         resolve(response)
