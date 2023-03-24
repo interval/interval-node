@@ -1874,11 +1874,15 @@ const interval = new Interval({
           .withChoices([
             { label: 'Make it negative', theme: 'danger', value: 'negative' },
             { label: 'Do nothing', value: 'nothing' },
+            'Think about it for a while',
+            '?',
           ])
 
       if (singleReturnValue && singleChoice === 'negative') {
         singleReturnValue = -singleReturnValue
       }
+
+      await sleep(2000)
 
       await io.display
         .heading(`The number is now ${singleReturnValue}`)
