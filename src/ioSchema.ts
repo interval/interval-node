@@ -54,7 +54,7 @@ export const IO_RENDER = z.object({
         theme: buttonTheme.optional(),
       })
     )
-    .optional(),
+    .nullish(),
   kind: z.literal('RENDER'),
 })
 
