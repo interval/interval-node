@@ -55,6 +55,12 @@ export const IO_RENDER = z.object({
       })
     )
     .nullish(),
+  continueButton: z
+    .object({
+      label: z.string().optional(),
+      theme: buttonTheme.optional(),
+    })
+    .optional(),
   kind: z.literal('RENDER'),
 })
 
