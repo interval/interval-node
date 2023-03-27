@@ -72,7 +72,11 @@ const page1 = new Page({
   name: 'Page with children',
   handler: async () => new Layout({}),
   routes: {
-    child_route: new Action(async () => 'Hello, world!'),
+    child_action1: new Action(async () => 'Hello, world!'),
+    child_action2: new Action(async () => 'Hello, world!'),
+    child_page: new Page({
+      name: 'Child page',
+    }),
   },
 })
 
