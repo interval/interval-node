@@ -68,6 +68,29 @@ const gridsPage = new Page({
   },
 })
 
+const page1 = new Page({
+  name: 'Page with children',
+  handler: async () => new Layout({}),
+  routes: {
+    child_route: new Action(async () => 'Hello, world!'),
+  },
+})
+
+const page2 = new Page({
+  name: 'Page with page with children',
+  routes: {
+    page1,
+  },
+})
+
+const sidebar_depth = new Page({
+  name: 'Sidebar depth page testing',
+  routes: {
+    page1,
+    page2,
+  },
+})
+
 const confirmIdentity = new Action({
   name: 'Confirm identity',
   handler: async () => {
@@ -158,6 +181,7 @@ const prod = new Interval({
   endpoint: 'ws://localhost:3000/websocket',
   logLevel: 'debug',
   routes: {
+    sidebar_depth,
     backgroundable: {
       backgroundable: true,
       handler: async () => {
@@ -386,6 +410,7 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
+    sidebar_depth,
     echoContext,
     inputRightAfterDisplay: async () => {
       await io.display.link('Display', {
