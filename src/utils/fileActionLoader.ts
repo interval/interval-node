@@ -83,7 +83,7 @@ async function loadFolder(currentDirectory: string, logger: Logger) {
         try {
           attemptLoadRoute(await import_(fullPath))
         } catch (err) {
-          logger.debug(`Failed loading file at ${fullPath}, skipping.`, err)
+          logger.warn(`Failed loading file at ${fullPath}, skipping.`, err)
         }
       }
     }
