@@ -7,7 +7,6 @@
     "target": "ES2019",
     "declaration": true,
     "esModuleInterop": true,
-    "moduleResolution": "Node16",
     "strict": true,
     "strictNullChecks": true,
     "rootDir": "./src"

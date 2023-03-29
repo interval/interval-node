@@ -226,7 +226,7 @@ export default class IntervalClient {
     if (typeof window === 'undefined' && this.#config.routesDirectory) {
       try {
         const { loadRoutesFromFileSystem } = await import(
-          '../utils/fileActionLoader.js'
+          '../utils/fileActionLoader'
         )
         fileSystemRoutes = await loadRoutesFromFileSystem(
           this.#config.routesDirectory,
@@ -826,7 +826,7 @@ export default class IntervalClient {
           switch (inputs.type) {
             case 'offer': {
               const { DataChannelConnection } = await import(
-                './DataChannelConnection.js'
+                './DataChannelConnection'
               )
 
               const iceConfig = await this.#interval.fetchIceConfig()
