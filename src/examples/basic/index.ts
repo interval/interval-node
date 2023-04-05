@@ -1456,7 +1456,7 @@ const interval = new Interval({
 
           Code blocks should look okay by default, although most people will probably want to use \`io.display.code\`:
 
-          \`\`\`
+          \`\`\`typescript
           new Action({
             name: 'Render markdown',
             handler: async () => {
