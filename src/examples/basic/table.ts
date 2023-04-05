@@ -58,21 +58,20 @@ export const display_table: IntervalActionHandler = async io => {
         }),
       },
       {
+        label: 'Email',
+        accessorKey: 'email',
+        renderCell: row => ({
+          label: row.email,
+          url: `mailto:${row.email}`,
+        }),
+      },
+      {
         label: 'Description',
         accessorKey: 'description',
       },
       'boolean',
       'date',
       'array',
-      {
-        label: 'renderCell',
-        renderCell: row =>
-          `${String(row.description).split(' ')[0]} ${row.number}`,
-      },
-      {
-        label: 'Link',
-        renderCell: row => ({ url: '#', label: row.email }),
-      },
     ],
     rowMenuItems: row => [
       {
@@ -302,7 +301,7 @@ export const table_custom: IntervalActionHandler = async io => {
 
   const rows: { [key: string]: any }[] = []
   for (let i = 0; i < rowsCount; i++) {
-    const row: typeof rows[0] = {}
+    const row: (typeof rows)[0] = {}
     for (const field of fields) {
       switch (field.value) {
         case 'id':
