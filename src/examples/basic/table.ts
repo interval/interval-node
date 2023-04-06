@@ -599,6 +599,21 @@ export const markdown = new Page({
                 ~~~`,
             },
             {
+              label: 'Code block with some text around it',
+              value: dedent`
+                Here is some very good code:
+                ~~~ts
+                const foo: string = 'bar'
+                if (foo === 'bar') {
+                  console.log('foo is bar')
+                } else {
+                  console.log('foo is not bar')
+                }
+                ~~~
+                
+                Copy and paste that into your editor and you'll be good to go!`,
+            },
+            {
               label: 'Inline code',
               value: dedent`This is an example of \`inline code\`.`,
             },
