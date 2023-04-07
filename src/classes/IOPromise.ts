@@ -1233,7 +1233,7 @@ export class WithChoicesIOGroupPromise<
       .renderer({
         components: this.#innerPromise.components,
         validator: this.#innerPromise.validator
-          ? this.#innerPromise.handleValidation.bind(this)
+          ? this.#innerPromise.handleValidation.bind(this.#innerPromise)
           : undefined,
         choiceButtons: this.#choiceButtons,
       })
