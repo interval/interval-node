@@ -11,8 +11,6 @@ import {
   T_IO_INPUT_METHOD_NAMES,
   T_IO_MULTIPLEABLE_METHOD_NAMES,
   supportsMultiple,
-  resolvesImmediately,
-  ioSchema,
 } from '../ioSchema'
 import Logger from './Logger'
 import { AnyIOComponent } from './IOComponent'
@@ -24,6 +22,7 @@ import {
   InputIOPromise,
   MultipleableIOPromise,
   WithChoicesIOPromise,
+  WithChoicesIOPromiseValidator,
 } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
@@ -51,7 +50,6 @@ import {
   InputIOComponentFunction,
   RequiredPropsInputIOComponentFunction,
   GroupConfig,
-  ButtonConfig,
   ChoiceButtonConfig,
   RequiredPropsMultipleableInputIOComponentFunction,
   MultipleableInputIOComponentFunction,
@@ -80,7 +78,12 @@ export type IOClientRenderReturnValues<
 
 export type IOClientRenderValidator<
   Components extends [AnyIOComponent, ...AnyIOComponent[]]
-> = IOPromiseValidator<IOClientRenderReturnValues<Components>>
+> =
+  | IOPromiseValidator<IOClientRenderReturnValues<Components>>
+  | WithChoicesIOPromiseValidator<
+      string,
+      IOClientRenderReturnValues<Components>['returnValue']
+    >
 
 /**
  * The client class that handles IO calls for a given transaction.
@@ -235,8 +238,9 @@ export class IOClient {
 
               if (groupValidator) {
                 validationErrorMessage = await groupValidator({
+                  choice: result.choice as string,
                   returnValue: result.values,
-                } as IOClientRenderReturnValues<typeof components>)
+                } as IOClientRenderReturnValues<typeof components> & { choice: string })
 
                 if (validationErrorMessage) {
                   render()
