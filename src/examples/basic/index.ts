@@ -335,6 +335,10 @@ const prod = new Interval({
       })
     },
     grids: gridsPage,
+    tables: new Page({
+      name: 'Tables',
+      routes: table_actions,
+    }),
     async_page_test: new Page({
       name: 'Async page test',
       handler: async () => {
