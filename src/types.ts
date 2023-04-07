@@ -512,7 +512,7 @@ export type TableColumnResult =
       /** @deprecated Please use `route` instead. */
       action?: string
       params?: z.infer<typeof serializableRecord>
-      backgroundColor?: string
+      highlightColor?: string
     }
   | TableCellValue
 
