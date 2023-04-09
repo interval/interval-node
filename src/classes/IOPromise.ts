@@ -170,12 +170,12 @@ export class InputIOPromise<
       label: this.label,
       initialProps: this.props,
       onStateChange: this.onStateChange,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      validator: this.validator ? this.handleValidation.bind(this) : undefined,
       displayResolvesImmediately: this.displayResolvesImmediately,
     })
   }
 
-  async #handleValidation(
+  /* @internal */ async handleValidation(
     returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Promise<string | undefined> {
     // These should be caught already, primarily here for types
@@ -287,12 +287,12 @@ export class OptionalIOPromise<
       initialProps: this.props,
       onStateChange: this.onStateChange,
       isOptional: true,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      validator: this.validator ? this.handleValidation.bind(this) : undefined,
       displayResolvesImmediately: this.displayResolvesImmediately,
     })
   }
 
-  async #handleValidation(
+  /* @internal */ async handleValidation(
     returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Promise<string | undefined> {
     // These should be caught already, primarily here for types
@@ -479,7 +479,7 @@ export class MultipleIOPromise<
     return results as unknown as ComponentOutput[]
   }
 
-  async #handleValidation(
+  /* @internal */ async handleValidation(
     returnValues: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Promise<string | undefined> {
     // These should be caught already, primarily here for types
@@ -506,7 +506,7 @@ export class MultipleIOPromise<
       label: this.label,
       initialProps: this.props,
       onStateChange: this.onStateChange,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      validator: this.validator ? this.handleValidation.bind(this) : undefined,
       isMultiple: true,
       multipleProps: {
         defaultValue: this.defaultValue,
@@ -614,7 +614,7 @@ export class OptionalMultipleIOPromise<
     return results as unknown as ComponentOutput[]
   }
 
-  async #handleValidation(
+  /* @internal */ async handleValidation(
     returnValues: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Promise<string | undefined> {
     // These should be caught already, primarily here for types
@@ -627,7 +627,6 @@ export class OptionalMultipleIOPromise<
         return this.validator(this.getValue(parsed.data))
       }
     } else {
-      console.debug(parsed)
       // shouldn't be hit, but just in case
       return 'Received invalid value for field.'
     }
@@ -639,7 +638,7 @@ export class OptionalMultipleIOPromise<
       label: this.label,
       initialProps: this.props,
       onStateChange: this.onStateChange,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      validator: this.validator ? this.handleValidation.bind(this) : undefined,
       isMultiple: true,
       isOptional: true,
       multipleProps: {
@@ -663,6 +662,7 @@ export class WithChoicesIOPromise<
 > {
   innerPromise: InnerPromise
   choiceButtons: ChoiceButtonConfig[]
+  #validator: WithChoicesIOPromiseValidator<Choice, ComponentOutput> | undefined
 
   constructor({
     innerPromise,
@@ -687,6 +687,9 @@ export class WithChoicesIOPromise<
       .renderer({
         components: [this.component],
         choiceButtons: this.choiceButtons,
+        validator: this.#validator
+          ? this.handleValidation.bind(this)
+          : undefined,
       })
       .then(({ returnValue: [result], choice }) => {
         const methodName = this.innerPromise.methodName
@@ -730,10 +733,45 @@ export class WithChoicesIOPromise<
     return this.innerPromise.component
   }
 
-  validate(validator: IOPromiseValidator<ComponentOutput>): this {
-    this.innerPromise.validator = validator
+  validate(
+    validator: WithChoicesIOPromiseValidator<Choice, ComponentOutput>
+  ): this {
+    this.innerPromise.validator = undefined
+
+    this.#validator = validator
 
     return this
+  }
+
+  /* @internal */ async handleValidation(
+    returnValues: IOClientRenderReturnValues<
+      [AnyIOComponent, ...AnyIOComponent[]]
+    >
+  ): Promise<string | undefined> {
+    if (!this.#validator) return
+
+    this.innerPromise.validator = undefined
+
+    // Perform basic type validation, for extra safety
+    if (
+      this.innerPromise instanceof InputIOPromise ||
+      this.innerPromise instanceof OptionalIOPromise ||
+      this.innerPromise instanceof MultipleIOPromise ||
+      this.innerPromise instanceof OptionalMultipleIOPromise
+    ) {
+      const innerValidation = await this.innerPromise.handleValidation(
+        returnValues.returnValue[0]
+      )
+
+      if (innerValidation != null) {
+        return innerValidation
+      }
+    }
+
+    return this.#validator({
+      choice: returnValues.choice as Choice,
+      returnValue: returnValues.returnValue[0] as ComponentOutput,
+    })
   }
 
   // These overrides are pretty disgusting but are unavoidable I think
@@ -997,12 +1035,12 @@ export class ExclusiveIOPromise<
       initialProps: this.props,
       onStateChange: this.onStateChange,
       isOptional: false,
-      validator: this.validator ? this.#handleValidation.bind(this) : undefined,
+      validator: this.validator ? this.handleValidation.bind(this) : undefined,
       displayResolvesImmediately: this.displayResolvesImmediately,
     })
   }
 
-  async #handleValidation(
+  /* @internal */ async handleValidation(
     returnValue: MaybeMultipleComponentReturnValue<MethodName> | undefined
   ): Promise<string | undefined> {
     // These should be caught already, primarily here for types
@@ -1056,6 +1094,14 @@ export type IOGroupComponents<
 export type IOPromiseValidator<ComponentOutput> = (
   returnValue: ComponentOutput
 ) => string | undefined | Promise<string | undefined>
+
+export type WithChoicesIOPromiseValidator<
+  Choice extends string,
+  ComponentOutput
+> = (props: {
+  choice: Choice
+  returnValue: ComponentOutput
+}) => string | undefined | Promise<string | undefined>
 
 export class IOGroupPromise<
   IOPromises extends
@@ -1188,6 +1234,7 @@ export class IOGroupPromise<
     >({
       innerPromise: this,
       choiceButtons: choices,
+      validator: this.validator,
     })
   }
 }
@@ -1212,10 +1259,14 @@ export class WithChoicesIOGroupPromise<
 > {
   #innerPromise: InnerPromise
   #choiceButtons: ChoiceButtonConfig[] | undefined
+  /* @internal */ validator:
+    | WithChoicesIOPromiseValidator<Choice, ReturnValues>
+    | undefined
 
   constructor(config: {
     innerPromise: InnerPromise
     choiceButtons?: ChoiceButtonConfigOrShorthand<Choice>[]
+    validator?: IOPromiseValidator<ReturnValues>
   }) {
     this.#innerPromise = config.innerPromise
     this.#choiceButtons = config.choiceButtons?.map(b =>
@@ -1223,6 +1274,13 @@ export class WithChoicesIOGroupPromise<
         ? { label: b as string, value: b as string }
         : (b as ChoiceButtonConfig)
     )
+
+    const innerValidator = config.validator
+    if (innerValidator) {
+      this.validator = ({ choice, returnValue }) => {
+        return innerValidator(returnValue)
+      }
+    }
   }
 
   then(
@@ -1232,8 +1290,8 @@ export class WithChoicesIOGroupPromise<
     this.#innerPromise
       .renderer({
         components: this.#innerPromise.components,
-        validator: this.#innerPromise.validator
-          ? this.#innerPromise.handleValidation.bind(this.#innerPromise)
+        validator: this.validator
+          ? this.handleValidation.bind(this)
           : undefined,
         choiceButtons: this.#choiceButtons,
       })
@@ -1249,9 +1307,44 @@ export class WithChoicesIOGroupPromise<
       })
   }
 
-  validate(validator: IOPromiseValidator<ReturnValues> | undefined): this {
-    this.#innerPromise.validate(validator)
+  validate(
+    validator: WithChoicesIOPromiseValidator<Choice, ReturnValues> | undefined
+  ): this {
+    this.validator = validator
     return this
+  }
+
+  // These types aren't as tight as they could be, but
+  // TypeScript doesn't like IOGroupComponents defined above here
+  /* @internal */ async handleValidation(
+    returnValues: IOClientRenderReturnValues<
+      [AnyIOComponent, ...AnyIOComponent[]]
+    >
+  ): Promise<string | undefined> {
+    if (!this.validator) return
+
+    const promiseValues = this.#innerPromise.promiseValues
+
+    const values = returnValues.returnValue.map((v, index) =>
+      promiseValues[index].getValue(v as never)
+    )
+
+    if (Array.isArray(this.#innerPromise.promises)) {
+      return this.validator({
+        choice: returnValues.choice as Choice,
+        returnValue: values as unknown as ReturnValues,
+      })
+    } else {
+      const keys = Object.keys(this.#innerPromise.promises)
+      const valueMap = Object.fromEntries(
+        values.map((val, i) => [keys[i], val])
+      )
+
+      return this.validator({
+        choice: returnValues.choice as Choice,
+        returnValue: valueMap as ReturnValues,
+      })
+    }
   }
 
   withChoices<Choice extends string>(
