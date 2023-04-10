@@ -314,6 +314,7 @@ export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = ({
   choiceButtons,
 }: {
   components: [IOComponent<MethodName>, ...IOComponent<MethodName>[]]
+  validator?: IOClientRenderValidator<[AnyIOComponent, ...AnyIOComponent[]]>
   choiceButtons?: ChoiceButtonConfig[]
 }) => Promise<ComponentRenderReturn<MethodName>>
 
