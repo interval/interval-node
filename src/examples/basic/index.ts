@@ -20,6 +20,7 @@ import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
 import fakeUsers from '../utils/fakeUsers'
+import dedent from 'dedent'
 
 const gridsPage = new Page({
   name: 'Grids',
@@ -1056,9 +1057,36 @@ const interval = new Interval({
           language: 'typescript',
         }),
         io.display.code('Code from file', {
-          code: fs.readFileSync('./src/examples/utils/helpers.ts', {
+          code: fs.readFileSync('./src/examples/basic/unauthorized.ts', {
             encoding: 'utf8',
           }),
+        }),
+        io.display.markdown(
+          `**Code in Markdown**
+          
+          ~~~ts
+          const foo: string = 'bar'
+          if (foo === 'bar') {
+            console.log('foo is bar')
+          } else {
+            console.log('foo is not bar')
+          }
+          ~~~`
+        ),
+        io.display.table('In a table', {
+          data: [
+            {
+              label: 'Code block',
+              value: dedent`~~~ts
+                const foo: string = 'bar'
+                if (foo === 'bar') {
+                  console.log('foo is bar')
+                } else {
+                  console.log('foo is not bar')
+                }
+                ~~~`,
+            },
+          ],
         }),
       ])
     },
@@ -1460,7 +1488,7 @@ const interval = new Interval({
 
           Code blocks should look okay by default, although most people will probably want to use \`io.display.code\`:
 
-          \`\`\`
+          \`\`\`typescript
           new Action({
             name: 'Render markdown',
             handler: async () => {
