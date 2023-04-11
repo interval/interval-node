@@ -27,6 +27,15 @@ export const paginated: IntervalActionHandler = async io => {
   })
 }
 
+export const empty: IntervalActionHandler = async io => {
+  const data = generateRows(5)
+
+  await io.display.table('Display users', {
+    columns: ['id', 'name', 'email'],
+    data: data.slice(0, 0),
+  })
+}
+
 export const large_table: IntervalActionDefinition = {
   name: '10k rows',
   handler: async io => {
