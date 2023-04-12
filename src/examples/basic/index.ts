@@ -1,5 +1,5 @@
 import { T_IO_PROPS } from './../../ioSchema'
-import Interval, { IOError, io, ctx, Page, Layout } from '../../index'
+import Interval, { IOError, io, ctx, Action, Page, Layout } from '../../index'
 import IntervalClient from '../../classes/IntervalClient'
 import {
   IntervalActionDefinition,
@@ -20,19 +20,40 @@ import './ghostHost'
 import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
 import fakeUsers from '../utils/fakeUsers'
+import dedent from 'dedent'
 
 const gridsPage = new Page({
   name: 'Grids',
   routes: grid_actions,
   // including this to test two-column page layouts
   handler: async () => {
+    const sortAZ = ctx.params.sortAZ
+
+    const data = Object.keys(grid_actions).map(k => ({
+      name: k,
+    }))
+
+    if (ctx.params.sortAZ) {
+      data.sort((a, b) => a.name.localeCompare(b.name))
+    }
+
     return new Layout({
       title: 'Grids',
+      menuItems: [
+        sortAZ
+          ? {
+              label: 'Reset sort',
+              route: 'grids',
+            }
+          : {
+              label: 'Sort A-Z',
+              route: 'grids',
+              params: { sortAZ: true },
+            },
+      ],
       children: [
-        io.display.table('Grid layouts', {
-          data: Object.keys(grid_actions).map(k => ({
-            name: k,
-          })),
+        io.display.table(`Grid layouts (${sortAZ ? 'sorted' : 'not sorted'})`, {
+          data,
           columns: [
             {
               label: 'Name',
@@ -45,6 +66,62 @@ const gridsPage = new Page({
         }),
       ],
     })
+  },
+})
+
+const page1 = new Page({
+  name: 'Page with children',
+  handler: async () => new Layout({}),
+  routes: {
+    child_action1: new Action(async () => 'Hello, world!'),
+    child_action2: new Action(async () => 'Hello, world!'),
+    child_page: new Page({
+      name: 'Child page',
+    }),
+  },
+})
+
+const page2 = new Page({
+  name: 'Page with page with children',
+  routes: {
+    page1,
+  },
+})
+
+const sidebar_depth = new Page({
+  name: 'Sidebar depth page testing',
+  routes: {
+    page1,
+    page2,
+  },
+})
+
+const confirmIdentity = new Action({
+  name: 'Confirm identity',
+  handler: async () => {
+    await io.input.text('Enter your name')
+
+    const canDoSensitiveTask = await io.confirmIdentity(
+      'This action is pretty sensitive',
+      {
+        gracePeriodMs: 0,
+      }
+    )
+    let canDoSensitiveTaskAgain = false
+
+    if (canDoSensitiveTask) {
+      ctx.log('OK! Identity confirmed.')
+      await io.input.text('Enter another name')
+      canDoSensitiveTaskAgain = await io.confirmIdentity(
+        'This action is still pretty sensitive'
+      )
+    } else {
+      ctx.log('Identity not confirmed, cancelling…')
+    }
+
+    return {
+      identityConfirmed: canDoSensitiveTask && canDoSensitiveTaskAgain,
+    }
   },
 })
 
@@ -92,11 +169,24 @@ const actionLinks: IntervalActionHandler = async () => {
   ])
 }
 
+const echoContext = new Action(async () => {
+  await io.display.object('Context', {
+    data: {
+      organization: ctx.organization,
+      aciton: ctx.action,
+      environment: ctx.environment,
+      params: ctx.params,
+      user: ctx.user,
+    },
+  })
+})
+
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3000/websocket',
   logLevel: 'debug',
   routes: {
+    sidebar_depth,
     backgroundable: {
       backgroundable: true,
       handler: async () => {
@@ -107,6 +197,8 @@ const prod = new Interval({
       },
     },
     actionLinks,
+    echoContext,
+    confirm_identity: confirmIdentity,
     continueCmdEnter: {
       name: 'CMD + Enter submit demo',
       handler: async () => {
@@ -167,6 +259,9 @@ const prod = new Interval({
       backgroundable: true,
       name: 'Import users',
       description: "Doesn't actually import users",
+      access: {
+        teams: ['support'],
+      },
       handler: async io => {
         console.log("I'm a live mode action")
         const name = await io.input.text('Enter the name for a user')
@@ -211,13 +306,6 @@ const prod = new Interval({
 
       return { num }
     },
-    echoParams: async (io, ctx) => {
-      ctx.log(ctx.params)
-      await io.display.object('Params', {
-        data: ctx.params,
-      })
-      return ctx.params
-    },
     perform_redirect_flow: async () => {
       let startedWork = false
       const { workDone = false } = ctx.params
@@ -248,6 +336,10 @@ const prod = new Interval({
       })
     },
     grids: gridsPage,
+    tables: new Page({
+      name: 'Tables',
+      routes: table_actions,
+    }),
     async_page_test: new Page({
       name: 'Async page test',
       handler: async () => {
@@ -327,6 +419,27 @@ const interval = new Interval({
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
+    sidebar_depth,
+    echoContext,
+    inputRightAfterDisplay: async () => {
+      await io.display.link('Display', {
+        url: '',
+      })
+      await io.input.text('Text')
+    },
+    loadingAfterDisplay: new Action({
+      name: 'Broken loading',
+      handler: async () => {
+        await io.display.heading('Hello from display')
+        await ctx.loading.start({
+          label: 'Waiting for external system',
+        })
+
+        await sleep(2000)
+
+        await io.display.markdown('Done!')
+      },
+    }),
     searches: new Page({
       name: 'Search',
       routes: {
@@ -651,6 +764,99 @@ const interval = new Interval({
 
       return 'Done!'
     },
+    readonly_inputs: async io => {
+      let i = 0
+
+      while (i < 2) {
+        const responses = await io.group([
+          io.input
+            .text('Empty text input', {
+              placeholder: 'Text goes here',
+            })
+            .optional(),
+          io.input.text('Text input', {
+            placeholder: 'Text goes here',
+            defaultValue: 'Default value',
+          }),
+          io.input.datetime('Date & time').optional(),
+          io.input.datetime('Date & time', {
+            defaultValue: new Date(),
+          }),
+          io.input.boolean('Boolean input').optional(),
+          io.input.boolean('Boolean input', { defaultValue: null }),
+          io.select
+            .single('Select something', {
+              options: [1, 2, 3],
+            })
+            .optional(),
+          io.select.single('Select something', {
+            options: [1, 2, 3],
+            defaultValue: 1,
+          }),
+          io.input.number('Number input', { defaultValue: null }).optional(),
+          io.input.number('Number input', { defaultValue: 100 }),
+          io.input.email('Email input').optional(),
+          io.input.email('Email input', { defaultValue: 'hi@interval.com' }),
+          io.input
+            .richText('Rich text input', { defaultValue: null })
+            .optional(),
+          io.input.richText('Rich text input', {
+            defaultValue: 'Hello world',
+          }),
+          io
+            .search('Search for a user', {
+              renderResult: user => ({
+                label: user.name,
+                description: user.email,
+              }),
+              onSearch: async query => {
+                return [
+                  {
+                    name: 'John Doe',
+                    email: 'johndoe@example.com',
+                  },
+                ]
+              },
+            })
+            .optional(),
+          io.select
+            .multiple('Select multiple of something', {
+              options: [1, 2, 3],
+            })
+            .optional(),
+          io.select
+            .table('Select from table', {
+              data: [
+                {
+                  album: 'Exile on Main Street',
+                  artist: 'The Rolling Stones',
+                  year: 1972,
+                },
+                {
+                  artist: 'Michael Jackson',
+                  album: 'Thriller',
+                  year: 1982,
+                },
+                {
+                  album: 'Enter the Wu-Tang (36 Chambers)',
+                  artist: 'Wu-Tang Clan',
+                  year: 1993,
+                },
+              ],
+            })
+            .optional(),
+          io.input.date('Date input').optional(),
+          io.input.time('Time input').optional(),
+          io.input.file('File input').optional(),
+        ])
+
+        console.debug(responses)
+
+        i++
+      }
+
+      return 'Done!'
+    },
     'long-return-string': async io => {
       return {
         date: new Date(),
@@ -851,9 +1057,36 @@ const interval = new Interval({
           language: 'typescript',
         }),
         io.display.code('Code from file', {
-          code: fs.readFileSync('./src/examples/utils/helpers.ts', {
+          code: fs.readFileSync('./src/examples/basic/unauthorized.ts', {
             encoding: 'utf8',
           }),
+        }),
+        io.display.markdown(
+          `**Code in Markdown**
+          
+          ~~~ts
+          const foo: string = 'bar'
+          if (foo === 'bar') {
+            console.log('foo is bar')
+          } else {
+            console.log('foo is not bar')
+          }
+          ~~~`
+        ),
+        io.display.table('In a table', {
+          data: [
+            {
+              label: 'Code block',
+              value: dedent`~~~ts
+                const foo: string = 'bar'
+                if (foo === 'bar') {
+                  console.log('foo is bar')
+                } else {
+                  console.log('foo is not bar')
+                }
+                ~~~`,
+            },
+          ],
         }),
       ])
     },
@@ -892,15 +1125,17 @@ const interval = new Interval({
         })
       }
     },
-    enter_a_number: async io => {
-      const num = await io.input.number('Enter a number')
+    enter_two_integers: async io => {
+      const num1 = await io.input.number('Enter a number')
 
-      await io.input.number(
-        `Enter a second number that's greater than ${num}`,
+      const num2 = await io.input.number(
+        `Enter a second number that's greater than ${num1}`,
         {
-          min: num + 1,
+          min: num1 + 1,
         }
       )
+
+      return { num1, num2, sum: num1 + num2 }
     },
     enter_two_numbers: async io => {
       const num1 = await io.input.number('Enter a number')
@@ -953,7 +1188,9 @@ const interval = new Interval({
       return { name, email }
     },
     confirmBeforeDelete: async (io, ctx) => {
-      const email = await io.input.email('Enter an email address')
+      const email = await io.input.email('Enter an email address', {
+        defaultValue: 'hello@interval.com',
+      })
 
       const shouldDelete = await io.confirm(`Delete this user?`, {
         helpText: 'All of their data will be removed.',
@@ -964,13 +1201,19 @@ const interval = new Interval({
         return
       }
 
-      await sleep(500)
-      await sleep(500)
-      ctx.log(`Deleted ${Math.floor(Math.random() * 100)} post drafts`)
-      await sleep(500)
-      ctx.log('Skipped 13 published posts')
+      await ctx.loading.start({
+        label: 'Fetching users...',
+        description: 'This may take a while...',
+      })
       await sleep(1500)
-      ctx.log('Deleted 13 comments')
+      await ctx.loading.update(
+        `Deleted ${Math.floor(Math.random() * 100)} post drafts`
+      )
+      await sleep(1500)
+      await ctx.loading.update('Skipped 13 published posts')
+      await sleep(700)
+      await ctx.loading.update('Deleted 13 comments')
+      await sleep(1000)
 
       return { email }
     },
@@ -1090,12 +1333,12 @@ const interval = new Interval({
     },
     update_email_for_user: editEmailForUser,
     richText: async io => {
-      const [to, body] = await io.group([
-        io.input.email('Email address'),
+      const [body, to] = await io.group([
         io.input.richText('Enter email body', {
           defaultValue: '<h2>Welcome to Interval!</h2><p>Enjoy your stay.</p>',
           helpText: 'This will be sent to the user.',
         }),
+        io.input.email('Email address'),
       ])
 
       await io.display.markdown(`
@@ -1176,7 +1419,7 @@ const interval = new Interval({
       // const user = lookupUserByEmail(email)
       // Edit user
     },
-    'Display-Does-Not-Return-Automatically': async io => {
+    'Display-Might-Return-Automatically': async io => {
       await io.group([
         io.display.markdown(`
           After you press continue, a long running task will start.
@@ -1186,17 +1429,22 @@ const interval = new Interval({
 
       console.log(1)
 
-      await io.display.heading('Blocking until you press continue')
+      await io.display.heading('Maybe? Blocking until you press continue')
 
       await sleep(2000)
 
       io.display
-        .markdown(`Can still hack immedate returns with \`.then()\``)
+        .markdown(`Can always hack immedate returns with \`.then()\``)
         .then(() => {})
 
       await sleep(2000)
 
-      io.display.markdown('See!').then(() => {})
+      await io.group([
+        io.display.markdown('Displays in a group'),
+        io.display.markdown(
+          'Will block unless auto-continue feature flag is set'
+        ),
+      ])
 
       console.log(2)
 
@@ -1240,7 +1488,7 @@ const interval = new Interval({
 
           Code blocks should look okay by default, although most people will probably want to use \`io.display.code\`:
 
-          \`\`\`
+          \`\`\`typescript
           new Action({
             name: 'Render markdown',
             handler: async () => {
@@ -1284,17 +1532,26 @@ const interval = new Interval({
     Progress_steps: async (io, ctx) => {
       await ctx.loading.start('Fetching users...')
 
-      await sleep(1000)
+      // await sleep(1000)
 
       const users = await fakeDb
         .find('')
-        .then(res => res.map(mapToIntervalUser))
+        .then(res => res.map(mapToIntervalUser).slice(0, 3))
 
-      await io.display.heading('Press continue when ready')
+      await io.display.table('Users to process', {
+        data: users,
+      })
+
+      const shouldContinue = await io.confirm(
+        'Are you sure you want to delete these users?'
+      )
+
+      if (!shouldContinue) {
+        throw new Error('Did not continue')
+      }
 
       await ctx.loading.start({
-        title: 'Exporting users',
-        description: "We're exporting all users. This may take a while.",
+        label: 'Updating users',
         itemsInQueue: users.length,
       })
       for (const _ of users) {
@@ -1302,14 +1559,15 @@ const interval = new Interval({
         await ctx.loading.completeOne()
       }
 
-      await ctx.loading.start('Finishing up...')
+      // final text input to make sure loading isn't getting clobbered
+      await io.input.text('Your name').optional()
 
       await sleep(1000)
     },
     loading_dos: async () => {
       const itemsInQueue = 100_000
       await ctx.loading.start({
-        title: 'Migrating users',
+        label: 'Migrating users',
         description: 'There are a lot, but they are very fast',
         itemsInQueue,
       })
@@ -1353,6 +1611,57 @@ const interval = new Interval({
           { label: "Doesn't" },
         ],
       })
+    },
+    a_readonly_demo: async io => {
+      await io.group(
+        [
+          io.input.text('Full name', { defaultValue: 'Interval' }),
+          io.input.email('Email address', {
+            defaultValue: 'hello@interval.com',
+          }),
+          io.input.date('Start date', {
+            defaultValue: new Date(),
+          }),
+          io.input.boolean('Subscribe to newsletter?', {
+            defaultValue: true,
+          }),
+        ],
+        {
+          continueButton: { label: 'Start trial' },
+        }
+      )
+
+      await io.group([
+        io.input.text('User ID', {
+          disabled: true,
+          defaultValue: 'cle6jrr5s0000ncl74lza8q6v',
+          helpText: 'This is a disabled io.input.text',
+        }),
+        io.display.table('Associated users', {
+          data: [
+            {
+              email: 'carsta.rocha@example.com',
+              phone_number: '(60) 1416-4953',
+              birthdate: '1993-08-04',
+              first_name: 'carsta',
+              last_name: 'rocha',
+              photo: 'photos/21351234.jpg',
+              website_url: 'https://example.com',
+            },
+            {
+              email: 'irene.morales@example.org',
+              phone_number: '625-790-958',
+              birthdate: '1982-04-28',
+              first_name: 'irene',
+              last_name: 'morales',
+              picture: 'photos/8321527.jpg',
+              website_url: 'https://example.org',
+            },
+          ],
+        }),
+      ])
+
+      return 'Done!'
     },
     append_ui_scroll_demo: async io => {
       let i = 0
@@ -1625,6 +1934,66 @@ const interval = new Interval({
 
       return 'All done!'
     },
+    with_choices: async () => {
+      let { choice: singleChoice, returnValue: singleReturnValue } =
+        await io.input
+          .number('Enter a number')
+          .optional()
+          .withChoices([
+            { label: 'Make it negative', theme: 'danger', value: 'negative' },
+            { label: 'Do nothing', value: 'nothing' },
+            'Think about it for a while',
+            '?',
+          ])
+
+      if (singleReturnValue && singleChoice === 'negative') {
+        singleReturnValue = -singleReturnValue
+      }
+
+      await sleep(2000)
+
+      await io.display
+        .heading(`The number is now ${singleReturnValue}`)
+        .withChoices([
+          {
+            label: 'OK!',
+            value: 'ok',
+          },
+        ])
+
+      const { choice: fileChoice, returnValue: fileReturnValue } =
+        await io.input
+          .file('Upload a file')
+          .withChoices(['Encrypt'])
+          .multiple()
+          .optional()
+
+      ctx.log('choice', fileChoice)
+      ctx.log('returnValue', fileReturnValue)
+
+      const {
+        choice: groupChoice,
+        returnValue: { data: groupReturn },
+      } = await io
+        .group({ data: io.input.text('Important data') })
+        .withChoices([
+          {
+            label: 'Delete the data',
+            value: 'delete',
+            theme: 'danger',
+          },
+          {
+            label: 'Cancel',
+            value: 'cancel',
+            theme: 'secondary',
+          },
+        ])
+
+      return {
+        groupChoice,
+        groupReturn,
+      }
+    },
     select_single: async () => {
       const selected = await io.select.single('Select an item', {
         options: [
@@ -1646,31 +2015,7 @@ const interval = new Interval({
       routes: table_actions,
     }),
     grids: gridsPage,
-    confirm_identity: async () => {
-      await io.input.text('Enter your name')
-
-      const canDoSensitiveTask = await io.confirmIdentity(
-        'This action is pretty sensitive',
-        {
-          gracePeriodMs: 0,
-        }
-      )
-      let canDoSensitiveTaskAgain = false
-
-      if (canDoSensitiveTask) {
-        ctx.log('OK! Identity confirmed.')
-        await io.input.text('Enter another name')
-        canDoSensitiveTaskAgain = await io.confirmIdentity(
-          'This action is still pretty sensitive'
-        )
-      } else {
-        ctx.log('Identity not confirmed, cancelling…')
-      }
-
-      return {
-        identityConfirmed: canDoSensitiveTask && canDoSensitiveTaskAgain,
-      }
-    },
+    confirm_identity: confirmIdentity,
   },
 })
 

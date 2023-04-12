@@ -52,7 +52,7 @@ import type {
   IntervalRouteDefinitions,
   IntervalPageHandler,
 } from '../types'
-import type DataChannelConnection from './DataChannelConnection'
+import type { DataChannelConnection } from './DataChannelConnection'
 import type { IceServer } from './DataChannelConnection'
 import TransactionLoadingState from './TransactionLoadingState'
 import { Interval, InternalConfig, IntervalError } from '..'
@@ -111,12 +111,14 @@ export default class IntervalClient {
   #httpEndpoint: string
   #logger: Logger
   #completeHttpRequestDelayMs: number = 3000
+  #completeShutdownDelayMs: number = 3000
   #retryIntervalMs: number = 3000
   #pingIntervalMs: number = 30_000
   #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
   #reinitializeBatchTimeoutMs: number = 200
   #pingIntervalHandle: NodeJS.Timeout | undefined
   #intentionallyClosed = false
+  #resolveShutdown: (() => void) | undefined
   #config: InternalConfig
 
   #actionDefinitions: ActionDefinition[] = []
@@ -223,7 +225,7 @@ export default class IntervalClient {
 
     if (typeof window === 'undefined' && this.#config.routesDirectory) {
       try {
-        const { default: loadRoutesFromFileSystem } = await import(
+        const { loadRoutesFromFileSystem } = await import(
           '../utils/fileActionLoader'
         )
         fileSystemRoutes = await loadRoutesFromFileSystem(
@@ -372,7 +374,8 @@ export default class IntervalClient {
     return await result
   }
 
-  close() {
+  immediatelyClose() {
+    this.#resolveShutdown = undefined
     this.#intentionallyClosed = true
 
     if (this.#serverRpc) {
@@ -393,10 +396,40 @@ export default class IntervalClient {
     this.#isConnected = false
   }
 
+  async safelyClose(): Promise<void> {
+    const response = await this.#send(
+      'BEGIN_HOST_SHUTDOWN',
+      {},
+      {
+        attemptPeerSend: false,
+      }
+    )
+
+    if (response.type === 'error') {
+      throw new IntervalError(
+        response.message ?? 'Unknown error sending shutdown request.'
+      )
+    }
+
+    if (this.#ioResponseHandlers.size === 0) {
+      this.immediatelyClose()
+      return
+    }
+
+    return new Promise<void>(resolve => {
+      this.#resolveShutdown = resolve
+    }).then(() => {
+      // doing this here and in #close just to be extra sure
+      // it's not missed in any future code paths
+      this.#resolveShutdown = undefined
+      this.immediatelyClose()
+    })
+  }
+
   async declareHost(httpHostId: string) {
     await this.#walkRoutes()
 
-    const body: z.infer<typeof DECLARE_HOST['inputs']> = {
+    const body: z.infer<(typeof DECLARE_HOST)['inputs']> = {
       httpHostId,
       actions: this.#actionDefinitions,
       groups: this.#pageDefinitions,
@@ -655,6 +688,12 @@ export default class IntervalClient {
       this.#peerIdMap.delete(transactionId)
       this.#peerIdToTransactionIdsMap.get(peerId)?.delete(transactionId)
     }
+
+    if (this.#resolveShutdown && this.#ioResponseHandlers.size === 0) {
+      setTimeout(() => {
+        this.#resolveShutdown?.()
+      }, this.#completeShutdownDelayMs)
+    }
   }
 
   /**
@@ -756,7 +795,9 @@ export default class IntervalClient {
           new Date().getTime() - this.#closeUnresponsiveConnectionTimeoutMs
         ) {
           this.#logger.warn(
-            'No pong received in last three minutes, closing connection to Interval and retrying...'
+            `No pong received in last ${
+              this.#closeUnresponsiveConnectionTimeoutMs
+            }ms, closing connection to Interval and retrying...`
           )
           if (this.#pingIntervalHandle) {
             clearInterval(this.#pingIntervalHandle)
@@ -784,7 +825,7 @@ export default class IntervalClient {
           this.#logger.debug('INITIALIZE_PEER_CONNECTION:', inputs)
           switch (inputs.type) {
             case 'offer': {
-              const { default: DataChannelConnection } = await import(
+              const { DataChannelConnection } = await import(
                 './DataChannelConnection'
               )
 
@@ -917,6 +958,13 @@ export default class IntervalClient {
         }
       },
       START_TRANSACTION: async inputs => {
+        if (this.#resolveShutdown) {
+          this.#logger.debug(
+            'In process of closing, refusing to start transaction'
+          )
+          return
+        }
+
         if (!intervalClient.organization) {
           intervalClient.#log.error('No organization defined')
           return
@@ -984,6 +1032,7 @@ export default class IntervalClient {
             intervalClient.#transactionLoadingStates.delete(transactionId)
           },
           isDemo: !!this.#config.getClientHandlers,
+          displayResolvesImmediately: inputs.displayResolvesImmediately,
           // onAddInlineAction: handler => {
           //   const key = v4()
           //   intervalClient.#actionHandlers.set(key, handler)
@@ -1131,13 +1180,13 @@ export default class IntervalClient {
               if (err instanceof IOError) {
                 switch (err.kind) {
                   case 'CANCELED':
-                    intervalClient.#log.prod(
+                    intervalClient.#log.debug(
                       'Transaction canceled for action',
                       action.slug
                     )
                     break
                   case 'TRANSACTION_CLOSED':
-                    intervalClient.#log.prod(
+                    intervalClient.#log.debug(
                       'Attempted to make IO call after transaction already closed in action',
                       action.slug
                     )
@@ -1164,7 +1213,7 @@ export default class IntervalClient {
               }
             })
             .finally(() => {
-              if (!inputs.postponeCompleteCleanup) {
+              if (!inputs.displayResolvesImmediately) {
                 this.#closeTransaction(transactionId)
               }
             })
@@ -1211,6 +1260,10 @@ export default class IntervalClient {
         this.#closeTransaction(transactionId)
       },
       OPEN_PAGE: async inputs => {
+        if (this.#resolveShutdown) {
+          return { type: 'ERROR' as const, message: 'Host shutting down.' }
+        }
+
         if (!this.organization) {
           this.#log.error('No organization defined')
 
@@ -1565,6 +1618,7 @@ export default class IntervalClient {
             })
             .catch(async err => {
               this.#logger.error('Error in page:', err)
+              errors.push(pageError(err))
               const pageLayout: LayoutSchemaInput = {
                 kind: 'BASIC',
                 errors,
@@ -1625,6 +1679,12 @@ export default class IntervalClient {
             }
           }, this.#completeHttpRequestDelayMs)
         }
+
+        if (this.#resolveShutdown && this.#ioResponseHandlers.size === 0) {
+          setTimeout(() => {
+            this.#resolveShutdown?.()
+          }, this.#completeShutdownDelayMs)
+        }
       },
     }
   }
@@ -1679,6 +1739,7 @@ export default class IntervalClient {
       sdkName: pkg.name,
       sdkVersion: pkg.version,
       requestId,
+      timestamp: new Date().valueOf(),
     })
 
     if (!response) {

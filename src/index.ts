@@ -10,6 +10,8 @@ import {
   HostSchema,
   ICE_CONFIG,
   IceConfig,
+  ENQUEUE_ACTION,
+  DEQUEUE_ACTION,
 } from './internalRpcSchema'
 import { DuplexRPCHandlers } from './classes/DuplexRPCClient'
 import { SerializableRecord } from './ioSchema'
@@ -35,6 +37,7 @@ import IntervalClient, {
 import Action from './classes/Action'
 import { BasicLayout } from './classes/Layout'
 import { Evt } from 'evt'
+import superjson from './utils/superjson'
 
 export type {
   ActionCtx,
@@ -82,14 +85,14 @@ export interface QueuedAction {
 export function getActionStore(): IntervalActionStore {
   if (!actionLocalStorage) {
     throw new IntervalError(
-      'Global io and ctx objects are only available in a Node.js context'
+      'Global io and ctx objects are only available in a Node.js context.'
     )
   }
 
   const store = actionLocalStorage.getStore()
   if (!store) {
     throw new IntervalError(
-      'Global io and ctx objects can only be used inside an Action'
+      'Global io and ctx objects can only be used inside a Page or Action.'
     )
   }
 
@@ -99,14 +102,14 @@ export function getActionStore(): IntervalActionStore {
 export function getPageStore(): IntervalPageStore {
   if (!pageLocalStorage) {
     throw new IntervalError(
-      'Global io and ctx objects are only available in a Node.js context'
+      'Global io and ctx objects are only available in a Node.js context.'
     )
   }
 
   const store = pageLocalStorage.getStore()
   if (!store) {
     throw new IntervalError(
-      'Global io and ctx objects can only be used inside a Page'
+      'Global io and ctx objects can only be used inside a Page or Action.'
     )
   }
 
@@ -221,6 +224,9 @@ export default class Interval {
     return this.#client?.isConnected ?? false
   }
 
+  /**
+   * Establish the persistent connection to Interval.
+   */
   async listen() {
     if (!this.#client) {
       this.#client = new IntervalClient(this, this.config)
@@ -228,8 +234,18 @@ export default class Interval {
     return this.#client.listen()
   }
 
-  close() {
-    return this.#client?.close()
+  /**
+   * Immediately terminate the connection to interval, terminating any actions currently in progress.
+   */
+  immediatelyClose() {
+    return this.#client?.immediatelyClose()
+  }
+
+  /**
+   * Safely close the connection to Interval, preventing new actions from being launched and closing the persistent connection afterward. Resolves when the connection is successfully safely closed.
+   */
+  async safelyClose(): Promise<void> {
+    return this.#client?.safelyClose()
   }
 
   /* @internal */ get client() {
@@ -249,6 +265,27 @@ export default class Interval {
     return parsed
   }
 
+  /**
+   * Sends a custom notification to Interval users via email or Slack. To send Slack notifications, you'll need to connect your Slack workspace to the Interval app in your organization settings.
+   *
+   * **Usage:**
+   *
+   * ```typescript
+   * await ctx.notify({
+   *   message: "A charge of $500 was refunded",
+   *   title: "Refund over threshold",
+   *   delivery: [
+   *     {
+   *       to: "#interval-notifications",
+   *       method: "SLACK",
+   *     },
+   *     {
+   *       to: "foo@example.com",
+   *     },
+   *   ],
+   * });
+   * ```
+   */
   async notify(config: NotifyConfig): Promise<void> {
     if (
       !config.transactionId &&
@@ -275,7 +312,7 @@ export default class Interval {
       return
     }
 
-    let body: z.infer<typeof NOTIFY['inputs']>
+    let body: z.infer<(typeof NOTIFY)['inputs']>
     try {
       body = NOTIFY.inputs.parse({
         ...config,
@@ -306,6 +343,112 @@ export default class Interval {
       throw new IntervalError(
         `There was a problem sending the notification: ${response.message}`
       )
+    }
+  }
+
+  #getQueueAddress(path: string): string {
+    if (path.startsWith('/')) {
+      path = path.substring(1)
+    }
+
+    return `${this.#httpEndpoint}/api/actions/${path}`
+  }
+
+  /**
+   * Enqueue an action to be completed, with an optional `assignee` email to assign the action to, and optional `params` which will be passed to the action as `ctx.params`. Assigned actions will be displayed in users' dashboards as a task list.
+   */
+  async enqueue(
+    slug: string,
+    { assignee, params }: Pick<QueuedAction, 'assignee' | 'params'> = {}
+  ): Promise<QueuedAction> {
+    let body: z.infer<(typeof ENQUEUE_ACTION)['inputs']>
+    try {
+      const { json, meta } = params
+        ? superjson.serialize(params)
+        : { json: undefined, meta: undefined }
+      body = ENQUEUE_ACTION.inputs.parse({
+        assignee,
+        slug,
+        params: json,
+        paramsMeta: meta,
+      })
+    } catch (err) {
+      this.#logger.debug(err)
+      throw new IntervalError('Invalid input.')
+    }
+
+    const response = await fetch(this.#getQueueAddress('enqueue'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.#apiKey}`,
+      },
+      body: JSON.stringify(body),
+    })
+      .then(r => r.json())
+      .then(r => ENQUEUE_ACTION.returns.parseAsync(r))
+      .catch(err => {
+        this.#logger.debug(err)
+        throw new IntervalError('Received invalid API response.')
+      })
+
+    if (response.type === 'error') {
+      throw new IntervalError(
+        `There was a problem enqueuing the action: ${response.message}`
+      )
+    }
+
+    return {
+      id: response.id,
+      assignee,
+      params,
+    }
+  }
+
+  /**
+   * Dequeue a previously assigned action which was created with `interval.enqueue()`.
+   */
+  async dequeue(id: string): Promise<QueuedAction> {
+    let body: z.infer<(typeof DEQUEUE_ACTION)['inputs']>
+    try {
+      body = DEQUEUE_ACTION.inputs.parse({
+        id,
+      })
+    } catch (err) {
+      this.#logger.debug(err)
+      throw new IntervalError('Invalid input.')
+    }
+
+    const response = await fetch(this.#getQueueAddress('dequeue'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.#apiKey}`,
+      },
+      body: JSON.stringify(body),
+    })
+      .then(r => r.json())
+      .then(r => DEQUEUE_ACTION.returns.parseAsync(r))
+      .catch(err => {
+        this.#logger.debug(err)
+        throw new IntervalError('Received invalid API response.')
+      })
+
+    if (response.type === 'error') {
+      throw new IntervalError(
+        `There was a problem enqueuing the action: ${response.message}`
+      )
+    }
+
+    let { type, params, paramsMeta, ...rest } = response
+
+    if (paramsMeta && params) {
+      params = superjson.deserialize({ json: params, meta: paramsMeta })
+    }
+
+    return {
+      ...rest,
+      params,
     }
   }
 }

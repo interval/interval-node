@@ -301,31 +301,46 @@ export type ExclusiveIOComponentFunction<
   props?: Prettify<Props>
 ) => ExclusiveIOPromise<MethodName, T_IO_PROPS<MethodName>, Output>
 
-export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = (
-  components: [IOComponent<MethodName>, ...IOComponent<MethodName>[]]
-) => Promise<
-  [
+export type ComponentRenderReturn<MethodName extends T_IO_METHOD_NAMES> = {
+  choice?: string
+  returnValue: [
     MaybeMultipleComponentReturnValue<MethodName>,
     ...MaybeMultipleComponentReturnValue<MethodName>[]
   ]
->
+}
+
+export type ComponentRenderer<MethodName extends T_IO_METHOD_NAMES> = ({
+  components,
+  choiceButtons,
+}: {
+  components: [IOComponent<MethodName>, ...IOComponent<MethodName>[]]
+  validator?: IOClientRenderValidator<[AnyIOComponent, ...AnyIOComponent[]]>
+  choiceButtons?: ChoiceButtonConfig[]
+}) => Promise<ComponentRenderReturn<MethodName>>
+
+export type ComponentsRendererReturn<Components> = {
+  choice?: string
+  returnValue: {
+    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+      ? z.infer<Components[Idx]['schema']['returns']> | undefined
+      : Components[Idx]
+  }
+}
 
 export type ComponentsRenderer<
   Components extends [AnyIOComponent, ...AnyIOComponent[]] = [
     AnyIOComponent,
     ...AnyIOComponent[]
   ]
-> = (
-  components: Components,
-  validator?: IOClientRenderValidator<Components>,
-  continueButton?: ButtonConfig
-) => Promise<
-  {
-    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-      ? z.infer<Components[Idx]['schema']['returns']> | undefined
-      : Components[Idx]
-  }
->
+> = ({
+  components,
+  validator,
+  choiceButtons,
+}: {
+  components: Components
+  validator?: IOClientRenderValidator<Components>
+  choiceButtons?: ChoiceButtonConfig[]
+}) => Promise<ComponentsRendererReturn<Components>>
 
 export type IORenderSender = (ioToRender: T_IO_RENDER_INPUT) => Promise<void>
 
@@ -466,7 +481,18 @@ export type ButtonConfig = {
   theme?: ButtonTheme
 }
 
+export type ChoiceButtonConfig = {
+  label: string
+  value: string
+  theme?: ButtonTheme
+}
+
+export type ChoiceButtonConfigOrShorthand<Choice> =
+  | Choice
+  | (ChoiceButtonConfig & { value: Choice })
+
 export type GroupConfig = {
+  /** @deprecated Please use the chained .withSubmit() method instead. */
   continueButton: ButtonConfig
 }
 

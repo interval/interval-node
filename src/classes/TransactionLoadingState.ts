@@ -1,15 +1,18 @@
-import { LoadingOptions, LoadingState } from '../internalRpcSchema'
+import {
+  BackwardCompatibleLoadingOptions,
+  BackwardCompatibleLoadingState,
+} from '../internalRpcSchema'
 import Logger from './Logger'
 
 export interface TransactionLoadingStateConfig {
   logger: Logger
-  send: (loadingState: LoadingState) => Promise<void>
+  send: (loadingState: BackwardCompatibleLoadingState) => Promise<void>
 }
 
 export default class TransactionLoadingState {
   #logger: Logger
   #sender: TransactionLoadingStateConfig['send']
-  #state: LoadingState | undefined
+  #state: BackwardCompatibleLoadingState | undefined
   #sendTimeout: NodeJS.Timeout | null = null
   #sendTimeoutMs = 100
 
@@ -37,21 +40,21 @@ export default class TransactionLoadingState {
   }
 
   /**
-   * Kicks off a loading spinner to provide context during any long-running action work. Can also be called with a single string argument as the title, or with no arguments to display only a spinner.
+   * Kicks off a loading spinner to provide context during any long-running action work. Can also be called with a single string argument as the label, or with no arguments to display only a spinner.
    *
    * **Usage:**
    *
    *```typescript
    * await ctx.loading.start({
-   *   title: "Reticulating splines...",
+   *   label: "Reticulating splines...",
    * });
    *
-   * await ctx.loading.start("Title only shorthand");
+   * await ctx.loading.start("Label only shorthand");
    *```
    */
-  async start(options?: string | LoadingOptions) {
+  async start(options?: string | BackwardCompatibleLoadingOptions) {
     if (typeof options === 'string') {
-      options = { title: options }
+      options = { label: options }
     } else if (options === undefined) {
       options = {}
     }
@@ -71,24 +74,24 @@ export default class TransactionLoadingState {
    *
    *```typescript
    * await ctx.loading.start({
-   *   title: "Something is loading",
+   *   label: "Something is loading",
    *   description: "Mapping all the things",
    * });
    *
    * await ctx.loading.update({
-   *   title: "Something is loading",
+   *   label: "Something is loading",
    *   description: "Now reducing all the things",
    * });
    *```
    */
-  async update(options?: string | LoadingOptions) {
+  async update(options?: string | BackwardCompatibleLoadingOptions) {
     if (!this.#state) {
       this.#logger.warn('Please call `loading.start` before `loading.update`')
       return this.start(options)
     }
 
     if (typeof options === 'string') {
-      options = { title: options }
+      options = { label: options }
     } else if (options === undefined) {
       options = {}
     }
@@ -109,7 +112,7 @@ export default class TransactionLoadingState {
    *
    *```typescript
    * await ctx.loading.start({
-   *   title: "Migrating users",
+   *   label: "Migrating users",
    *   description: "Enabling edit button for selected users",
    *   itemsInQueue: 100,
    * });

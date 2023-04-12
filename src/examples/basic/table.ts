@@ -4,6 +4,7 @@ import { faker } from '@faker-js/faker'
 import fakeUsers from '../utils/fakeUsers'
 import { generateRows } from '../utils/helpers'
 import { asyncTable } from '../utils/ioMethodWrappers'
+import dedent from 'dedent'
 
 export const no_pagination: IntervalActionHandler = async io => {
   const data = generateRows(5)
@@ -58,21 +59,20 @@ export const display_table: IntervalActionHandler = async io => {
         }),
       },
       {
+        label: 'Email',
+        accessorKey: 'email',
+        renderCell: row => ({
+          label: row.email,
+          url: `mailto:${row.email}`,
+        }),
+      },
+      {
         label: 'Description',
         accessorKey: 'description',
       },
       'boolean',
       'date',
       'array',
-      {
-        label: 'renderCell',
-        renderCell: row =>
-          `${String(row.description).split(' ')[0]} ${row.number}`,
-      },
-      {
-        label: 'Link',
-        renderCell: row => ({ url: '#', label: row.email }),
-      },
     ],
     rowMenuItems: row => [
       {
@@ -364,11 +364,13 @@ export const image_viewer: IntervalActionHandler = async io => {
   const data = Array(50)
     .fill(null)
     .map((_, i) => {
-      const [width, height, crazyW, crazyH] = [
+      const [width, height, crazyW, crazyH, tinyW, tinyH] = [
         faker.datatype.number({ min: 500, max: 700 }),
         faker.datatype.number({ min: 200, max: 400 }),
         faker.datatype.number({ min: 100, max: 999 }),
         faker.datatype.number({ min: 100, max: 999 }),
+        faker.datatype.number({ min: 12, max: 20 }),
+        faker.datatype.number({ min: 12, max: 20 }),
       ]
 
       return {
@@ -379,15 +381,18 @@ export const image_viewer: IntervalActionHandler = async io => {
         height,
         crazyW,
         crazyH,
+        tinyW,
+        tinyH,
         wide: faker.image.imageUrl(width, height, undefined, true),
         tall: faker.image.imageUrl(height, width, undefined, true),
         crazy: faker.image.imageUrl(crazyW, crazyH, undefined, true),
+        tiny: faker.image.imageUrl(tinyW, tinyH, undefined, true),
       }
     })
 
   await io.display.table('Images', {
     data,
-    defaultPageSize: 50,
+    defaultPageSize: 10,
     columns: [
       'id',
       {
@@ -433,14 +438,33 @@ export const image_viewer: IntervalActionHandler = async io => {
           },
         }),
       },
+      {
+        label: 'Tiny',
+        renderCell: row => ({
+          label: `${row.tinyW} x ${row.tinyH}`,
+          image: {
+            alt: 'Alt tag',
+            url: row.tiny,
+          },
+        }),
+      },
     ],
   })
 
   await io.display.table('Image sizes', {
     data,
-    defaultPageSize: 50,
+    defaultPageSize: 10,
     columns: [
       'id',
+      {
+        label: 'None',
+        renderCell: row => ({
+          image: {
+            alt: 'Alt tag',
+            url: row.wide,
+          },
+        }),
+      },
       {
         label: 'Thumbnail',
         renderCell: row => ({
@@ -531,6 +555,97 @@ export const big_table = new Page({
               label: 'Transfer owner',
               action: 'organizations/transfer_ownership',
               params: { org: row.email },
+            },
+          ],
+        }),
+      ],
+    })
+  },
+})
+
+export const markdown = new Page({
+  name: 'Markdown',
+  handler: async () => {
+    return new Layout({
+      children: [
+        io.display.table('', {
+          data: [
+            {
+              label: 'Bulleted list',
+              value: dedent`Here are three bullet points:
+                - ${faker.random.word()}
+                - ${faker.random.word()}
+                - ${faker.lorem.paragraph()}
+              
+              And a [link](https://www.google.com/) at the end.
+              `,
+            },
+            {
+              label: 'Numbered list',
+              value: dedent`1. ${faker.random.word()}
+                1. ${faker.random.word()}
+                1. ${faker.lorem.paragraph()}
+              `,
+            },
+            {
+              label: 'Code block',
+              value: dedent`~~~ts
+                const foo: string = 'bar'
+                if (foo === 'bar') {
+                  console.log('foo is bar')
+                } else {
+                  console.log('foo is not bar')
+                }
+                ~~~`,
+            },
+            {
+              label: 'Code block with some text around it',
+              value: dedent`
+                Here is some very good code:
+                ~~~ts
+                const foo: string = 'bar'
+                if (foo === 'bar') {
+                  console.log('foo is bar')
+                } else {
+                  console.log('foo is not bar')
+                }
+                ~~~
+                
+                Copy and paste that into your editor and you'll be good to go!`,
+            },
+            {
+              label: 'Inline code',
+              value: dedent`This is an example of \`inline code\`.`,
+            },
+            {
+              label: 'Some headings',
+              value: dedent`# Heading 1
+              ${faker.lorem.paragraph()}
+              ## Heading 2
+              ${faker.lorem.paragraph()}
+              ### Heading 3
+              ${faker.lorem.paragraph()}
+              #### Heading 4
+              ${faker.lorem.paragraph()}
+              ##### Heading 5
+              ${faker.lorem.paragraph()}
+              ###### Heading 6
+              ${faker.lorem.paragraph()}`,
+            },
+            {
+              label: 'Other elements',
+              value: dedent`This is a [link](https://www.google.com/)
+
+              This is a **bold** word, and then a quote:
+
+              > ${faker.lorem.paragraph()}
+
+              This is a horizontal rule:
+
+              ---
+              
+              ${faker.lorem.paragraph()}
+              `,
             },
           ],
         }),

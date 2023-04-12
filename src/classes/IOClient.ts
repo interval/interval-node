@@ -21,6 +21,8 @@ import {
   DisplayIOPromise,
   InputIOPromise,
   MultipleableIOPromise,
+  WithChoicesIOPromise,
+  WithChoicesIOPromiseValidator,
 } from './IOPromise'
 import IOError from './IOError'
 import spreadsheet from '../components/spreadsheet'
@@ -48,7 +50,7 @@ import {
   InputIOComponentFunction,
   RequiredPropsInputIOComponentFunction,
   GroupConfig,
-  ButtonConfig,
+  ChoiceButtonConfig,
   RequiredPropsMultipleableInputIOComponentFunction,
   MultipleableInputIOComponentFunction,
 } from '../types'
@@ -59,20 +61,29 @@ interface ClientConfig {
   logger: Logger
   send: IORenderSender
   isDemo?: boolean
+  displayResolvesImmediately?: boolean
   // onAddInlineAction: (handler: IntervalActionHandler) => string
 }
 
 export type IOClientRenderReturnValues<
   Components extends [AnyIOComponent, ...AnyIOComponent[]]
 > = {
-  [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
-    ? z.infer<Components[Idx]['schema']['returns']> | undefined
-    : Components[Idx]
+  choice?: string
+  returnValue: {
+    [Idx in keyof Components]: Components[Idx] extends AnyIOComponent
+      ? z.infer<Components[Idx]['schema']['returns']> | undefined
+      : Components[Idx]
+  }
 }
 
 export type IOClientRenderValidator<
   Components extends [AnyIOComponent, ...AnyIOComponent[]]
-> = IOPromiseValidator<IOClientRenderReturnValues<Components>>
+> =
+  | IOPromiseValidator<IOClientRenderReturnValues<Components>>
+  | WithChoicesIOPromiseValidator<
+      string,
+      IOClientRenderReturnValues<Components>['returnValue']
+    >
 
 /**
  * The client class that handles IO calls for a given transaction.
@@ -85,6 +96,7 @@ export class IOClient {
   logger: Logger
   send: IORenderSender
   isDemo: boolean
+  displayResolvesImmediately: boolean | undefined
   // onAddInlineAction: (handler: IntervalActionHandler) => string
 
   previousInputGroupKey: string | undefined
@@ -96,6 +108,7 @@ export class IOClient {
     this.logger = config.logger
     this.send = config.send
     this.isDemo = !!config.isDemo
+    this.displayResolvesImmediately = config.displayResolvesImmediately
     // this.onAddInlineAction = config.onAddInlineAction
   }
 
@@ -116,11 +129,15 @@ export class IOClient {
    */
   async renderComponents<
     Components extends [AnyIOComponent, ...AnyIOComponent[]]
-  >(
-    components: Components,
-    groupValidator?: IOClientRenderValidator<Components>,
-    continueButton?: ButtonConfig
-  ) {
+  >({
+    components,
+    validator: groupValidator,
+    choiceButtons,
+  }: {
+    components: Components
+    validator?: IOClientRenderValidator<Components>
+    choiceButtons?: ChoiceButtonConfig[]
+  }) {
     if (this.isCanceled) {
       // Transaction is already canceled, host attempted more IO calls
       throw new IOError('TRANSACTION_CLOSED')
@@ -132,6 +149,11 @@ export class IOClient {
       async (resolve, reject) => {
         const inputGroupKey = v4()
         let isReturned = false
+
+        let setChoice: (value: string | undefined) => void
+        const choice: Promise<string | undefined> = new Promise(resolve => {
+          setChoice = resolve
+        })
 
         const render = async () => {
           const packed: T_IO_RENDER_INPUT = {
@@ -151,7 +173,7 @@ export class IOClient {
               }),
             validationErrorMessage,
             kind: 'RENDER',
-            continueButton,
+            choiceButtons,
           }
 
           await this.send(packed)
@@ -215,9 +237,10 @@ export class IOClient {
               }
 
               if (groupValidator) {
-                validationErrorMessage = await groupValidator(
-                  result.values as IOClientRenderReturnValues<typeof components>
-                )
+                validationErrorMessage = await groupValidator({
+                  choice: result.choice as string,
+                  returnValue: result.values,
+                } as IOClientRenderReturnValues<typeof components> & { choice: string })
 
                 if (validationErrorMessage) {
                   render()
@@ -226,6 +249,7 @@ export class IOClient {
               }
 
               isReturned = true
+              setChoice(result.choice)
 
               result.values.forEach((v, index) => {
                 // @ts-ignore
@@ -276,10 +300,32 @@ export class IOClient {
 
         // Initial render
         render()
+          .then(() => {
+            for (const c of components) {
+              if (c.resolvesImmediately) {
+                // return value type will be validated inside the function
+                c.setReturnValue(null as never)
+              }
+            }
+          })
+          .catch(err => {
+            this.logger.warn('Failed resolving component immediately', err)
+          })
 
-        const response = (await Promise.all(
-          components.map(comp => comp.returnValue)
-        )) as unknown as Promise<IOClientRenderReturnValues<Components>>
+        const response = {
+          returnValue: await Promise.all(
+            components.map(comp => comp.returnValue)
+          ).then(returnValue => {
+            // If all the components have resolved without return being called
+            // then they must be immediately resolved, so return now if no choices required.
+            if (!isReturned && !choiceButtons?.length) {
+              setChoice(undefined)
+            }
+
+            return returnValue
+          }),
+          choice: await choice,
+        } as unknown as Promise<IOClientRenderReturnValues<Components>>
 
         resolve(response)
       }
@@ -330,6 +376,18 @@ export class IOClient {
     if (exclusivePromises.length > 0) {
       throw new IntervalError(
         `Components with the following labels are not supported inside groups, please remove them from the group: ${exclusivePromises
+          .map(pi => pi.component.label)
+          .join(', ')}`
+      )
+    }
+
+    const withChoicesPromises = promiseValues.filter(
+      pi => pi instanceof WithChoicesIOPromise
+    )
+
+    if (withChoicesPromises.length > 0) {
+      throw new IntervalError(
+        `Components with the following labels are chained with withChoices, which is not supported inside a group (call withChoices on the group itself instead): ${exclusivePromises
           .map(pi => pi.component.label)
           .join(', ')}`
       )
@@ -500,6 +558,7 @@ export class IOClient {
             this
           ) as ComponentRenderer<T_IO_MULTIPLEABLE_METHOD_NAMES>,
           label,
+          displayResolvesImmediately: this.displayResolvesImmediately,
         })
       }
 
@@ -521,6 +580,7 @@ export class IOClient {
               this
             ) as ComponentRenderer<T_IO_DISPLAY_METHOD_NAMES>,
             label,
+            displayResolvesImmediately: this.displayResolvesImmediately,
           })
         : new InputIOPromise({
             ...this.getPromiseProps(
@@ -539,6 +599,7 @@ export class IOClient {
               this
             ) as ComponentRenderer<T_IO_INPUT_METHOD_NAMES>,
             label,
+            displayResolvesImmediately: this.displayResolvesImmediately,
           })
     }
   }
@@ -571,6 +632,7 @@ export class IOClient {
           this
         ) as ComponentRenderer<MethodName>,
         label,
+        displayResolvesImmediately: this.displayResolvesImmediately,
       })
     }
   }
@@ -1027,7 +1089,7 @@ export class IOClient {
         /**
          * Displays data in a grid layout.
          *
-         * Grid items can include a title, description, image, and options menu, and can optionally link to another page, action, or external URL.
+         * Grid items can include a label, description, image, and options menu, and can optionally link to another page, action, or external URL.
          *
          * Grid item size can be controlled using the idealColumnWidth property. Interval will calculate a column width that is as close as possible to that number while factoring in gutter size and window width.
          *
@@ -1062,7 +1124,7 @@ export class IOClient {
          *     },
          *   ],
          *   renderItem: row => ({
-         *     title: row.album,
+         *     label: row.album,
          *     description: row.artist,
          *     image: {
          *       url: row.imageUrl,

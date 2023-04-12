@@ -1,14 +1,5 @@
-import { z } from 'zod'
-import fetch from 'cross-fetch'
-import superjson from '../utils/superjson'
 import Logger from './Logger'
-import Interval, {
-  IntervalActionDefinition,
-  IntervalError,
-  Page,
-  QueuedAction,
-} from '..'
-import { ENQUEUE_ACTION, DEQUEUE_ACTION } from '../internalRpcSchema'
+import Interval, { IntervalActionDefinition, Page, QueuedAction } from '..'
 import { Ctx } from 'evt'
 
 /**
@@ -35,104 +26,21 @@ export default class Routes {
     this.#groupChangeCtx = ctx
   }
 
-  #getAddress(path: string): string {
-    if (path.startsWith('/')) {
-      path = path.substring(1)
-    }
-
-    return `${this.#endpoint}/${path}`
-  }
-
+  /**
+   * @deprecated Use `interval.enqueue()` instead.
+   */
   async enqueue(
     slug: string,
-    { assignee, params }: Pick<QueuedAction, 'assignee' | 'params'> = {}
+    args: Pick<QueuedAction, 'assignee' | 'params'> = {}
   ): Promise<QueuedAction> {
-    let body: z.infer<typeof ENQUEUE_ACTION['inputs']>
-    try {
-      const { json, meta } = params
-        ? superjson.serialize(params)
-        : { json: undefined, meta: undefined }
-      body = ENQUEUE_ACTION.inputs.parse({
-        assignee,
-        slug,
-        params: json,
-        paramsMeta: meta,
-      })
-    } catch (err) {
-      this.#logger.debug(err)
-      throw new IntervalError('Invalid input.')
-    }
-
-    const response = await fetch(this.#getAddress('enqueue'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.#apiKey}`,
-      },
-      body: JSON.stringify(body),
-    })
-      .then(r => r.json())
-      .then(r => ENQUEUE_ACTION.returns.parseAsync(r))
-      .catch(err => {
-        this.#logger.debug(err)
-        throw new IntervalError('Received invalid API response.')
-      })
-
-    if (response.type === 'error') {
-      throw new IntervalError(
-        `There was a problem enqueuing the action: ${response.message}`
-      )
-    }
-
-    return {
-      id: response.id,
-      assignee,
-      params,
-    }
+    return this.interval.enqueue(slug, args)
   }
 
+  /**
+   * @deprecated Use `interval.dequeue()` instead.
+   */
   async dequeue(id: string): Promise<QueuedAction> {
-    let body: z.infer<typeof DEQUEUE_ACTION['inputs']>
-    try {
-      body = DEQUEUE_ACTION.inputs.parse({
-        id,
-      })
-    } catch (err) {
-      this.#logger.debug(err)
-      throw new IntervalError('Invalid input.')
-    }
-
-    const response = await fetch(this.#getAddress('dequeue'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.#apiKey}`,
-      },
-      body: JSON.stringify(body),
-    })
-      .then(r => r.json())
-      .then(r => DEQUEUE_ACTION.returns.parseAsync(r))
-      .catch(err => {
-        this.#logger.debug(err)
-        throw new IntervalError('Received invalid API response.')
-      })
-
-    if (response.type === 'error') {
-      throw new IntervalError(
-        `There was a problem enqueuing the action: ${response.message}`
-      )
-    }
-
-    let { type, params, paramsMeta, ...rest } = response
-
-    if (paramsMeta && params) {
-      params = superjson.deserialize({ json: params, meta: paramsMeta })
-    }
-
-    return {
-      ...rest,
-      params,
-    }
+    return this.interval.dequeue(id)
   }
 
   add(slug: string, route: IntervalActionDefinition | Page) {

@@ -11,7 +11,7 @@ import ISocket, { DataChannelSocket, ISocketConfig } from './ISocket'
 
 export type { DataChannel, IceServer }
 
-export default class DataChannelConnection {
+export class DataChannelConnection {
   peer: PeerConnection
   ds?: DataChannelSocket
   rpc?: DuplexRPCClient<ClientSchema, HostSchema>

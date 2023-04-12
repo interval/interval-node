@@ -17,11 +17,13 @@ export const INPUT_COMPONENT_TO_RENDER = DISPLAY_COMPONENT_TO_RENDER.merge(
     isMultiple: z.boolean().optional().default(false),
     isOptional: z.boolean().optional().default(false),
     validationErrorMessage: z.string().nullish(),
-    multipleProps: z.optional(
-      z.object({
-        defaultValue: z.optional(z.array(z.any())),
-      })
-    ),
+    multipleProps: z
+      .optional(
+        z.object({
+          defaultValue: z.optional(z.array(z.any())).nullable(),
+        })
+      )
+      .nullable(),
   })
 )
 
@@ -44,6 +46,15 @@ export const IO_RENDER = z.object({
   inputGroupKey: z.string(),
   toRender: z.array(COMPONENT_TO_RENDER),
   validationErrorMessage: z.string().nullish(),
+  choiceButtons: z
+    .array(
+      z.object({
+        label: z.string(),
+        value: z.string(),
+        theme: buttonTheme.optional(),
+      })
+    )
+    .nullish(),
   continueButton: z
     .object({
       label: z.string().optional(),
@@ -62,6 +73,7 @@ export const IO_RESPONSE = z.object({
     z.literal('SET_STATE'),
     z.literal('CANCELED'),
   ]),
+  choice: z.string().optional(),
   values: z.array(z.any()),
   valuesMeta: z.any().optional(),
 })
@@ -310,7 +322,7 @@ export const internalTableColumn = z.object({
 })
 
 export const gridItem = z.object({
-  title: z.string().nullable().optional(),
+  label: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   image: z
     .object({
@@ -327,13 +339,23 @@ export const gridItem = z.object({
   params: serializableRecord.optional(),
 })
 
+export const backwardCompatibleGridItem = gridItem.merge(
+  z.object({
+    // @deprecated in favor of label
+    title: z.string().nullable().optional(),
+  })
+)
+
 export const internalGridItem = z.object({
-  data: gridItem,
+  data: backwardCompatibleGridItem,
   key: z.string(),
   filterValue: z.string().optional(),
 })
 
-export type GridItem = z.infer<typeof gridItem>
+export type GridItem = z.input<typeof gridItem>
+export type BackwardCompatibleGridItem = z.input<
+  typeof backwardCompatibleGridItem
+>
 export type InternalGridItem = z.infer<typeof internalGridItem>
 
 const searchResult = z.object({
@@ -374,7 +396,15 @@ export type DateTimeObject = z.infer<typeof dateTimeObject>
  * Any methods with an `immediate` property defined (at all, not just truthy)
  * will resolve immediately when awaited.
  */
-export function resolvesImmediately(methodName: T_IO_METHOD_NAMES): boolean {
+export function resolvesImmediately(
+  methodName: T_IO_METHOD_NAMES,
+  {
+    displayResolvesImmediately = false,
+  }: { displayResolvesImmediately?: boolean } = {}
+): boolean {
+  if (displayResolvesImmediately && methodName.startsWith('DISPLAY_'))
+    return true
+
   const schema = ioSchema[methodName]
   return schema && 'immediate' in schema && schema.immediate
 }
@@ -550,7 +580,7 @@ const INPUT_SCHEMA = {
     props: z.object({
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
-      defaultValue: z.optional(z.string()),
+      defaultValue: z.optional(z.string()).nullable(),
       multiline: z.optional(z.boolean()),
       lines: z.optional(z.number()),
       minLength: z.optional(z.number().int().positive()),
@@ -564,7 +594,7 @@ const INPUT_SCHEMA = {
     props: z.object({
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
-      defaultValue: z.optional(z.string()),
+      defaultValue: z.optional(z.string()).nullable(),
       disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.null(),
@@ -577,7 +607,7 @@ const INPUT_SCHEMA = {
       prepend: z.optional(z.string()),
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
-      defaultValue: z.optional(z.number()),
+      defaultValue: z.optional(z.number()).nullable(),
       decimals: z.optional(z.number().positive().int()),
       currency: z.optional(currencyCode),
       disabled: z.optional(z.boolean().default(false)),
@@ -589,7 +619,7 @@ const INPUT_SCHEMA = {
     props: z.object({
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
-      defaultValue: z.optional(z.string()),
+      defaultValue: z.optional(z.string()).nullable(),
       allowedProtocols: z.array(z.string()).default(['http', 'https']),
       disabled: z.optional(z.boolean().default(false)),
     }),
@@ -599,7 +629,11 @@ const INPUT_SCHEMA = {
   INPUT_BOOLEAN: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.boolean().default(false),
+      defaultValue: z
+        .boolean()
+        .nullable()
+        .default(false)
+        .transform(val => !!val),
       disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.null(),
@@ -609,7 +643,7 @@ const INPUT_SCHEMA = {
     props: z.object({
       helpText: z.optional(z.string()),
       placeholder: z.optional(z.string()),
-      defaultValue: z.optional(z.string()),
+      defaultValue: z.optional(z.string()).nullable(),
       disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.null(),
@@ -618,7 +652,7 @@ const INPUT_SCHEMA = {
   INPUT_DATE: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(dateObject),
+      defaultValue: z.optional(dateObject).nullable(),
       min: z.optional(dateObject),
       max: z.optional(dateObject),
       disabled: z.optional(z.boolean().default(false)),
@@ -629,7 +663,7 @@ const INPUT_SCHEMA = {
   INPUT_TIME: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(timeObject),
+      defaultValue: z.optional(timeObject).nullable(),
       min: z.optional(timeObject),
       max: z.optional(timeObject),
       disabled: z.optional(z.boolean().default(false)),
@@ -640,7 +674,7 @@ const INPUT_SCHEMA = {
   INPUT_DATETIME: {
     props: z.object({
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(dateTimeObject),
+      defaultValue: z.optional(dateTimeObject).nullable(),
       min: z.optional(dateTimeObject),
       max: z.optional(dateTimeObject),
       disabled: z.optional(z.boolean().default(false)),
@@ -651,7 +685,7 @@ const INPUT_SCHEMA = {
   INPUT_SPREADSHEET: {
     props: z.object({
       helpText: z.string().optional(),
-      defaultValue: z.optional(z.array(deserializableRecord)),
+      defaultValue: z.optional(z.array(deserializableRecord)).nullable(),
       columns: z.record(typeValue),
     }),
     state: z.null(),
@@ -701,7 +735,7 @@ const INPUT_SCHEMA = {
   SEARCH: {
     props: z.object({
       results: z.array(searchResult),
-      defaultValue: z.optional(z.string()),
+      defaultValue: z.optional(z.string()).nullable(),
       placeholder: z.optional(z.string()),
       helpText: z.optional(z.string()),
       disabled: z.optional(z.boolean().default(false)),
@@ -761,7 +795,7 @@ const INPUT_SCHEMA = {
     props: z.object({
       options: z.array(richSelectOption),
       helpText: z.optional(z.string()),
-      defaultValue: z.optional(richSelectOption),
+      defaultValue: z.optional(richSelectOption).nullable(),
       searchable: z.optional(z.boolean()),
       disabled: z.optional(z.boolean().default(false)),
     }),
@@ -774,7 +808,9 @@ const INPUT_SCHEMA = {
       helpText: z.optional(z.string()),
       defaultValue: z
         .array(labelValue)
-        .default([] as z.infer<typeof labelValue>[]),
+        .nullable()
+        .default([] as z.infer<typeof labelValue>[])
+        .transform(val => val ?? []),
       minSelections: z.optional(z.number().int().min(0)),
       maxSelections: z.optional(z.number().positive().int()),
       disabled: z.optional(z.boolean().default(false)),
@@ -833,7 +869,7 @@ export type T_IO_STATE<MN extends T_IO_METHOD_NAMES> = z.infer<
   T_IO_Schema[MN]['state']
 >
 
-type JSONPrimitive = string | number | boolean | null
+export type JSONPrimitive = string | number | boolean | null
 
 export type RawActionReturnData = Record<string, JSONPrimitive>
 
@@ -843,16 +879,9 @@ export type IOFunctionReturnType =
   | Serializable
   | undefined
 
-export type ParsedActionReturnDataValue =
-  | JSONPrimitive
-  | {
-      dataKind?: 'link'
-      value: string
-    }
-
 export type ParsedActionReturnData =
-  | Record<string, ParsedActionReturnDataValue>
-  | ParsedActionReturnDataValue
+  | Record<string, JSONPrimitive>
+  | JSONPrimitive
 
 export type ActionResultSchema = {
   schemaVersion: 0 | 1

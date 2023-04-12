@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker'
+import dedent from 'dedent'
 import fakeUsers from './fakeUsers'
 
 export function sleep(ms: number) {
@@ -78,6 +79,25 @@ export function generateRows(count: number, offset = 0) {
         faker.random.word(),
         faker.random.words(),
         faker.lorem.paragraph(),
+        dedent`## ${faker.random.words()}
+
+        ${faker.random.words()}
+        `,
+        `${faker.random.words()} **${faker.random.word()}** ${faker.random.words()}`,
+        `${faker.random.words()} _${faker.random.word()}_ ${faker.random.words()}`,
+        `${faker.random.words()} [${faker.random.word()}](${faker.internet.url()}) ${faker.random.words()}`,
+        dedent`- ${faker.random.word()}
+         - ${faker.random.word()}
+         - ${faker.random.word()}
+        `,
+        dedent`1. ${faker.random.word()}
+         2. ${faker.random.word()}
+         3. ${faker.random.word()}
+        `,
+        `Here is \`inline code\``,
+        dedent`~~~ts
+        console.log("hello, world!");
+        ~~~`,
       ]),
       number: faker.datatype.number(100),
       boolean: faker.datatype.boolean(),

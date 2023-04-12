@@ -32,22 +32,33 @@ export type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
 
 export const TRANSACTION_RESULT_SCHEMA_VERSION = 1
 
-export const actionEnvironment = z.enum(['live', 'development'])
+export const actionMode = z.enum(['live', 'console'])
+
+export const actionEnvironment = z
+  .enum(['production', 'development'])
+  .or(z.string())
 
 export type ActionEnvironment = z.infer<typeof actionEnvironment>
 
 export const LOADING_OPTIONS = z.object({
-  title: z.string().optional(),
+  label: z.string().optional(),
   description: z.string().optional(),
   itemsInQueue: z.number().int().optional(),
 })
 
 const LOADING_STATE = z.object({
-  title: z.string().optional(),
+  label: z.string().optional(),
   description: z.string().optional(),
   itemsInQueue: z.number().int().optional(),
   itemsCompleted: z.number().int().optional(),
 })
+
+const BACKWARD_COMPATIBLE_LOADING_STATE = LOADING_STATE.merge(
+  z.object({
+    /** @deprecated in favor of `label` (for real this time) */
+    title: z.string().optional(),
+  })
+)
 
 const SDK_ALERT = z.object({
   minSdkVersion: z.string(),
@@ -58,7 +69,14 @@ const SDK_ALERT = z.object({
 export type SdkAlert = z.infer<typeof SDK_ALERT>
 
 export type LoadingOptions = z.input<typeof LOADING_OPTIONS>
+export type BackwardCompatibleLoadingOptions = LoadingOptions & {
+  /** @deprecated Please use `label` instead. */
+  title?: string
+}
 export type LoadingState = z.input<typeof LOADING_STATE>
+export type BackwardCompatibleLoadingState = z.input<
+  typeof BACKWARD_COMPATIBLE_LOADING_STATE
+>
 
 export const ACCESS_CONTROL_DEFINITION = z.union([
   z.literal('entire-organization'),
@@ -262,7 +280,7 @@ export const wsServerSchema = {
     inputs: z.object({
       pageKey: z.string().optional(),
       pageSlug: z.string(),
-      actionEnvironment,
+      actionMode,
       organizationEnvironmentId: z.string(),
       params: serializableRecord.optional(),
     }),
@@ -308,10 +326,9 @@ export const wsServerSchema = {
   },
   SEND_LOADING_CALL: {
     inputs: z.intersection(
-      LOADING_STATE,
+      BACKWARD_COMPATIBLE_LOADING_STATE,
       z.object({
         transactionId: z.string(),
-        label: z.string().optional(),
         skipClientCall: z.boolean().optional(),
       })
     ),
@@ -377,6 +394,7 @@ export const wsServerSchema = {
         sdkName: z.string().optional(),
         sdkVersion: z.string().optional(),
         requestId: z.string().optional(),
+        timestamp: z.number().optional(),
       }),
       z.union([
         z.object({
@@ -412,6 +430,20 @@ export const wsServerSchema = {
         }),
       ])
       .nullable(),
+  },
+  BEGIN_HOST_SHUTDOWN: {
+    // intentional empty object to allow for future additions
+    // and to support current `skipClientCall` behavior
+    inputs: z.object({}),
+    returns: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('success'),
+      }),
+      z.object({
+        type: z.literal('error'),
+        message: z.string().optional(),
+      }),
+    ]),
   },
 }
 
@@ -465,7 +497,7 @@ export const clientSchema = {
       .object({
         transactionId: z.string(),
       })
-      .merge(LOADING_STATE),
+      .merge(BACKWARD_COMPATIBLE_LOADING_STATE),
     returns: z.boolean(),
   },
   LOG: {
@@ -545,7 +577,7 @@ export const hostSchema = {
       transactionId: z.string(),
       clientId: z.string().optional(),
 
-      postponeCompleteCleanup: z.boolean().optional(),
+      displayResolvesImmediately: z.boolean().optional(),
 
       // Actually slug, for backward compatibility
       // TODO: Remove breaking release, superfluous with slug below
@@ -584,5 +616,5 @@ export const hostSchema = {
 export type HostSchema = typeof hostSchema
 
 export type PeerConnectionInitializer = (
-  inputs: z.infer<typeof INITIALIZE_PEER_CONNECTION['inputs']>
-) => Promise<z.infer<typeof INITIALIZE_PEER_CONNECTION['returns']>>
+  inputs: z.infer<(typeof INITIALIZE_PEER_CONNECTION)['inputs']>
+) => Promise<z.infer<(typeof INITIALIZE_PEER_CONNECTION)['returns']>>

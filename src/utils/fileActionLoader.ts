@@ -2,11 +2,14 @@
  * Loads actions from the file system
  */
 import path from 'path'
-import fs from 'fs/promises'
+import fsRoot from 'fs'
+import { import_ } from '@brillout/import'
 
 import Action from '../classes/Action'
 import Page from '../classes/Page'
 import Logger from '../classes/Logger'
+
+const fs = fsRoot.promises
 
 async function loadFolder(currentDirectory: string, logger: Logger) {
   const absPath = path.resolve(currentDirectory)
@@ -26,43 +29,62 @@ async function loadFolder(currentDirectory: string, logger: Logger) {
 
     const ext = path.extname(file)
     const slug = path.basename(file, ext || undefined)
+
+    const attemptLoadRoute = (fileExports: any) => {
+      if (slug === 'index') {
+        if ('default' in fileExports) {
+          let defaultExport = fileExports.default
+          if ('default' in defaultExport) {
+            defaultExport = defaultExport.default
+          }
+
+          if (defaultExport instanceof Page) {
+            Object.assign(defaultExport.routes, router.routes)
+            router = defaultExport
+          } else {
+            logger.warn(
+              `Default export of ${fullPath} is not a Page class instance, skipping.`
+            )
+          }
+        }
+      } else {
+        if ('default' in fileExports) {
+          let defaultExport = fileExports.default
+          if ('default' in defaultExport) {
+            defaultExport = defaultExport.default
+          }
+
+          if (
+            defaultExport instanceof Page ||
+            defaultExport instanceof Action
+          ) {
+            router.routes[slug] = defaultExport
+          } else {
+            logger.warn(
+              `Default export of ${fullPath} is not a Page or Action class instance, skipping.`
+            )
+          }
+        }
+      }
+    }
+
     if ((await fs.stat(fullPath)).isDirectory()) {
       const group = await loadFolder(path.join(currentDirectory, slug), logger)
       router.routes[slug] = group
-    } else if (ext === '.ts' || ext === '.js') {
+    } else if (ext === '.ts' || ext === '.js' || ext === '.mjs') {
       try {
-        const fileExports = await import(fullPath)
-
-        if (slug === 'index') {
-          if ('default' in fileExports) {
-            if (fileExports.default instanceof Page) {
-              Object.assign(fileExports.default.routes, router.routes)
-              router = fileExports.default
-            } else {
-              logger.warn(
-                `Default export of ${fullPath} is not a Page class instance, skipping.`
-              )
-            }
-          }
-        } else {
-          if ('default' in fileExports) {
-            if (
-              fileExports.default instanceof Page ||
-              fileExports.default instanceof Action
-            ) {
-              router.routes[slug] = fileExports.default
-            } else {
-              logger.warn(
-                `Default export of ${fullPath} is not a Page or Action class instance, skipping.`
-              )
-            }
-          }
-        }
+        attemptLoadRoute(await import(fullPath))
       } catch (err) {
-        logger.warn(
-          `Failed loading file at ${fullPath} as module, skipping.`,
+        logger.debug(
+          `Failed loading file at ${fullPath} as CommonJS, trying again as module.`,
           err
         )
+
+        try {
+          attemptLoadRoute(await import_(fullPath))
+        } catch (err) {
+          logger.warn(`Failed loading file at ${fullPath}, skipping.`, err)
+        }
       }
     }
   }
@@ -70,7 +92,7 @@ async function loadFolder(currentDirectory: string, logger: Logger) {
   return router
 }
 
-export default async function loadRoutesFromFileSystem(
+export async function loadRoutesFromFileSystem(
   dirPath: string,
   logger: Logger
 ) {
