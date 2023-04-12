@@ -153,7 +153,7 @@ export const ctx: ActionCtx & PageCtx = {
   get action() { return getActionStore().ctx.action },
   get page() { return getPageStore().ctx.page },
   get notify() { return getActionStore().ctx.notify },
-  get redirect() { return getActionStore().ctx.redirect },
+  get redirect() { return getSomeStore().ctx.redirect },
 }
 
 export default class Interval {
