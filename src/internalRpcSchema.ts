@@ -367,6 +367,7 @@ export const wsServerSchema = {
       z.object({
         transactionId: z.string(),
         skipClientCall: z.boolean().optional(),
+        replace: z.boolean().optional(),
       }),
       legacyLinkSchema
     ),
@@ -528,6 +529,7 @@ export const clientSchema = {
     inputs: z.intersection(
       z.object({
         transactionId: z.string(),
+        replace: z.boolean().optional(),
       }),
       linkSchema
     ),

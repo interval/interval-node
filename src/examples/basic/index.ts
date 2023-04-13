@@ -187,6 +187,7 @@ const redirect_page_test = new Page({
     await ctx.redirect({
       route: 'echoContext',
       params: { from: 'redirect_page_test' },
+      replace: true,
     })
 
     // Not necessary after #1206 is merged
