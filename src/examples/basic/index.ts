@@ -96,6 +96,32 @@ const sidebar_depth = new Page({
   },
 })
 
+const empty_page = new Page({
+  name: 'Empty page',
+  handler: async () => {
+    if (ctx.params.show_layout) {
+      return new Layout({
+        title: 'Contents!',
+        children: [io.display.markdown('Children!')],
+        menuItems: [
+          {
+            label: 'Hide layout',
+            route: 'empty_page',
+          },
+        ],
+      })
+    }
+  },
+  routes: {
+    child_action: new Action(async () => {
+      return 'Hello!'
+    }),
+    show_layout: new Action(async () => {
+      ctx.redirect({ route: 'empty_page', params: { show_layout: 1 } })
+    }),
+  },
+})
+
 const confirmIdentity = new Action({
   name: 'Confirm identity',
   handler: async () => {
@@ -335,6 +361,7 @@ const prod = new Interval({
         },
       })
     },
+    empty_page,
     grids: gridsPage,
     tables: new Page({
       name: 'Tables',
@@ -421,6 +448,7 @@ const interval = new Interval({
   routes: {
     sidebar_depth,
     echoContext,
+    empty_page,
     inputRightAfterDisplay: async () => {
       await io.display.link('Display', {
         url: '',

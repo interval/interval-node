@@ -210,7 +210,7 @@ export type IntervalRouteDefinitions = Record<
 export type IntervalPageHandler = (
   display: IO['display'],
   ctx: PageCtx
-) => Promise<Layout>
+) => Promise<Layout | undefined>
 
 export type RequiredPropsIOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
