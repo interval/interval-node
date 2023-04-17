@@ -96,6 +96,60 @@ const sidebar_depth = new Page({
   },
 })
 
+const empty_page = new Page({
+  name: 'Empty page',
+  handler: async () => {
+    if (ctx.params.show_layout) {
+      return new Layout({
+        title: 'Contents!',
+        children: [io.display.markdown('Children!')],
+        menuItems: [
+          {
+            label: 'Hide layout',
+            route: 'empty_page',
+          },
+        ],
+      })
+    }
+  },
+  routes: {
+    child_action: new Action(async () => {
+      await io.group([
+        io.display.link('Go to unlisted action', {
+          route: 'empty_page/unlisted_action',
+          theme: 'secondary',
+        }),
+        io.display.link('Go to unlisted page', {
+          route: 'empty_page/unlisted_page',
+          theme: 'secondary',
+        }),
+      ])
+    }),
+    unlisted_action: new Action({
+      unlisted: true,
+      handler: async () => {
+        return 'Hello!'
+      },
+    }),
+    unlisted_page: new Page({
+      name: 'Unlisted page',
+      unlisted: true,
+      handler: async () => {
+        return new Layout({
+          children: [
+            io.display.markdown(
+              'This page is unlisted, but you can still access it!'
+            ),
+          ],
+        })
+      },
+    }),
+    show_layout: new Action(async () => {
+      ctx.redirect({ route: 'empty_page', params: { show_layout: 1 } })
+    }),
+  },
+})
+
 const confirmIdentity = new Action({
   name: 'Confirm identity',
   handler: async () => {
@@ -350,6 +404,7 @@ const prod = new Interval({
         },
       })
     },
+    empty_page,
     grids: gridsPage,
     tables: new Page({
       name: 'Tables',
@@ -437,6 +492,7 @@ const interval = new Interval({
     sidebar_depth,
     echoContext,
     redirect_page_test,
+    empty_page,
     inputRightAfterDisplay: async () => {
       await io.display.link('Display', {
         url: '',

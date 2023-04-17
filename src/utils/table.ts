@@ -36,7 +36,7 @@ export function columnsBuilder<Row extends z.infer<typeof tableRow>>(
   return props.columns.map(column => {
     const accessorKey = typeof column === 'string' ? column : column.accessorKey
 
-    if (accessorKey && props.data && !dataColumns.has(accessorKey)) {
+    if (accessorKey && props.data?.length && !dataColumns.has(accessorKey)) {
       logMissingColumn(accessorKey)
     }
 

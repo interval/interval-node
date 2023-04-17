@@ -1368,7 +1368,7 @@ export default class IntervalClient {
             intervalClient.#sendRedirect(pageKey, props),
         }
 
-        let page: Layout
+        let page: Layout | undefined = undefined
         let menuItems: InternalButtonItem[] | undefined = undefined
         let renderInstruction: T_IO_RENDER_INPUT | undefined = undefined
         let errors: PageError[] = []
@@ -1376,8 +1376,9 @@ export default class IntervalClient {
         const MAX_PAGE_RETRIES = 5
 
         const sendPage = async () => {
+          let pageLayout: LayoutSchemaInput | undefined
           if (page instanceof BasicLayout) {
-            const pageLayout: LayoutSchemaInput = {
+            pageLayout = {
               kind: 'BASIC',
               title:
                 page.title === undefined
@@ -1401,33 +1402,35 @@ export default class IntervalClient {
                 'The `metadata` property on `Layout` is deprecated. Please use `io.display.metadata` in the `children` array instead.'
               )
             }
+          }
 
-            if (this.#config.getClientHandlers) {
-              await this.#config.getClientHandlers()?.RENDER_PAGE({
-                pageKey,
-                page: JSON.stringify(pageLayout),
-                hostInstanceId: 'demo',
-              })
-            } else {
-              for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
-                try {
-                  const page = JSON.stringify(pageLayout)
+          if (this.#config.getClientHandlers) {
+            await this.#config.getClientHandlers()?.RENDER_PAGE({
+              pageKey,
+              page: pageLayout ? JSON.stringify(pageLayout) : undefined,
+              hostInstanceId: 'demo',
+            })
+          } else {
+            for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
+              try {
+                const page = pageLayout ? JSON.stringify(pageLayout) : undefined
+                if (page) {
                   this.#pendingPageLayouts.set(pageKey, page)
-                  await this.#send('SEND_PAGE', {
-                    pageKey,
-                    page,
-                  })
-                  return
-                } catch (err) {
-                  this.#logger.debug('Failed sending page', err)
-                  this.#logger.debug('Retrying in', this.#retryIntervalMs)
-                  await sleep(this.#retryIntervalMs)
                 }
+                await this.#send('SEND_PAGE', {
+                  pageKey,
+                  page,
+                })
+                return
+              } catch (err) {
+                this.#logger.debug('Failed sending page', err)
+                this.#logger.debug('Retrying in', this.#retryIntervalMs)
+                await sleep(this.#retryIntervalMs)
               }
-              throw new IntervalError(
-                'Unsuccessful sending page, max retries exceeded.'
-              )
             }
+            throw new IntervalError(
+              'Unsuccessful sending page, max retries exceeded.'
+            )
           }
         }
 
@@ -1521,6 +1524,11 @@ export default class IntervalClient {
             .then(res => {
               page = res
 
+              if (!page) {
+                scheduleSendPage()
+                return
+              }
+
               if (typeof page.title === 'function') {
                 try {
                   page.title = page.title()
@@ -1533,8 +1541,10 @@ export default class IntervalClient {
               if (page.title instanceof Promise) {
                 page.title
                   .then(title => {
-                    page.title = title
-                    scheduleSendPage()
+                    if (page) {
+                      page.title = title
+                      scheduleSendPage()
+                    }
                   })
                   .catch(err => {
                     this.#logger.error(err)
@@ -1556,8 +1566,10 @@ export default class IntervalClient {
                 if (page.description instanceof Promise) {
                   page.description
                     .then(description => {
-                      page.description = description
-                      scheduleSendPage()
+                      if (page) {
+                        page.description = description
+                        scheduleSendPage()
+                      }
                     })
                     .catch(err => {
                       this.#logger.error(err)
@@ -1591,7 +1603,7 @@ export default class IntervalClient {
                 )
               }
 
-              if (page.children) {
+              if (page.children?.length) {
                 group(page.children).then(
                   () => {
                     this.#logger.debug(
