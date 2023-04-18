@@ -144,7 +144,7 @@ export const multiple_tables: IntervalActionHandler = async io => {
 export const big_payload_table = new Page({
   name: 'Big table',
   handler: async () => {
-    const bigData = generateRows(100000)
+    const bigData = generateRows(10_000)
 
     return new Layout({
       children: [
@@ -311,7 +311,7 @@ export const table_custom: IntervalActionHandler = async io => {
 
   const rows: { [key: string]: any }[] = []
   for (let i = 0; i < rowsCount; i++) {
-    const row: typeof rows[0] = {}
+    const row: (typeof rows)[0] = {}
     for (const field of fields) {
       switch (field.value) {
         case 'id':

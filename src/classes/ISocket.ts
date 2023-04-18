@@ -224,7 +224,7 @@ export default class ISocket {
    * Send a `MESSAGE` containing data to the connected counterpart,
    * throwing an error if `ACK` is not received within `sendTimeout`.
    */
-  async send(data: string) {
+  async send(data: string, options: { timeoutFactor?: number } = {}) {
     if (this.isClosed) throw new NotConnectedError()
 
     return new Promise<void>((resolve, reject) => {
@@ -232,7 +232,7 @@ export default class ISocket {
 
       const failTimeout = setTimeout(() => {
         reject(new TimeoutError())
-      }, this.sendTimeout)
+      }, this.sendTimeout * (options.timeoutFactor ?? 1))
 
       this.timeouts.add(failTimeout)
 
@@ -280,8 +280,8 @@ export default class ISocket {
 
     this.id = config?.id || v4()
     this.connectTimeout = config?.connectTimeout ?? 15_000
-    this.sendTimeout = config?.sendTimeout ?? 3000
-    this.pingTimeout = config?.pingTimeout ?? 3000
+    this.sendTimeout = config?.sendTimeout ?? 5000
+    this.pingTimeout = config?.pingTimeout ?? 5000
     this.isAuthenticated = false
 
     this.onClose.attach(() => {

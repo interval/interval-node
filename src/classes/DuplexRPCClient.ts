@@ -278,7 +278,10 @@ export class DuplexRPCClient<
 
   public async send<MethodName extends keyof CallerSchema>(
     methodName: MethodName,
-    inputs: z.input<CallerSchema[MethodName]['inputs']>
+    inputs: z.input<CallerSchema[MethodName]['inputs']>,
+    options: {
+      timeoutFactor?: number
+    } = {}
   ) {
     const id = generateId()
 
@@ -335,7 +338,7 @@ export class DuplexRPCClient<
           }
         })
       } else {
-        this.communicator.send(msg).catch(err => {
+        this.communicator.send(msg, options).catch(err => {
           reject(err)
         })
       }

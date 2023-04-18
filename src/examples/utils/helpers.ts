@@ -100,6 +100,11 @@ export function generateRows(count: number, offset = 0) {
         ~~~`,
       ]),
       number: faker.datatype.number(100),
+      ...Object.fromEntries(
+        Array(50)
+          .fill(null)
+          .map((_, i) => [`text_${i}`, faker.lorem.paragraph()])
+      ),
       boolean: faker.datatype.boolean(),
       date: faker.datatype.datetime(),
       image: faker.image.imageUrl(

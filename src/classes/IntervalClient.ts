@@ -113,6 +113,7 @@ export default class IntervalClient {
   #completeHttpRequestDelayMs: number = 3000
   #completeShutdownDelayMs: number = 3000
   #retryIntervalMs: number = 3000
+  #maxResendAttempts: number = 10
   #pingIntervalMs: number = 30_000
   #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
   #reinitializeBatchTimeoutMs: number = 200
@@ -173,6 +174,10 @@ export default class IntervalClient {
       config.completeHttpRequestDelayMs > 0
     ) {
       this.#completeHttpRequestDelayMs = config.completeHttpRequestDelayMs
+    }
+
+    if (config.maxResendAttempts && config.maxResendAttempts > 0) {
+      this.#maxResendAttempts = config.maxResendAttempts
     }
 
     this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
@@ -499,7 +504,8 @@ export default class IntervalClient {
         )
       : new Map(this.#pendingIOCalls)
 
-    while (toResend.size > 0) {
+    let attemptNumber = 1
+    while (toResend.size > 0 && attemptNumber <= this.#maxResendAttempts) {
       await Promise.allSettled(
         Array.from(toResend.entries()).map(([transactionId, ioCall]) =>
           this.#send('SEND_IO_CALL', {
@@ -534,15 +540,16 @@ export default class IntervalClient {
                 this.#logger.debug('Failed resending pending IO call:', err)
               }
 
+              const retrySleepMs = this.#retryIntervalMs * attemptNumber
               this.#logger.debug(
-                `Trying again in ${Math.round(
-                  this.#retryIntervalMs / 1000
-                )}s...`
+                `Trying again in ${Math.round(retrySleepMs / 1000)}s...`
               )
-              await sleep(this.#retryIntervalMs)
+              await sleep(retrySleepMs)
             })
         )
       )
+
+      attemptNumber++
     }
   }
 
@@ -560,7 +567,8 @@ export default class IntervalClient {
         )
       : new Map(this.#pendingPageLayouts)
 
-    while (toResend.size > 0) {
+    let attemptNumber = 1
+    while (toResend.size > 0 && attemptNumber <= this.#maxResendAttempts) {
       await Promise.allSettled(
         Array.from(toResend.entries()).map(([pageKey, page]) =>
           this.#send('SEND_PAGE', {
@@ -595,15 +603,16 @@ export default class IntervalClient {
                 this.#logger.debug('Failed resending pending page layout:', err)
               }
 
+              const retrySleepMs = this.#retryIntervalMs * attemptNumber
               this.#logger.debug(
-                `Trying again in ${Math.round(
-                  this.#retryIntervalMs / 1000
-                )}s...`
+                `Trying again in ${Math.round(retrySleepMs / 1000)}s...`
               )
-              await sleep(this.#retryIntervalMs)
+              await sleep(retrySleepMs)
             })
         )
       )
+
+      attemptNumber++
     }
   }
 
@@ -621,7 +630,8 @@ export default class IntervalClient {
         )
       : new Map(this.#transactionLoadingStates)
 
-    while (toResend.size > 0) {
+    let attemptNumber = 0
+    while (toResend.size > 0 && attemptNumber <= this.#maxResendAttempts) {
       await Promise.allSettled(
         Array.from(toResend.entries()).map(([transactionId, loadingState]) =>
           this.#send('SEND_LOADING_CALL', {
@@ -657,15 +667,16 @@ export default class IntervalClient {
                 this.#logger.debug('Failed resending pending IO call:', err)
               }
 
+              const retrySleepMs = this.#retryIntervalMs * attemptNumber
               this.#logger.debug(
-                `Trying again in ${Math.round(
-                  this.#retryIntervalMs / 1000
-                )}s...`
+                `Trying again in ${Math.round(retrySleepMs / 1000)}s...`
               )
-              await sleep(this.#retryIntervalMs)
+              await sleep(retrySleepMs)
             })
         )
       )
+
+      attemptNumber++
     }
   }
 
@@ -2003,27 +2014,41 @@ export default class IntervalClient {
       this.#logger.debug('Error from peer RPC', err)
     }
 
-    while (true) {
+    for (
+      let attemptNumber = 1;
+      attemptNumber <= this.#maxResendAttempts;
+      attemptNumber++
+    ) {
       try {
         this.#logger.debug('Sending via server', methodName, inputs)
-        return await this.#serverRpc.send(methodName, {
-          ...inputs,
-          skipClientCall,
-        })
+        return await this.#serverRpc.send(
+          methodName,
+          {
+            ...inputs,
+            skipClientCall,
+          },
+          {
+            timeoutFactor: attemptNumber,
+          }
+        )
       } catch (err) {
+        const sleepTimeBeforeRetrying = this.#retryIntervalMs * attemptNumber
+
         if (err instanceof TimeoutError) {
           this.#log.debug(
             `RPC call timed out, retrying in ${Math.round(
-              this.#retryIntervalMs / 1000
+              sleepTimeBeforeRetrying / 1000
             )}s...`
           )
           this.#log.debug(err)
-          sleep(this.#retryIntervalMs)
+          sleep(sleepTimeBeforeRetrying)
         } else {
           throw err
         }
       }
     }
+
+    throw new IntervalError('Maximum failed resend attempts reached, aborting.')
   }
 
   /**
