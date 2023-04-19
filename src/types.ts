@@ -538,3 +538,11 @@ export type PageError = {
   cause?: string
   layoutKey?: keyof BasicLayoutConfig
 }
+
+export type IntervalErrorProps = {
+  error: Error | unknown
+  route: string
+  routeDefinition: Action | Page | undefined
+}
+
+export type IntervalErrorHandler = (props: IntervalErrorProps) => void

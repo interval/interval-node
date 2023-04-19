@@ -51,12 +51,14 @@ import type {
   PageError,
   IntervalRouteDefinitions,
   IntervalPageHandler,
+  IntervalErrorHandler,
 } from '../types'
 import type { DataChannelConnection } from './DataChannelConnection'
 import type { IceServer } from './DataChannelConnection'
 import TransactionLoadingState from './TransactionLoadingState'
 import { Interval, InternalConfig, IntervalError } from '..'
 import Page from './Page'
+import Action from './Action'
 import {
   Layout,
   BasicLayout,
@@ -121,6 +123,7 @@ export default class IntervalClient {
   #resolveShutdown: (() => void) | undefined
   #config: InternalConfig
 
+  #routes: Map<string, Action | Page> = new Map()
   #actionDefinitions: ActionDefinition[] = []
   #pageDefinitions: PageDefinition[] = []
   #actionHandlers: Map<string, IntervalActionHandler> = new Map()
@@ -134,6 +137,8 @@ export default class IntervalClient {
     | undefined
   environment: ActionEnvironment | undefined
   #forcePeerMessages = false
+
+  #onError: IntervalErrorHandler | undefined
 
   constructor(interval: Interval, config: InternalConfig) {
     this.#interval = interval
@@ -180,43 +185,55 @@ export default class IntervalClient {
     if (config.setHostHandlers) {
       config.setHostHandlers(this.#createRPCHandlers())
     }
+
+    if (config.onError) {
+      this.#onError = config.onError
+    }
   }
 
   async #walkRoutes() {
+    const routes = new Map<string, Action | Page>()
+
     const pageDefinitions: PageDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
     const actionHandlers = new Map<string, IntervalActionHandler>()
     const pageHandlers = new Map<string, IntervalPageHandler>()
 
-    function walkRouter(groupSlug: string, router: Page) {
+    function walkRouter(groupSlug: string, page: Page) {
+      routes.set(groupSlug, page)
+
       pageDefinitions.push({
         slug: groupSlug,
-        name: router.name,
-        description: router.description,
-        hasHandler: !!router.handler,
-        unlisted: router.unlisted,
-        access: router.access,
+        name: page.name,
+        description: page.description,
+        hasHandler: !!page.handler,
+        unlisted: page.unlisted,
+        access: page.access,
       })
 
-      if (router.handler) {
-        pageHandlers.set(groupSlug, router.handler)
+      if (page.handler) {
+        pageHandlers.set(groupSlug, page.handler)
       }
 
-      for (const [slug, def] of Object.entries(router.routes)) {
+      for (let [slug, def] of Object.entries(page.routes)) {
         if (def instanceof Page) {
           walkRouter(`${groupSlug}/${slug}`, def)
         } else {
+          const fullSlug = `${groupSlug}/${slug}`
+
+          if (!(def instanceof Action)) {
+            def = new Action(def)
+            routes.set(fullSlug, def)
+          }
+
           actionDefinitions.push({
             groupSlug,
             slug,
-            ...('handler' in def ? def : {}),
+            ...def,
             handler: undefined,
           })
 
-          actionHandlers.set(
-            `${groupSlug}/${slug}`,
-            'handler' in def ? def.handler : def
-          )
+          actionHandlers.set(fullSlug, def.handler)
         }
       }
     }
@@ -242,28 +259,33 @@ export default class IntervalClient {
       }
     }
 
-    const routes = {
+    const allRoutes = {
       ...this.#config.actions,
       ...this.#config.groups,
       ...fileSystemRoutes,
       ...this.#config.routes,
     }
 
-    if (routes) {
-      for (const [slug, def] of Object.entries(routes)) {
-        if (def instanceof Page) {
-          walkRouter(slug, def)
-        } else {
-          actionDefinitions.push({
-            slug,
-            ...('handler' in def ? def : {}),
-            handler: undefined,
-          })
-          actionHandlers.set(slug, 'handler' in def ? def.handler : def)
+    for (let [slug, def] of Object.entries(allRoutes)) {
+      if (def instanceof Page) {
+        walkRouter(slug, def)
+      } else {
+        if (!(def instanceof Action)) {
+          def = new Action(def)
         }
+
+        actionDefinitions.push({
+          slug,
+          ...def,
+          handler: undefined,
+        })
+
+        routes.set(slug, def)
+        actionHandlers.set(slug, def.handler)
       }
     }
 
+    this.#routes = routes
     this.#pageDefinitions = pageDefinitions
     this.#actionDefinitions = actionDefinitions
     this.#actionHandlers = actionHandlers
@@ -1137,6 +1159,12 @@ export default class IntervalClient {
                 }
               }
 
+              this.#onError?.({
+                error: err,
+                route: action.slug,
+                routeDefinition: this.#routes.get(action.slug),
+              })
+
               const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
                 status: 'FAILURE',
@@ -1532,6 +1560,11 @@ export default class IntervalClient {
                   page.title = page.title()
                 } catch (err) {
                   this.#logger.error(err)
+                  this.#onError?.({
+                    error: err,
+                    route: inputs.page.slug,
+                    routeDefinition: this.#routes.get(inputs.page.slug),
+                  })
                   errors.push(pageError(err, 'title'))
                 }
               }
@@ -1546,6 +1579,11 @@ export default class IntervalClient {
                   })
                   .catch(err => {
                     this.#logger.error(err)
+                    this.#onError?.({
+                      error: err,
+                      route: inputs.page.slug,
+                      routeDefinition: this.#routes.get(inputs.page.slug),
+                    })
                     errors.push(pageError(err, 'title'))
                     scheduleSendPage()
                   })
@@ -1557,6 +1595,11 @@ export default class IntervalClient {
                     page.description = page.description()
                   } catch (err) {
                     this.#logger.error(err)
+                    this.#onError?.({
+                      error: err,
+                      route: inputs.page.slug,
+                      routeDefinition: this.#routes.get(inputs.page.slug),
+                    })
                     errors.push(pageError(err, 'description'))
                   }
                 }
@@ -1571,6 +1614,11 @@ export default class IntervalClient {
                     })
                     .catch(err => {
                       this.#logger.error(err)
+                      this.#onError?.({
+                        error: err,
+                        route: inputs.page.slug,
+                        routeDefinition: this.#routes.get(inputs.page.slug),
+                      })
                       errors.push(pageError(err, 'description'))
                       scheduleSendPage()
                     })
@@ -1615,6 +1663,12 @@ export default class IntervalClient {
                   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
                   err => {
                     this.#logger.error(err)
+                    this.#onError?.({
+                      error: err,
+                      route: inputs.page.slug,
+                      routeDefinition: this.#routes.get(inputs.page.slug),
+                    })
+
                     if (err instanceof IOError && err.cause) {
                       errors.push(pageError(err.cause, 'children'))
                     } else {
@@ -1631,6 +1685,13 @@ export default class IntervalClient {
             .catch(async err => {
               this.#logger.error('Error in page:', err)
               errors.push(pageError(err))
+
+              this.#onError?.({
+                error: err,
+                route: inputs.page.slug,
+                routeDefinition: this.#routes.get(inputs.page.slug),
+              })
+
               const pageLayout: LayoutSchemaInput = {
                 kind: 'BASIC',
                 errors,
