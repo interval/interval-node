@@ -1163,6 +1163,10 @@ export default class IntervalClient {
                 error: err,
                 route: action.slug,
                 routeDefinition: this.#routes.get(action.slug),
+                params: ctx.params,
+                environment: ctx.environment,
+                user: ctx.user,
+                organization: ctx.organization,
               })
 
               const result: ActionResultSchema = {
@@ -1562,8 +1566,12 @@ export default class IntervalClient {
                   this.#logger.error(err)
                   this.#onError?.({
                     error: err,
-                    route: inputs.page.slug,
-                    routeDefinition: this.#routes.get(inputs.page.slug),
+                    route: ctx.page.slug,
+                    routeDefinition: this.#routes.get(ctx.page.slug),
+                    params: ctx.params,
+                    environment: ctx.environment,
+                    user: ctx.user,
+                    organization: ctx.organization,
                   })
                   errors.push(pageError(err, 'title'))
                 }
@@ -1581,8 +1589,12 @@ export default class IntervalClient {
                     this.#logger.error(err)
                     this.#onError?.({
                       error: err,
-                      route: inputs.page.slug,
-                      routeDefinition: this.#routes.get(inputs.page.slug),
+                      route: ctx.page.slug,
+                      routeDefinition: this.#routes.get(ctx.page.slug),
+                      params: ctx.params,
+                      environment: ctx.environment,
+                      user: ctx.user,
+                      organization: ctx.organization,
                     })
                     errors.push(pageError(err, 'title'))
                     scheduleSendPage()
@@ -1597,8 +1609,12 @@ export default class IntervalClient {
                     this.#logger.error(err)
                     this.#onError?.({
                       error: err,
-                      route: inputs.page.slug,
-                      routeDefinition: this.#routes.get(inputs.page.slug),
+                      route: ctx.page.slug,
+                      routeDefinition: this.#routes.get(ctx.page.slug),
+                      params: ctx.params,
+                      environment: ctx.environment,
+                      user: ctx.user,
+                      organization: ctx.organization,
                     })
                     errors.push(pageError(err, 'description'))
                   }
@@ -1616,8 +1632,12 @@ export default class IntervalClient {
                       this.#logger.error(err)
                       this.#onError?.({
                         error: err,
-                        route: inputs.page.slug,
-                        routeDefinition: this.#routes.get(inputs.page.slug),
+                        route: ctx.page.slug,
+                        routeDefinition: this.#routes.get(ctx.page.slug),
+                        params: ctx.params,
+                        environment: ctx.environment,
+                        user: ctx.user,
+                        organization: ctx.organization,
                       })
                       errors.push(pageError(err, 'description'))
                       scheduleSendPage()
@@ -1665,8 +1685,12 @@ export default class IntervalClient {
                     this.#logger.error(err)
                     this.#onError?.({
                       error: err,
-                      route: inputs.page.slug,
-                      routeDefinition: this.#routes.get(inputs.page.slug),
+                      route: ctx.page.slug,
+                      routeDefinition: this.#routes.get(ctx.page.slug),
+                      params: ctx.params,
+                      environment: ctx.environment,
+                      user: ctx.user,
+                      organization: ctx.organization,
                     })
 
                     if (err instanceof IOError && err.cause) {
@@ -1688,8 +1712,12 @@ export default class IntervalClient {
 
               this.#onError?.({
                 error: err,
-                route: inputs.page.slug,
-                routeDefinition: this.#routes.get(inputs.page.slug),
+                route: ctx.page.slug,
+                routeDefinition: this.#routes.get(ctx.page.slug),
+                params: ctx.params,
+                environment: ctx.environment,
+                user: ctx.user,
+                organization: ctx.organization,
               })
 
               const pageLayout: LayoutSchemaInput = {
