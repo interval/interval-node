@@ -26,6 +26,7 @@ import type {
   IntervalPageStore,
   PageCtx,
   IntervalActionDefinition,
+  IntervalErrorHandler,
 } from './types'
 import IntervalError from './classes/IntervalError'
 import IntervalClient, {
@@ -69,6 +70,8 @@ export interface InternalConfig {
 
   closeUnresponsiveConnectionTimeoutMs?: number
   reinitializeBatchTimeoutMs?: number
+  onError?: IntervalErrorHandler
+
   /* @internal */ getClientHandlers?: () =>
     | DuplexRPCHandlers<ClientSchema>
     | undefined

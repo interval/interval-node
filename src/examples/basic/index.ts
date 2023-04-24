@@ -488,6 +488,9 @@ const interval = new Interval({
   apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
+  onError: props => {
+    console.debug('onError', props)
+  },
   routes: {
     sidebar_depth,
     echoContext,
