@@ -175,6 +175,19 @@ export const richSelectOption = z
 
 export type RichSelectOption = z.infer<typeof richSelectOption>
 
+export const highlightColor = z.enum([
+  'red',
+  'orange',
+  'yellow',
+  'green',
+  'blue',
+  'purple',
+  'pink',
+  'gray',
+])
+
+export type HighlightColor = z.infer<typeof highlightColor>
+
 // non-primitive display types such as links, images, etc.
 export const advancedPrimitive = z.object({
   label: z.string().optional(),
@@ -211,6 +224,7 @@ export const tableRowValue = z.union([
     action: z.string().optional(),
     route: z.string().optional(),
     params: serializableRecord.optional(),
+    backgroundColor: highlightColor.optional(),
   }),
 ])
 

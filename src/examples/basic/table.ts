@@ -1,5 +1,5 @@
 import { IntervalActionDefinition } from '@interval/sdk/src/types'
-import { IntervalActionHandler, Page, Layout, io } from '../..'
+import { IntervalActionHandler, Action, Page, Layout, io } from '../..'
 import { faker } from '@faker-js/faker'
 import fakeUsers from '../utils/fakeUsers'
 import { generateRows } from '../utils/helpers'
@@ -65,6 +65,7 @@ export const display_table: IntervalActionHandler = async io => {
             url: row.image,
             size: 'small',
           },
+          backgroundColor: 'rgba(0, 60, 255, 0.3)',
         }),
       },
       {
@@ -115,6 +116,88 @@ export const display_table: IntervalActionHandler = async io => {
     ],
   })
 }
+
+export const highlighted_rows = new Action(async () => {
+  const data = generateRows(50)
+
+  const backgroundColor = await io.input.text('Background color', {
+    helpText: 'CSS string value',
+    defaultValue: 'rgba(0, 60, 255, 0.3)',
+  })
+
+  await io.select.table('Select users', {
+    data,
+    defaultPageSize: 50,
+    columns: [
+      {
+        label: 'User',
+        renderCell: row => ({
+          label: row.name,
+          image: {
+            alt: 'Alt tag',
+            url: row.image,
+            size: 'small',
+          },
+          backgroundColor: row.boolean ? backgroundColor : undefined,
+        }),
+      },
+      {
+        label: 'Email',
+        renderCell: row => ({
+          url: `mailto:${row.email}`,
+          label: row.email,
+          backgroundColor: row.boolean ? backgroundColor : undefined,
+        }),
+      },
+      {
+        label: 'Description',
+        accessorKey: 'description',
+        renderCell: row => ({
+          label: row.description,
+          backgroundColor: row.boolean ? backgroundColor : undefined,
+        }),
+      },
+      {
+        label: 'Date',
+        accessorKey: 'date',
+        renderCell: row => ({
+          label: row.date,
+          backgroundColor: row.boolean ? backgroundColor : undefined,
+        }),
+      },
+    ],
+    rowMenuItems: row => [
+      {
+        label: 'Edit',
+        route: 'edit_user',
+        params: { email: row.email },
+      },
+      {
+        label: 'Edit',
+        route: 'edit_user',
+        params: { email: row.email },
+        disabled: true,
+      },
+      {
+        label: 'Delete',
+        route: 'delete_user',
+        params: { email: row.email },
+        theme: 'danger',
+      },
+      {
+        label: 'Delete',
+        route: 'delete_user',
+        params: { email: row.email },
+        theme: 'danger',
+        disabled: true,
+      },
+      {
+        label: 'External',
+        url: 'https://google.com',
+      },
+    ],
+  })
+})
 
 export const multiple_tables: IntervalActionHandler = async io => {
   await io.group([

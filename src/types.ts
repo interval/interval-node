@@ -19,6 +19,7 @@ import type {
   SerializableRecord,
   LegacyLinkProps,
   T_IO_MULTIPLEABLE_METHOD_NAMES,
+  HighlightColor,
 } from './ioSchema'
 import type {
   AccessControlDefinition,
@@ -518,10 +519,10 @@ export type TableColumnResult =
       } & ({ url: string } | { buffer: Buffer })
       url?: string
       route?: string
-      // Deprecated in favor of `route`
-      // TODO: Add TS deprecation soon
+      /** @deprecated Please use `route` instead. */
       action?: string
       params?: z.infer<typeof serializableRecord>
+      highlightColor?: HighlightColor
     }
   | TableCellValue
 
