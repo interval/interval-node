@@ -1375,6 +1375,8 @@ export default class IntervalClient {
           environment: inputs.environment,
           organization: this.organization,
           page: inputs.page,
+          redirect: (props: LegacyLinkProps) =>
+            intervalClient.#sendRedirect(pageKey, props),
         }
 
         let page: Layout | undefined = undefined

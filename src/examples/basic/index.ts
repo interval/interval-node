@@ -235,12 +235,27 @@ const echoContext = new Action(async () => {
   })
 })
 
+const redirect_page_test = new Page({
+  name: 'Redirector',
+  handler: async () => {
+    await ctx.redirect({
+      route: 'echoContext',
+      params: { from: 'redirect_page_test' },
+      replace: true,
+    })
+
+    // Not necessary after #1206 is merged
+    return new Layout({})
+  },
+})
+
 const prod = new Interval({
   apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
   endpoint: 'ws://localhost:3000/websocket',
   logLevel: 'debug',
   routes: {
     sidebar_depth,
+    redirect_page_test,
     backgroundable: {
       backgroundable: true,
       handler: async () => {
@@ -476,6 +491,7 @@ const interval = new Interval({
   routes: {
     sidebar_depth,
     echoContext,
+    redirect_page_test,
     empty_page,
     inputRightAfterDisplay: async () => {
       await io.display.link('Display', {

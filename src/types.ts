@@ -157,7 +157,7 @@ export type ActionCtx = {
 
 export type PageCtx = Pick<
   ActionCtx,
-  'user' | 'params' | 'environment' | 'organization'
+  'user' | 'params' | 'environment' | 'organization' | 'redirect'
 > & {
   /**
    * Information about the currently open page.
@@ -361,7 +361,11 @@ export type ActionLogFn = (...args: any[]) => Promise<void>
 
 export type NotifyFn = (config: NotifyConfig) => Promise<void>
 
-export type RedirectFn = (props: LegacyLinkProps) => Promise<void>
+export type RedirectConfig = LegacyLinkProps & {
+  replace?: boolean
+}
+
+export type RedirectFn = (props: RedirectConfig) => Promise<void>
 
 export type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
 
