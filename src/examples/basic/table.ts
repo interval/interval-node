@@ -227,7 +227,7 @@ export const multiple_tables: IntervalActionHandler = async io => {
 export const big_payload_table = new Page({
   name: 'Big table',
   handler: async () => {
-    const bigData = generateRows(100000)
+    const bigData = generateRows(10_000)
 
     return new Layout({
       children: [
