@@ -224,7 +224,7 @@ export const tableRowValue = z.union([
     action: z.string().optional(),
     route: z.string().optional(),
     params: serializableRecord.optional(),
-    backgroundColor: highlightColor.optional(),
+    highlightColor: highlightColor.optional(),
   }),
 ])
 
