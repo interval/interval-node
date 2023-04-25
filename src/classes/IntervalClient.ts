@@ -1409,6 +1409,26 @@ export default class IntervalClient {
           page: inputs.page,
           redirect: (props: LegacyLinkProps) =>
             intervalClient.#sendRedirect(pageKey, props),
+          loading: new TransactionLoadingState({
+            logger: intervalClient.#logger,
+            send: async loadingState => {
+              intervalClient.#transactionLoadingStates.set(
+                pageKey,
+                loadingState
+              )
+              if (this.#config.getClientHandlers) {
+                await this.#config.getClientHandlers()?.LOADING_STATE({
+                  transactionId: pageKey,
+                  ...loadingState,
+                })
+              } else {
+                await intervalClient.#send('SEND_LOADING_CALL', {
+                  transactionId: pageKey,
+                  ...loadingState,
+                })
+              }
+            },
+          }),
         }
 
         let page: Layout | undefined = undefined

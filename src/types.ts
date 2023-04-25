@@ -162,7 +162,7 @@ export type ActionCtx = {
 
 export type PageCtx = Pick<
   ActionCtx,
-  'user' | 'params' | 'environment' | 'organization' | 'redirect'
+  'user' | 'params' | 'environment' | 'organization' | 'redirect' | 'loading'
 > & {
   /**
    * Information about the currently open page.

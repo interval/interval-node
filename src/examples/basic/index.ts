@@ -413,7 +413,14 @@ const prod = new Interval({
     async_page_test: new Page({
       name: 'Async page test',
       handler: async () => {
+        await sleep(10_000)
+
+        await ctx.loading.start('Generating page...')
+
+        await sleep(10_000)
+
         const allData = generateRows(100)
+
         return new Layout({
           children: [
             io.display.table<ReturnType<typeof generateRows>[0]>(

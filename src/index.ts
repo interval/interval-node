@@ -151,7 +151,7 @@ export const ctx: ActionCtx & PageCtx = {
   get user() { return getSomeStore().ctx.user },
   get params() { return getSomeStore().ctx.params },
   get environment() { return getSomeStore().ctx.environment },
-  get loading() { return getActionStore().ctx.loading },
+  get loading() { return getSomeStore().ctx.loading },
   get log() { return getActionStore().ctx.log },
   get organization() { return getSomeStore().ctx.organization },
   get action() { return getActionStore().ctx.action },
