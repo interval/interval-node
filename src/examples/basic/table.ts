@@ -5,6 +5,7 @@ import fakeUsers from '../utils/fakeUsers'
 import { generateRows } from '../utils/helpers'
 import { asyncTable } from '../utils/ioMethodWrappers'
 import dedent from 'dedent'
+import { HighlightColor } from '../../ioSchema'
 
 export const no_pagination: IntervalActionHandler = async io => {
   const data = generateRows(5)
@@ -65,14 +66,14 @@ export const display_table: IntervalActionHandler = async io => {
             url: row.image,
             size: 'small',
           },
-          backgroundColor: 'rgba(0, 60, 255, 0.3)',
+          highlightColor: 'blue',
         }),
       },
       {
         label: 'Email',
         accessorKey: 'email',
         renderCell: row => ({
-          label: `**row.email**`,
+          label: row.email,
           url: `mailto:${row.email}`,
         }),
       },
@@ -120,11 +121,6 @@ export const display_table: IntervalActionHandler = async io => {
 export const highlighted_rows = new Action(async () => {
   const data = generateRows(50)
 
-  const backgroundColor = await io.input.text('Background color', {
-    helpText: 'CSS string value',
-    defaultValue: 'rgba(0, 60, 255, 0.3)',
-  })
-
   await io.select.table('Select users', {
     data,
     defaultPageSize: 50,
@@ -138,7 +134,7 @@ export const highlighted_rows = new Action(async () => {
             url: row.image,
             size: 'small',
           },
-          backgroundColor: row.boolean ? backgroundColor : undefined,
+          highlightColor: 'red',
         }),
       },
       {
@@ -146,7 +142,7 @@ export const highlighted_rows = new Action(async () => {
         renderCell: row => ({
           url: `mailto:${row.email}`,
           label: row.email,
-          backgroundColor: row.boolean ? backgroundColor : undefined,
+          highlightColor: 'orange',
         }),
       },
       {
@@ -154,7 +150,7 @@ export const highlighted_rows = new Action(async () => {
         accessorKey: 'description',
         renderCell: row => ({
           label: row.description,
-          backgroundColor: row.boolean ? backgroundColor : undefined,
+          highlightColor: 'yellow',
         }),
       },
       {
@@ -162,7 +158,7 @@ export const highlighted_rows = new Action(async () => {
         accessorKey: 'date',
         renderCell: row => ({
           label: row.date,
-          backgroundColor: row.boolean ? backgroundColor : undefined,
+          highlightColor: 'green',
         }),
       },
     ],
@@ -663,6 +659,7 @@ export const markdown = new Page({
         io.display.table('', {
           data: [
             {
+              index: 0,
               label: 'Bulleted list',
               value: dedent`Here are three bullet points:
                 - ${faker.random.word()}
@@ -673,6 +670,7 @@ export const markdown = new Page({
               `,
             },
             {
+              index: 1,
               label: 'Numbered list',
               value: dedent`1. ${faker.random.word()}
                 1. ${faker.random.word()}
@@ -680,6 +678,7 @@ export const markdown = new Page({
               `,
             },
             {
+              index: 2,
               label: 'Code block',
               value: dedent`~~~ts
                 const foo: string = 'bar'
@@ -691,6 +690,7 @@ export const markdown = new Page({
                 ~~~`,
             },
             {
+              index: 3,
               label: 'Code block with some text around it',
               value: dedent`
                 Here is some very good code:
@@ -706,10 +706,12 @@ export const markdown = new Page({
                 Copy and paste that into your editor and you'll be good to go!`,
             },
             {
+              index: 4,
               label: 'Inline code',
               value: dedent`This is an example of \`inline code\`.`,
             },
             {
+              index: 5,
               label: 'Some headings',
               value: dedent`# Heading 1
               ${faker.lorem.paragraph()}
@@ -725,6 +727,7 @@ export const markdown = new Page({
               ${faker.lorem.paragraph()}`,
             },
             {
+              index: 6,
               label: 'Other elements',
               value: dedent`This is a [link](https://www.google.com/)
 
@@ -738,6 +741,30 @@ export const markdown = new Page({
               
               ${faker.lorem.paragraph()}
               `,
+            },
+            {
+              index: 7,
+              label: 'Paragraphs',
+              value: faker.lorem.paragraphs(3),
+            },
+          ],
+          columns: [
+            'label',
+            {
+              label: 'Value',
+              renderCell: row => ({
+                label: row.value,
+                highlightColor: [
+                  'red',
+                  'orange',
+                  'yellow',
+                  'green',
+                  'blue',
+                  'purple',
+                  'pink',
+                  'gray',
+                ][row.index] as HighlightColor,
+              }),
             },
           ],
         }),
