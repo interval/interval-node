@@ -413,11 +413,21 @@ const prod = new Interval({
     async_page_test: new Page({
       name: 'Async page test',
       handler: async () => {
-        await sleep(10_000)
+        await sleep(2_000)
 
         await ctx.loading.start('Generating page...')
 
-        await sleep(10_000)
+        await sleep(2_000)
+
+        await ctx.loading.start({
+          label: 'Generating rows...',
+          itemsInQueue: 100,
+        })
+
+        for (let i = 0; i < 100; i++) {
+          await ctx.loading.completeOne()
+          await sleep(100)
+        }
 
         const allData = generateRows(100)
 
