@@ -26,6 +26,7 @@ import type {
   IntervalPageStore,
   PageCtx,
   IntervalActionDefinition,
+  IntervalErrorHandler,
 } from './types'
 import IntervalError from './classes/IntervalError'
 import IntervalClient, {
@@ -64,10 +65,13 @@ export interface InternalConfig {
   connectTimeoutMs?: number
   sendTimeoutMs?: number
   pingTimeoutMs?: number
+  maxResendAttempts?: number
   completeHttpRequestDelayMs?: number
 
   closeUnresponsiveConnectionTimeoutMs?: number
   reinitializeBatchTimeoutMs?: number
+  onError?: IntervalErrorHandler
+
   /* @internal */ getClientHandlers?: () =>
     | DuplexRPCHandlers<ClientSchema>
     | undefined
@@ -153,7 +157,7 @@ export const ctx: ActionCtx & PageCtx = {
   get action() { return getActionStore().ctx.action },
   get page() { return getPageStore().ctx.page },
   get notify() { return getActionStore().ctx.notify },
-  get redirect() { return getActionStore().ctx.redirect },
+  get redirect() { return getSomeStore().ctx.redirect },
 }
 
 export default class Interval {

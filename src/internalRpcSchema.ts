@@ -319,8 +319,8 @@ export const wsServerSchema = {
   SEND_PAGE: {
     inputs: z.object({
       pageKey: z.string(),
-      // stringified PAGE_SCHEMA
-      page: z.string(),
+      // stringified LAYOUT_SCHEMA
+      page: z.string().nullish(),
     }),
     returns: z.boolean(),
   },
@@ -367,6 +367,7 @@ export const wsServerSchema = {
       z.object({
         transactionId: z.string(),
         skipClientCall: z.boolean().optional(),
+        replace: z.boolean().optional(),
       }),
       legacyLinkSchema
     ),
@@ -479,8 +480,8 @@ export const clientSchema = {
   RENDER_PAGE: {
     inputs: z.object({
       pageKey: z.string(),
-      // stringified PAGE_SCHEMA
-      page: z.string(),
+      // stringified LAYOUT_SCHEMA
+      page: z.string().nullish(),
       hostInstanceId: z.string(),
     }),
     returns: z.boolean(),
@@ -528,6 +529,7 @@ export const clientSchema = {
     inputs: z.intersection(
       z.object({
         transactionId: z.string(),
+        replace: z.boolean().optional(),
       }),
       linkSchema
     ),

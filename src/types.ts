@@ -19,6 +19,7 @@ import type {
   SerializableRecord,
   LegacyLinkProps,
   T_IO_MULTIPLEABLE_METHOD_NAMES,
+  HighlightColor,
 } from './ioSchema'
 import type {
   AccessControlDefinition,
@@ -51,24 +52,37 @@ export type Prettify<T> = {
   [K in keyof T]: T[K]
 } & {}
 
+export type CtxUser = {
+  /**
+   * The email of the user running the action or page.
+   */
+  email: string
+  /**
+   * The first name of the user running the action or page, if present.
+   */
+  firstName: string | null
+  /**
+   * The last name of the user running the action or page, if present.
+   */
+  lastName: string | null
+}
+
+export type CtxOrganization = {
+  /**
+   * The name of the organization.
+   */
+  name: string
+  /**
+   * The unique slug of the organization.
+   */
+  slug: string
+}
+
 export type ActionCtx = {
   /**
    * Basic information about the user running the action or page.
    */
-  user: {
-    /**
-     * The email of the user running the action or page.
-     */
-    email: string
-    /**
-     * The first name of the user running the action or page, if present.
-     */
-    firstName: string | null
-    /**
-     * The last name of the user running the action or page, if present.
-     */
-    lastName: string | null
-  }
+  user: CtxUser
   /**
    * A key/value object containing the query string URL parameters of the running action or page.
    */
@@ -130,16 +144,7 @@ export type ActionCtx = {
   /**
    * Basic information about the organization.
    */
-  organization: {
-    /**
-     * The name of the organization.
-     */
-    name: string
-    /**
-     * The unique slug of the organization.
-     */
-    slug: string
-  }
+  organization: CtxOrganization
   /**
    * Information about the currently running action.
    */
@@ -157,7 +162,7 @@ export type ActionCtx = {
 
 export type PageCtx = Pick<
   ActionCtx,
-  'user' | 'params' | 'environment' | 'organization'
+  'user' | 'params' | 'environment' | 'organization' | 'redirect'
 > & {
   /**
    * Information about the currently open page.
@@ -209,7 +214,7 @@ export type IntervalRouteDefinitions = Record<
 export type IntervalPageHandler = (
   display: IO['display'],
   ctx: PageCtx
-) => Promise<Layout>
+) => Promise<Layout | undefined>
 
 export type RequiredPropsIOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
@@ -361,7 +366,11 @@ export type ActionLogFn = (...args: any[]) => Promise<void>
 
 export type NotifyFn = (config: NotifyConfig) => Promise<void>
 
-export type RedirectFn = (props: LegacyLinkProps) => Promise<void>
+export type RedirectConfig = LegacyLinkProps & {
+  replace?: boolean
+}
+
+export type RedirectFn = (props: RedirectConfig) => Promise<void>
 
 export type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
 
@@ -510,10 +519,10 @@ export type TableColumnResult =
       } & ({ url: string } | { buffer: Buffer })
       url?: string
       route?: string
-      // Deprecated in favor of `route`
-      // TODO: Add TS deprecation soon
+      /** @deprecated Please use `route` instead. */
       action?: string
       params?: z.infer<typeof serializableRecord>
+      highlightColor?: HighlightColor
     }
   | TableCellValue
 
@@ -538,3 +547,15 @@ export type PageError = {
   cause?: string
   layoutKey?: keyof BasicLayoutConfig
 }
+
+export type IntervalErrorProps = {
+  error: Error | unknown
+  route: string
+  routeDefinition: Action | Page | undefined
+  params: SerializableRecord
+  environment: ActionEnvironment
+  user: CtxUser
+  organization: CtxOrganization
+}
+
+export type IntervalErrorHandler = (props: IntervalErrorProps) => void

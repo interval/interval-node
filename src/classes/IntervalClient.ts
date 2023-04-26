@@ -51,12 +51,14 @@ import type {
   PageError,
   IntervalRouteDefinitions,
   IntervalPageHandler,
+  IntervalErrorHandler,
 } from '../types'
 import type { DataChannelConnection } from './DataChannelConnection'
 import type { IceServer } from './DataChannelConnection'
 import TransactionLoadingState from './TransactionLoadingState'
 import { Interval, InternalConfig, IntervalError } from '..'
 import Page from './Page'
+import Action from './Action'
 import {
   Layout,
   BasicLayout,
@@ -113,6 +115,7 @@ export default class IntervalClient {
   #completeHttpRequestDelayMs: number = 3000
   #completeShutdownDelayMs: number = 3000
   #retryIntervalMs: number = 3000
+  #maxResendAttempts: number = 10
   #pingIntervalMs: number = 30_000
   #closeUnresponsiveConnectionTimeoutMs: number = 3 * 60 * 1000 // 3 minutes
   #reinitializeBatchTimeoutMs: number = 200
@@ -121,6 +124,7 @@ export default class IntervalClient {
   #resolveShutdown: (() => void) | undefined
   #config: InternalConfig
 
+  #routes: Map<string, Action | Page> = new Map()
   #actionDefinitions: ActionDefinition[] = []
   #pageDefinitions: PageDefinition[] = []
   #actionHandlers: Map<string, IntervalActionHandler> = new Map()
@@ -134,6 +138,8 @@ export default class IntervalClient {
     | undefined
   environment: ActionEnvironment | undefined
   #forcePeerMessages = false
+
+  #onError: IntervalErrorHandler | undefined
 
   constructor(interval: Interval, config: InternalConfig) {
     this.#interval = interval
@@ -175,48 +181,64 @@ export default class IntervalClient {
       this.#completeHttpRequestDelayMs = config.completeHttpRequestDelayMs
     }
 
+    if (config.maxResendAttempts && config.maxResendAttempts > 0) {
+      this.#maxResendAttempts = config.maxResendAttempts
+    }
+
     this.#httpEndpoint = getHttpEndpoint(this.#endpoint)
 
     if (config.setHostHandlers) {
       config.setHostHandlers(this.#createRPCHandlers())
     }
+
+    if (config.onError) {
+      this.#onError = config.onError
+    }
   }
 
   async #walkRoutes() {
+    const routes = new Map<string, Action | Page>()
+
     const pageDefinitions: PageDefinition[] = []
     const actionDefinitions: (ActionDefinition & { handler: undefined })[] = []
     const actionHandlers = new Map<string, IntervalActionHandler>()
     const pageHandlers = new Map<string, IntervalPageHandler>()
 
-    function walkRouter(groupSlug: string, router: Page) {
+    function walkRouter(groupSlug: string, page: Page) {
+      routes.set(groupSlug, page)
+
       pageDefinitions.push({
         slug: groupSlug,
-        name: router.name,
-        description: router.description,
-        hasHandler: !!router.handler,
-        unlisted: router.unlisted,
-        access: router.access,
+        name: page.name,
+        description: page.description,
+        hasHandler: !!page.handler,
+        unlisted: page.unlisted,
+        access: page.access,
       })
 
-      if (router.handler) {
-        pageHandlers.set(groupSlug, router.handler)
+      if (page.handler) {
+        pageHandlers.set(groupSlug, page.handler)
       }
 
-      for (const [slug, def] of Object.entries(router.routes)) {
+      for (let [slug, def] of Object.entries(page.routes)) {
         if (def instanceof Page) {
           walkRouter(`${groupSlug}/${slug}`, def)
         } else {
+          const fullSlug = `${groupSlug}/${slug}`
+
+          if (!(def instanceof Action)) {
+            def = new Action(def)
+            routes.set(fullSlug, def)
+          }
+
           actionDefinitions.push({
             groupSlug,
             slug,
-            ...('handler' in def ? def : {}),
+            ...def,
             handler: undefined,
           })
 
-          actionHandlers.set(
-            `${groupSlug}/${slug}`,
-            'handler' in def ? def.handler : def
-          )
+          actionHandlers.set(fullSlug, def.handler)
         }
       }
     }
@@ -242,28 +264,33 @@ export default class IntervalClient {
       }
     }
 
-    const routes = {
+    const allRoutes = {
       ...this.#config.actions,
       ...this.#config.groups,
       ...fileSystemRoutes,
       ...this.#config.routes,
     }
 
-    if (routes) {
-      for (const [slug, def] of Object.entries(routes)) {
-        if (def instanceof Page) {
-          walkRouter(slug, def)
-        } else {
-          actionDefinitions.push({
-            slug,
-            ...('handler' in def ? def : {}),
-            handler: undefined,
-          })
-          actionHandlers.set(slug, 'handler' in def ? def.handler : def)
+    for (let [slug, def] of Object.entries(allRoutes)) {
+      if (def instanceof Page) {
+        walkRouter(slug, def)
+      } else {
+        if (!(def instanceof Action)) {
+          def = new Action(def)
         }
+
+        actionDefinitions.push({
+          slug,
+          ...def,
+          handler: undefined,
+        })
+
+        routes.set(slug, def)
+        actionHandlers.set(slug, def.handler)
       }
     }
 
+    this.#routes = routes
     this.#pageDefinitions = pageDefinitions
     this.#actionDefinitions = actionDefinitions
     this.#actionHandlers = actionHandlers
@@ -499,7 +526,8 @@ export default class IntervalClient {
         )
       : new Map(this.#pendingIOCalls)
 
-    while (toResend.size > 0) {
+    let attemptNumber = 1
+    while (toResend.size > 0 && attemptNumber <= this.#maxResendAttempts) {
       await Promise.allSettled(
         Array.from(toResend.entries()).map(([transactionId, ioCall]) =>
           this.#send('SEND_IO_CALL', {
@@ -534,15 +562,16 @@ export default class IntervalClient {
                 this.#logger.debug('Failed resending pending IO call:', err)
               }
 
+              const retrySleepMs = this.#retryIntervalMs * attemptNumber
               this.#logger.debug(
-                `Trying again in ${Math.round(
-                  this.#retryIntervalMs / 1000
-                )}s...`
+                `Trying again in ${Math.round(retrySleepMs / 1000)}s...`
               )
-              await sleep(this.#retryIntervalMs)
+              await sleep(retrySleepMs)
             })
         )
       )
+
+      attemptNumber++
     }
   }
 
@@ -560,7 +589,8 @@ export default class IntervalClient {
         )
       : new Map(this.#pendingPageLayouts)
 
-    while (toResend.size > 0) {
+    let attemptNumber = 1
+    while (toResend.size > 0 && attemptNumber <= this.#maxResendAttempts) {
       await Promise.allSettled(
         Array.from(toResend.entries()).map(([pageKey, page]) =>
           this.#send('SEND_PAGE', {
@@ -595,15 +625,16 @@ export default class IntervalClient {
                 this.#logger.debug('Failed resending pending page layout:', err)
               }
 
+              const retrySleepMs = this.#retryIntervalMs * attemptNumber
               this.#logger.debug(
-                `Trying again in ${Math.round(
-                  this.#retryIntervalMs / 1000
-                )}s...`
+                `Trying again in ${Math.round(retrySleepMs / 1000)}s...`
               )
-              await sleep(this.#retryIntervalMs)
+              await sleep(retrySleepMs)
             })
         )
       )
+
+      attemptNumber++
     }
   }
 
@@ -621,7 +652,8 @@ export default class IntervalClient {
         )
       : new Map(this.#transactionLoadingStates)
 
-    while (toResend.size > 0) {
+    let attemptNumber = 0
+    while (toResend.size > 0 && attemptNumber <= this.#maxResendAttempts) {
       await Promise.allSettled(
         Array.from(toResend.entries()).map(([transactionId, loadingState]) =>
           this.#send('SEND_LOADING_CALL', {
@@ -657,15 +689,16 @@ export default class IntervalClient {
                 this.#logger.debug('Failed resending pending IO call:', err)
               }
 
+              const retrySleepMs = this.#retryIntervalMs * attemptNumber
               this.#logger.debug(
-                `Trying again in ${Math.round(
-                  this.#retryIntervalMs / 1000
-                )}s...`
+                `Trying again in ${Math.round(retrySleepMs / 1000)}s...`
               )
-              await sleep(this.#retryIntervalMs)
+              await sleep(retrySleepMs)
             })
         )
       )
+
+      attemptNumber++
     }
   }
 
@@ -1137,6 +1170,16 @@ export default class IntervalClient {
                 }
               }
 
+              this.#onError?.({
+                error: err,
+                route: action.slug,
+                routeDefinition: this.#routes.get(action.slug),
+                params: ctx.params,
+                environment: ctx.environment,
+                user: ctx.user,
+                organization: ctx.organization,
+              })
+
               const result: ActionResultSchema = {
                 schemaVersion: TRANSACTION_RESULT_SCHEMA_VERSION,
                 status: 'FAILURE',
@@ -1364,9 +1407,11 @@ export default class IntervalClient {
           environment: inputs.environment,
           organization: this.organization,
           page: inputs.page,
+          redirect: (props: LegacyLinkProps) =>
+            intervalClient.#sendRedirect(pageKey, props),
         }
 
-        let page: Layout
+        let page: Layout | undefined = undefined
         let menuItems: InternalButtonItem[] | undefined = undefined
         let renderInstruction: T_IO_RENDER_INPUT | undefined = undefined
         let errors: PageError[] = []
@@ -1374,8 +1419,9 @@ export default class IntervalClient {
         const MAX_PAGE_RETRIES = 5
 
         const sendPage = async () => {
+          let pageLayout: LayoutSchemaInput | undefined
           if (page instanceof BasicLayout) {
-            const pageLayout: LayoutSchemaInput = {
+            pageLayout = {
               kind: 'BASIC',
               title:
                 page.title === undefined
@@ -1399,33 +1445,35 @@ export default class IntervalClient {
                 'The `metadata` property on `Layout` is deprecated. Please use `io.display.metadata` in the `children` array instead.'
               )
             }
+          }
 
-            if (this.#config.getClientHandlers) {
-              await this.#config.getClientHandlers()?.RENDER_PAGE({
-                pageKey,
-                page: JSON.stringify(pageLayout),
-                hostInstanceId: 'demo',
-              })
-            } else {
-              for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
-                try {
-                  const page = JSON.stringify(pageLayout)
+          if (this.#config.getClientHandlers) {
+            await this.#config.getClientHandlers()?.RENDER_PAGE({
+              pageKey,
+              page: pageLayout ? JSON.stringify(pageLayout) : undefined,
+              hostInstanceId: 'demo',
+            })
+          } else {
+            for (let i = 0; i < MAX_PAGE_RETRIES; i++) {
+              try {
+                const page = pageLayout ? JSON.stringify(pageLayout) : undefined
+                if (page) {
                   this.#pendingPageLayouts.set(pageKey, page)
-                  await this.#send('SEND_PAGE', {
-                    pageKey,
-                    page,
-                  })
-                  return
-                } catch (err) {
-                  this.#logger.debug('Failed sending page', err)
-                  this.#logger.debug('Retrying in', this.#retryIntervalMs)
-                  await sleep(this.#retryIntervalMs)
                 }
+                await this.#send('SEND_PAGE', {
+                  pageKey,
+                  page,
+                })
+                return
+              } catch (err) {
+                this.#logger.debug('Failed sending page', err)
+                this.#logger.debug('Retrying in', this.#retryIntervalMs)
+                await sleep(this.#retryIntervalMs)
               }
-              throw new IntervalError(
-                'Unsuccessful sending page, max retries exceeded.'
-              )
             }
+            throw new IntervalError(
+              'Unsuccessful sending page, max retries exceeded.'
+            )
           }
         }
 
@@ -1519,11 +1567,25 @@ export default class IntervalClient {
             .then(res => {
               page = res
 
+              if (!page) {
+                scheduleSendPage()
+                return
+              }
+
               if (typeof page.title === 'function') {
                 try {
                   page.title = page.title()
                 } catch (err) {
                   this.#logger.error(err)
+                  this.#onError?.({
+                    error: err,
+                    route: ctx.page.slug,
+                    routeDefinition: this.#routes.get(ctx.page.slug),
+                    params: ctx.params,
+                    environment: ctx.environment,
+                    user: ctx.user,
+                    organization: ctx.organization,
+                  })
                   errors.push(pageError(err, 'title'))
                 }
               }
@@ -1531,11 +1593,22 @@ export default class IntervalClient {
               if (page.title instanceof Promise) {
                 page.title
                   .then(title => {
-                    page.title = title
-                    scheduleSendPage()
+                    if (page) {
+                      page.title = title
+                      scheduleSendPage()
+                    }
                   })
                   .catch(err => {
                     this.#logger.error(err)
+                    this.#onError?.({
+                      error: err,
+                      route: ctx.page.slug,
+                      routeDefinition: this.#routes.get(ctx.page.slug),
+                      params: ctx.params,
+                      environment: ctx.environment,
+                      user: ctx.user,
+                      organization: ctx.organization,
+                    })
                     errors.push(pageError(err, 'title'))
                     scheduleSendPage()
                   })
@@ -1547,6 +1620,15 @@ export default class IntervalClient {
                     page.description = page.description()
                   } catch (err) {
                     this.#logger.error(err)
+                    this.#onError?.({
+                      error: err,
+                      route: ctx.page.slug,
+                      routeDefinition: this.#routes.get(ctx.page.slug),
+                      params: ctx.params,
+                      environment: ctx.environment,
+                      user: ctx.user,
+                      organization: ctx.organization,
+                    })
                     errors.push(pageError(err, 'description'))
                   }
                 }
@@ -1554,11 +1636,22 @@ export default class IntervalClient {
                 if (page.description instanceof Promise) {
                   page.description
                     .then(description => {
-                      page.description = description
-                      scheduleSendPage()
+                      if (page) {
+                        page.description = description
+                        scheduleSendPage()
+                      }
                     })
                     .catch(err => {
                       this.#logger.error(err)
+                      this.#onError?.({
+                        error: err,
+                        route: ctx.page.slug,
+                        routeDefinition: this.#routes.get(ctx.page.slug),
+                        params: ctx.params,
+                        environment: ctx.environment,
+                        user: ctx.user,
+                        organization: ctx.organization,
+                      })
                       errors.push(pageError(err, 'description'))
                       scheduleSendPage()
                     })
@@ -1589,7 +1682,7 @@ export default class IntervalClient {
                 )
               }
 
-              if (page.children) {
+              if (page.children?.length) {
                 group(page.children).then(
                   () => {
                     this.#logger.debug(
@@ -1603,6 +1696,16 @@ export default class IntervalClient {
                   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
                   err => {
                     this.#logger.error(err)
+                    this.#onError?.({
+                      error: err,
+                      route: ctx.page.slug,
+                      routeDefinition: this.#routes.get(ctx.page.slug),
+                      params: ctx.params,
+                      environment: ctx.environment,
+                      user: ctx.user,
+                      organization: ctx.organization,
+                    })
+
                     if (err instanceof IOError && err.cause) {
                       errors.push(pageError(err.cause, 'children'))
                     } else {
@@ -1619,6 +1722,17 @@ export default class IntervalClient {
             .catch(async err => {
               this.#logger.error('Error in page:', err)
               errors.push(pageError(err))
+
+              this.#onError?.({
+                error: err,
+                route: ctx.page.slug,
+                routeDefinition: this.#routes.get(ctx.page.slug),
+                params: ctx.params,
+                environment: ctx.environment,
+                user: ctx.user,
+                organization: ctx.organization,
+              })
+
               const pageLayout: LayoutSchemaInput = {
                 kind: 'BASIC',
                 errors,
@@ -1991,27 +2105,41 @@ export default class IntervalClient {
       this.#logger.debug('Error from peer RPC', err)
     }
 
-    while (true) {
+    for (
+      let attemptNumber = 1;
+      attemptNumber <= this.#maxResendAttempts;
+      attemptNumber++
+    ) {
       try {
         this.#logger.debug('Sending via server', methodName, inputs)
-        return await this.#serverRpc.send(methodName, {
-          ...inputs,
-          skipClientCall,
-        })
+        return await this.#serverRpc.send(
+          methodName,
+          {
+            ...inputs,
+            skipClientCall,
+          },
+          {
+            timeoutFactor: attemptNumber,
+          }
+        )
       } catch (err) {
+        const sleepTimeBeforeRetrying = this.#retryIntervalMs * attemptNumber
+
         if (err instanceof TimeoutError) {
           this.#log.debug(
             `RPC call timed out, retrying in ${Math.round(
-              this.#retryIntervalMs / 1000
+              sleepTimeBeforeRetrying / 1000
             )}s...`
           )
           this.#log.debug(err)
-          sleep(this.#retryIntervalMs)
+          sleep(sleepTimeBeforeRetrying)
         } else {
           throw err
         }
       }
     }
+
+    throw new IntervalError('Maximum failed resend attempts reached, aborting.')
   }
 
   /**
