@@ -34,63 +34,78 @@ export default function displayMetadata(
         label: metaItem.label,
       }
 
-      if ('value' in metaItem) {
+      // Currently doing all of this repetitive work separately to leverage
+      // static type checking, but could be done more dynamically in a loop as well
+
+      if ('value' in metaItem && metaItem.value !== undefined) {
         if (typeof metaItem.value === 'function') {
           metaItem.value = metaItem.value()
         }
 
         if (!(metaItem.value instanceof Promise)) {
           initialItem.value = metaItem.value
+        } else {
+          initialItem.value = undefined
         }
       }
 
-      if ('url' in metaItem) {
+      if ('url' in metaItem && metaItem.url !== undefined) {
         if (typeof metaItem.url === 'function') {
           metaItem.url = metaItem.url()
         }
 
         if (!(metaItem.url instanceof Promise)) {
           initialItem.url = metaItem.url
+        } else {
+          initialItem.url = undefined
         }
       }
 
-      if ('image' in metaItem) {
+      if ('image' in metaItem && metaItem.image !== undefined) {
         if (typeof metaItem.image === 'function') {
           metaItem.image = metaItem.image()
         }
 
         if (!(metaItem.image instanceof Promise)) {
           initialItem.image = metaItem.image
+        } else {
+          initialItem.image = undefined
         }
       }
 
-      if ('route' in metaItem) {
+      if ('route' in metaItem && metaItem.route !== undefined) {
         if (typeof metaItem.route === 'function') {
           metaItem.route = metaItem.route()
         }
 
         if (!(metaItem.route instanceof Promise)) {
           initialItem.route = metaItem.route
+        } else {
+          initialItem.route = undefined
         }
       }
 
-      if ('action' in metaItem) {
+      if ('action' in metaItem && metaItem.action !== undefined) {
         if (typeof metaItem.action === 'function') {
           metaItem.action = metaItem.action()
         }
 
         if (!(metaItem.action instanceof Promise)) {
           initialItem.action = metaItem.action
+        } else {
+          initialItem.action = undefined
         }
       }
 
-      if ('params' in metaItem) {
+      if ('params' in metaItem && metaItem.params !== undefined) {
         if (typeof metaItem.params === 'function') {
           metaItem.params = metaItem.params()
         }
 
         if (!(metaItem.params instanceof Promise)) {
           initialItem.params = metaItem.params
+        } else {
+          initialItem.params = undefined
         }
       }
 
