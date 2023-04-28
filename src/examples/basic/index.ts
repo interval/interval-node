@@ -1072,6 +1072,10 @@ const interval = new Interval({
           value: null,
         },
         {
+          label: 'Is undefined',
+          value: undefined,
+        },
+        {
           label: 'Is empty string',
           value: '',
         },
@@ -1120,10 +1124,14 @@ const interval = new Interval({
         {
           label: 'Image',
           value: 'Optional caption',
-          image: {
-            url: 'https://picsum.photos/200/300',
-            size: 'small',
-          },
+          image: new Promise(resolve => {
+            sleep(1500).then(() => {
+              resolve({
+                url: 'https://picsum.photos/200/300',
+                size: 'small',
+              })
+            })
+          }),
         },
       ]
 
