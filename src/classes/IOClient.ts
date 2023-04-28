@@ -1034,7 +1034,7 @@ export class IOClient {
          * ```
          */
         metadata: this.createIOMethod('DISPLAY_METADATA', {
-          componentDef: displayMetadata,
+          componentDef: displayMetadata(this.logger),
           propsRequired: true,
         }),
         /**

@@ -1087,6 +1087,12 @@ const interval = new Interval({
           }),
         },
         {
+          label: 'Throws an error',
+          value: new Promise(() => {
+            throw new Error('Oops!')
+          }),
+        },
+        {
           label: 'Is a function',
           value: () => 'Called it',
         },
