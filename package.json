@@ -1,6 +1,6 @@
 {
   "name": "@interval/sdk",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "The frontendless framework for high growth companies. Interval automatically generates apps by inlining the UI in your backend code. It's a faster and more maintainable way to build internal tools, rapid prototypes, and more.",
   "homepage": "https://interval.com",
   "repository": {
