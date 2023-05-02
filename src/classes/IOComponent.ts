@@ -1,4 +1,5 @@
 import { z, ZodError } from 'zod'
+import { Evt } from 'evt'
 import {
   ioSchema,
   resolvesImmediately,
@@ -70,6 +71,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
         incomingState: z.infer<IoSchema[MethodName]['state']>
       ) => Promise<Partial<z.input<IoSchema[MethodName]['props']>>>)
     | undefined
+  onPropsUpdate: (() => T_IO_PROPS<MethodName>) | undefined
 
   validator:
     | IOPromiseValidator<
@@ -100,6 +102,7 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
     validator,
     multipleProps,
     displayResolvesImmediately,
+    onPropsUpdate,
   }: {
     methodName: MethodName
     label: string
@@ -116,10 +119,15 @@ export default class IOComponent<MethodName extends T_IO_METHOD_NAMES> {
       defaultValue?: T_IO_RETURNS<MethodName>[] | null
     }
     displayResolvesImmediately?: boolean
+    onPropsUpdate?: Evt<T_IO_PROPS<MethodName>>
   }) {
     this.handleStateChange = onStateChange
     this.schema = ioSchema[methodName]
     this.validator = validator
+
+    if (onPropsUpdate) {
+      onPropsUpdate.attach(this.setProps.bind(this))
+    }
 
     try {
       initialProps = this.schema.props.parse(initialProps ?? {})

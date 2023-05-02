@@ -1,5 +1,6 @@
 import { v4 } from 'uuid'
 import { z } from 'zod'
+import { Evt } from 'evt'
 import superjson from '../utils/superjson'
 import {
   T_IO_RENDER_INPUT,
@@ -35,6 +36,7 @@ import displayGrid from '../components/displayGrid'
 import displayLink from '../components/displayLink'
 import displayImage from '../components/displayImage'
 import displayVideo from '../components/displayVideo'
+import displayMetadata from '../components/displayMetadata'
 import urlInput from '../components/url'
 import { date, datetime } from '../components/inputDate'
 import { file } from '../components/upload'
@@ -413,7 +415,8 @@ export class IOClient {
       Props,
       Output,
       DefaultValue
-    >
+    >,
+    onPropsUpdate?: Evt<T_IO_PROPS<MethodName>>
   ) {
     let props: T_IO_PROPS<MethodName> = inputProps
       ? (inputProps as T_IO_PROPS<MethodName>)
@@ -427,7 +430,8 @@ export class IOClient {
 
     if (componentDef) {
       const componentGetters = componentDef.bind(this)(
-        inputProps ?? ({} as Props)
+        inputProps ?? ({} as Props),
+        onPropsUpdate
       )
 
       if (componentGetters.props) {
@@ -540,6 +544,8 @@ export class IOClient {
     } = {}
   ) {
     return (label: string, props?: Props) => {
+      const onPropsUpdate = new Evt<T_IO_PROPS<MethodName>>()
+
       if (supportsMultiple(methodName)) {
         return new MultipleableIOPromise({
           ...this.getPromiseProps(
@@ -551,7 +557,8 @@ export class IOClient {
                   Props,
                   T_IO_RETURNS<T_IO_MULTIPLEABLE_METHOD_NAMES>
                 >
-              | undefined
+              | undefined,
+            onPropsUpdate as Evt<T_IO_PROPS<T_IO_MULTIPLEABLE_METHOD_NAMES>>
           ),
           methodName: methodName as T_IO_MULTIPLEABLE_METHOD_NAMES,
           renderer: this.renderComponents.bind(
@@ -559,6 +566,9 @@ export class IOClient {
           ) as ComponentRenderer<T_IO_MULTIPLEABLE_METHOD_NAMES>,
           label,
           displayResolvesImmediately: this.displayResolvesImmediately,
+          onPropsUpdate: onPropsUpdate as Evt<
+            T_IO_PROPS<T_IO_MULTIPLEABLE_METHOD_NAMES>
+          >,
         })
       }
 
@@ -573,7 +583,8 @@ export class IOClient {
                     Props,
                     T_IO_RETURNS<T_IO_DISPLAY_METHOD_NAMES>
                   >
-                | undefined
+                | undefined,
+              onPropsUpdate as Evt<T_IO_PROPS<T_IO_DISPLAY_METHOD_NAMES>>
             ),
             methodName: methodName as T_IO_DISPLAY_METHOD_NAMES,
             renderer: this.renderComponents.bind(
@@ -581,6 +592,9 @@ export class IOClient {
             ) as ComponentRenderer<T_IO_DISPLAY_METHOD_NAMES>,
             label,
             displayResolvesImmediately: this.displayResolvesImmediately,
+            onPropsUpdate: onPropsUpdate as Evt<
+              T_IO_PROPS<T_IO_DISPLAY_METHOD_NAMES>
+            >,
           })
         : new InputIOPromise({
             ...this.getPromiseProps(
@@ -592,7 +606,8 @@ export class IOClient {
                     Props,
                     T_IO_RETURNS<T_IO_INPUT_METHOD_NAMES>
                   >
-                | undefined
+                | undefined,
+              onPropsUpdate as Evt<T_IO_PROPS<T_IO_INPUT_METHOD_NAMES>>
             ),
             methodName: methodName as T_IO_INPUT_METHOD_NAMES,
             renderer: this.renderComponents.bind(
@@ -600,6 +615,9 @@ export class IOClient {
             ) as ComponentRenderer<T_IO_INPUT_METHOD_NAMES>,
             label,
             displayResolvesImmediately: this.displayResolvesImmediately,
+            onPropsUpdate: onPropsUpdate as Evt<
+              T_IO_PROPS<T_IO_INPUT_METHOD_NAMES>
+            >,
           })
     }
   }
@@ -1016,6 +1034,7 @@ export class IOClient {
          * ```
          */
         metadata: this.createIOMethod('DISPLAY_METADATA', {
+          componentDef: displayMetadata(this.logger),
           propsRequired: true,
         }),
         /**

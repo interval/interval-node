@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import { Literal, IO_RENDER, buttonItem, metaItemSchema } from '../ioSchema'
-import { AnyDisplayIOPromise, ButtonItem, PageError } from '../types'
+import {
+  AnyDisplayIOPromise,
+  ButtonItem,
+  PageError,
+  EventualValue,
+} from '../types'
 
-type EventualString =
-  | string
-  | Promise<string>
-  | (() => string)
-  | (() => Promise<string>)
+type EventualString = EventualValue<string>
 
 export interface BasicLayoutConfig {
   title?: EventualString

@@ -1,4 +1,3 @@
-import { T_IO_PROPS } from './../../ioSchema'
 import Interval, { IOError, io, ctx, Action, Page, Layout } from '../../index'
 import IntervalClient from '../../classes/IntervalClient'
 import {
@@ -13,6 +12,7 @@ import {
   sleep,
   generateRows,
 } from '../utils/helpers'
+import type { EventualMetaItem } from '../../components/displayMetadata'
 import * as table_actions from './table'
 import * as grid_actions from './grid'
 import unauthorized from './unauthorized'
@@ -1075,7 +1075,7 @@ const interval = new Interval({
       })
     },
     metadata: async (io, ctx) => {
-      const data: T_IO_PROPS<'DISPLAY_METADATA'>['data'] = [
+      const data: EventualMetaItem[] = [
         {
           label: 'Is true',
           value: true,
@@ -1089,8 +1089,36 @@ const interval = new Interval({
           value: null,
         },
         {
+          label: 'Is undefined',
+          value: undefined,
+        },
+        {
           label: 'Is empty string',
           value: '',
+        },
+        {
+          label: 'Is a promise',
+          value: new Promise(async resolve => {
+            await sleep(2000)
+            resolve('Done!')
+          }),
+        },
+        {
+          label: 'Throws an error',
+          value: new Promise(() => {
+            throw new Error('Oops!')
+          }),
+        },
+        {
+          label: 'Is a function',
+          value: () => 'Called it',
+        },
+        {
+          label: 'Is an async function',
+          value: async () => {
+            await sleep(3500)
+            return 'Did it'
+          },
         },
         {
           label: 'Is long string',
@@ -1119,10 +1147,14 @@ const interval = new Interval({
         {
           label: 'Image',
           value: 'Optional caption',
-          image: {
-            url: 'https://picsum.photos/200/300',
-            size: 'small',
-          },
+          image: new Promise(resolve => {
+            sleep(1500).then(() => {
+              resolve({
+                url: 'https://picsum.photos/200/300',
+                size: 'small',
+              })
+            })
+          }),
         },
       ]
 
