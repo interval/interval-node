@@ -1,4 +1,5 @@
 import type { z } from 'zod'
+import type { Evt } from 'evt'
 import type {
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
@@ -162,7 +163,7 @@ export type ActionCtx = {
 
 export type PageCtx = Pick<
   ActionCtx,
-  'user' | 'params' | 'environment' | 'organization' | 'redirect'
+  'user' | 'params' | 'environment' | 'organization' | 'redirect' | 'loading'
 > & {
   /**
    * Information about the currently open page.
@@ -438,7 +439,8 @@ export type IOComponentDefinition<
   DefaultValue = Output
 > = (
   this: IOClient,
-  props: Props
+  props: Props,
+  onPropsUpdate?: Evt<T_IO_PROPS<MethodName>>
 ) => {
   props?: T_IO_PROPS<MethodName>
   getValue?: (response: T_IO_RETURNS<MethodName>) => Output
@@ -559,3 +561,5 @@ export type IntervalErrorProps = {
 }
 
 export type IntervalErrorHandler = (props: IntervalErrorProps) => void
+
+export type EventualValue<T> = T | Promise<T> | (() => T) | (() => Promise<T>)

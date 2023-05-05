@@ -1,3 +1,4 @@
+import type { Evt } from 'evt'
 import {
   ioSchema,
   T_IO_DISPLAY_METHOD_NAMES,
@@ -38,6 +39,7 @@ interface IOPromiseProps<
   methodName: MethodName
   label: string
   props: Props
+  onPropsUpdate?: Evt<T_IO_PROPS<MethodName>>
   valueGetter?: (response: ComponentReturnValue<MethodName>) => ComponentOutput
   onStateChange?: (
     incomingState: T_IO_STATE<MethodName>
@@ -71,6 +73,7 @@ export class IOPromise<
     | undefined
   /* @internal */ validator: IOPromiseValidator<ComponentOutput> | undefined
   protected displayResolvesImmediately: boolean | undefined
+  protected onPropsUpdate: Evt<T_IO_PROPS<MethodName>> | undefined
 
   constructor({
     renderer,
@@ -81,6 +84,7 @@ export class IOPromise<
     onStateChange,
     validator,
     displayResolvesImmediately,
+    onPropsUpdate,
   }: IOPromiseProps<MethodName, Props, ComponentOutput>) {
     this.renderer = renderer
     this.methodName = methodName
@@ -90,6 +94,7 @@ export class IOPromise<
     this.onStateChange = onStateChange
     this.validator = validator
     this.displayResolvesImmediately = displayResolvesImmediately
+    this.onPropsUpdate = onPropsUpdate
   }
 
   then(
@@ -130,6 +135,7 @@ export class IOPromise<
       initialProps: this.props,
       onStateChange: this.onStateChange,
       displayResolvesImmediately: this.displayResolvesImmediately,
+      onPropsUpdate: this.onPropsUpdate,
     })
   }
 }
@@ -172,6 +178,7 @@ export class InputIOPromise<
       onStateChange: this.onStateChange,
       validator: this.validator ? this.handleValidation.bind(this) : undefined,
       displayResolvesImmediately: this.displayResolvesImmediately,
+      onPropsUpdate: this.onPropsUpdate,
     })
   }
 
@@ -289,6 +296,7 @@ export class OptionalIOPromise<
       isOptional: true,
       validator: this.validator ? this.handleValidation.bind(this) : undefined,
       displayResolvesImmediately: this.displayResolvesImmediately,
+      onPropsUpdate: this.onPropsUpdate,
     })
   }
 
@@ -353,6 +361,7 @@ export class MultipleableIOPromise<
     ) => Promise<Partial<Props>>
     validator?: IOPromiseValidator<ComponentOutput> | undefined
     displayResolvesImmediately?: boolean
+    onPropsUpdate?: Evt<T_IO_PROPS<MethodName>>
   }) {
     super(props)
     this.defaultValueGetter = defaultValueGetter
@@ -439,6 +448,7 @@ export class MultipleIOPromise<
       incomingState: T_IO_STATE<MethodName>
     ) => Promise<Partial<Props>>
     validator?: IOPromiseValidator<ComponentOutput[]> | undefined
+    onPropsUpdate?: Evt<T_IO_PROPS<MethodName>>
   }) {
     super(rest)
     this.getSingleValue = valueGetter
@@ -512,6 +522,7 @@ export class MultipleIOPromise<
         defaultValue: this.defaultValue,
       },
       displayResolvesImmediately: this.displayResolvesImmediately,
+      onPropsUpdate: this.onPropsUpdate,
     })
   }
 
@@ -572,6 +583,7 @@ export class OptionalMultipleIOPromise<
       incomingState: T_IO_STATE<MethodName>
     ) => Promise<Partial<Props>>
     validator?: IOPromiseValidator<ComponentOutput[] | undefined> | undefined
+    onPropsUpdate?: Evt<T_IO_PROPS<MethodName>>
   }) {
     super(rest)
     this.getSingleValue = valueGetter
@@ -645,6 +657,7 @@ export class OptionalMultipleIOPromise<
         defaultValue: this.defaultValue,
       },
       displayResolvesImmediately: this.displayResolvesImmediately,
+      onPropsUpdate: this.onPropsUpdate,
     })
   }
 }
@@ -1037,6 +1050,7 @@ export class ExclusiveIOPromise<
       isOptional: false,
       validator: this.validator ? this.handleValidation.bind(this) : undefined,
       displayResolvesImmediately: this.displayResolvesImmediately,
+      onPropsUpdate: this.onPropsUpdate,
     })
   }
 

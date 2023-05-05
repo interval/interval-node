@@ -105,7 +105,7 @@ export default function displayTable(logger: Logger) {
           )
 
           builtColumns = initialColumns
-          totalRecords = initialData.length
+          totalRecords = sorted.length
         }
 
         return {
