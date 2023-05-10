@@ -80,6 +80,10 @@ export const display_table: IntervalActionHandler = async io => {
       {
         label: 'Description',
         accessorKey: 'description',
+        renderCell: row => ({
+          label: row.description,
+          truncate: 50,
+        }),
       },
       'boolean',
       'date',
@@ -390,7 +394,7 @@ export const table_custom: IntervalActionHandler = async io => {
 
   const rows: { [key: string]: any }[] = []
   for (let i = 0; i < rowsCount; i++) {
-    const row: typeof rows[0] = {}
+    const row: (typeof rows)[0] = {}
     for (const field of fields) {
       switch (field.value) {
         case 'id':

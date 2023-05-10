@@ -225,14 +225,13 @@ export const tableRowValue = z.union([
     route: z.string().optional(),
     params: serializableRecord.optional(),
     highlightColor: highlightColor.optional(),
+    truncate: z.number().optional(),
   }),
 ])
 
-export const tableRow = z
-  .record(tableRowValue)
-  // Allow arbitrary objects/interfaces with specified column mappings.
-  // If no columns specified, we'll just serialize any nested objects.
-  .or(z.record(z.any()))
+// Allow arbitrary objects/interfaces with specified column mappings.
+// If no columns specified, we'll just serialize any nested objects.
+export const tableRow = z.record(tableRowValue.or(z.any()))
 
 export const menuItem = z.intersection(
   z.object({
