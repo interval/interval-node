@@ -14,6 +14,7 @@ import {
   DEQUEUE_ACTION,
 } from './internalRpcSchema'
 import { DuplexRPCHandlers } from './classes/DuplexRPCClient'
+import { NotConnectedError, TimeoutError } from './classes/ISocket'
 import { SerializableRecord } from './ioSchema'
 import type {
   ActionCtx,
@@ -238,6 +239,12 @@ export default class Interval {
     return this.#client.listen()
   }
 
+  async ping(): Promise<boolean> {
+    if (!this.#client) throw new NotConnectedError()
+
+    return this.#client.ping()
+  }
+
   /**
    * Immediately terminate the connection to interval, terminating any actions currently in progress.
    */
@@ -457,4 +464,13 @@ export default class Interval {
   }
 }
 
-export { Interval, IOError, IntervalError, Action, Page, BasicLayout as Layout }
+export {
+  Interval,
+  IOError,
+  IntervalError,
+  NotConnectedError,
+  TimeoutError,
+  Action,
+  Page,
+  BasicLayout as Layout,
+}

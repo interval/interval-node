@@ -265,6 +265,13 @@ const prod = new Interval({
         return { first, second }
       },
     },
+    ping: new Action({
+      name: 'Ping',
+      handler: async () => {
+        await prod.ping()
+        return 'Pong!'
+      },
+    }),
     actionLinks,
     echoContext,
     confirm_identity: confirmIdentity,
@@ -513,6 +520,13 @@ const interval = new Interval({
     echoContext,
     redirect_page_test,
     empty_page,
+    ping: new Action({
+      name: 'Ping',
+      handler: async () => {
+        await prod.ping()
+        return 'Pong!'
+      },
+    }),
     inputRightAfterDisplay: async () => {
       await io.display.link('Display', {
         url: '',
@@ -2143,4 +2157,15 @@ const interval = new Interval({
   },
 })
 
-interval.listen()
+interval.listen().then(() => {
+  setInterval(() => {
+    interval
+      .ping()
+      .then(() => {
+        console.log('Pong!')
+      })
+      .catch(err => {
+        console.error('Error in ping:', err)
+      })
+  }, 10_000)
+})
