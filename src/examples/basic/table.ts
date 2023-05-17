@@ -786,10 +786,7 @@ export const truncated = new Page({
           data: Array.from({ length: 100 }).map((_, i) => ({
             name: faker.name.fullName(),
             email: faker.internet.email(),
-            bio: faker.lorem.paragraphs(
-              faker.datatype.number({ min: 1, max: 8 }),
-              '\n\n'
-            ),
+            bio: faker.lorem.paragraphs(i + 1, '\n\n'),
             markdown:
               `### ${faker.name.jobTitle()}\n\n` +
               faker.lorem.paragraphs(10, '\n\n'),
