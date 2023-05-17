@@ -525,7 +525,7 @@ export type TableColumnResult =
       action?: string
       params?: z.infer<typeof serializableRecord>
       highlightColor?: HighlightColor
-      truncate?: number
+      truncate?: boolean
     }
   | TableCellValue
 

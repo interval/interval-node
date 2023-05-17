@@ -82,7 +82,6 @@ export const display_table: IntervalActionHandler = async io => {
         accessorKey: 'description',
         renderCell: row => ({
           label: row.description,
-          truncate: 50,
         }),
       },
       'boolean',
@@ -770,9 +769,90 @@ export const markdown = new Page({
                 ][row.index] as HighlightColor,
               }),
             },
+            'index',
           ],
         }),
       ],
     })
+  },
+})
+
+export const truncated = new Page({
+  name: 'Truncated',
+  handler: async () => {
+    return new Layout({
+      children: [
+        io.display.table('Truncated table', {
+          data: Array.from({ length: 100 }).map((_, i) => ({
+            name: faker.name.fullName(),
+            email: faker.internet.email(),
+            content: faker.lorem.paragraphs(5),
+          })),
+          columns: [
+            'name',
+            'email',
+            {
+              label: 'bio',
+              renderCell: row => ({
+                label: row.content,
+                // truncate: 3,
+              }),
+            },
+          ],
+        }),
+      ],
+    })
+  },
+  routes: {
+    plaintext: async () => {
+      await io.display.table('Truncated table', {
+        data: Array.from({ length: 100 }).map((_, i) => ({
+          name: faker.name.fullName(),
+          email: faker.internet.email(),
+          content: faker.lorem.paragraphs(10, '\n\n'),
+          department: faker.commerce.department(),
+        })),
+        columns: [
+          'name',
+          'email',
+          {
+            label: 'bio',
+            renderCell: row => ({
+              label: row.content,
+              truncate: true,
+            }),
+          },
+          'department',
+        ],
+      })
+    },
+    markdown: async () => {
+      await io.display.table('Truncated table', {
+        data: Array.from({ length: 100 }).map((_, i) => ({
+          name: faker.name.fullName(),
+          email: faker.internet.email(),
+          content:
+            `### ${faker.name.jobTitle()}\n\n` +
+            faker.lorem.paragraphs(10, '\n\n'),
+          history:
+            `### ${faker.name.jobTitle()}\n\n` +
+            faker.lorem.paragraphs(10, '\n\n'),
+          department: faker.commerce.department(),
+        })),
+        columns: [
+          'name',
+          'email',
+          {
+            label: 'bio',
+            renderCell: row => ({
+              label: row.content,
+              truncate: true,
+            }),
+          },
+          'history',
+          'department',
+        ],
+      })
+    },
   },
 })
