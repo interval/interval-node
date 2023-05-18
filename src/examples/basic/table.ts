@@ -776,34 +776,3 @@ export const markdown = new Page({
     })
   },
 })
-
-export const truncated = new Page({
-  name: 'Truncated',
-  handler: async () => {
-    return new Layout({
-      children: [
-        io.display.table('Truncated table', {
-          data: Array.from({ length: 100 }).map((_, i) => ({
-            name: faker.name.fullName(),
-            email: faker.internet.email(),
-            bio: faker.lorem.paragraphs(i + 1, '\n\n'),
-            markdown:
-              `### ${faker.name.jobTitle()}\n\n` +
-              faker.lorem.paragraphs(10, '\n\n'),
-          })),
-          columns: [
-            'name',
-            'email',
-            {
-              label: 'bio',
-              renderCell: row => ({
-                label: row.bio,
-                truncate: true,
-              }),
-            },
-          ],
-        }),
-      ],
-    })
-  },
-})
