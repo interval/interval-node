@@ -748,7 +748,7 @@ export const markdown = new Page({
             {
               index: 7,
               label: 'Paragraphs',
-              value: faker.lorem.paragraphs(3),
+              value: faker.lorem.paragraphs(5, '\n\n'),
             },
           ],
           columns: [
