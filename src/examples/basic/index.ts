@@ -1591,6 +1591,12 @@ const interval = new Interval({
     },
     Render_markdown: async io => {
       await io.group([
+        io.display.markdown(`
+- one
+  - two
+    - three
+      - four
+        `),
         // contents taken from tailwind typography demo
         io.display.markdown(`
           # What to expect from here on out
