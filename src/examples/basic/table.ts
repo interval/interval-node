@@ -80,6 +80,9 @@ export const display_table: IntervalActionHandler = async io => {
       {
         label: 'Description',
         accessorKey: 'description',
+        renderCell: row => ({
+          label: row.description,
+        }),
       },
       'boolean',
       'date',
@@ -745,7 +748,7 @@ export const markdown = new Page({
             {
               index: 7,
               label: 'Paragraphs',
-              value: faker.lorem.paragraphs(3),
+              value: faker.lorem.paragraphs(5, '\n\n'),
             },
           ],
           columns: [
@@ -766,6 +769,7 @@ export const markdown = new Page({
                 ][row.index] as HighlightColor,
               }),
             },
+            'index',
           ],
         }),
       ],
