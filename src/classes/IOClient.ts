@@ -655,6 +655,14 @@ export class IOClient {
     }
   }
 
+  createCredentialsIOMethod<
+    Props extends object = T_IO_PROPS<'CREDENTIALS'>
+  >() {
+    return (serviceName: string, props?: Props) => {
+      return this.createExclusiveIOMethod('CREDENTIALS')(serviceName, props)
+    }
+  }
+
   /**
    * The namespace of I/O methods available in action handlers.
    */
@@ -1180,6 +1188,16 @@ export class IOClient {
           propsRequired: true,
           componentDef: spreadsheet,
         }),
+        /**
+         * Requests OAuth credentials from a third-party service.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const { accessToken } = await io.credentials('github');
+         * ```
+         */
+        credentials: this.createCredentialsIOMethod(),
       },
     }
   }
