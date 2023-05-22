@@ -49,6 +49,26 @@ export const large_table: IntervalActionDefinition = {
   },
 }
 
+export const object_cell: IntervalActionDefinition = {
+  name: 'Object in cell',
+  handler: async io => {
+    const data = generateRows(10)
+
+    await io.display.table('Display users', {
+      getData: async props => {
+        return {
+          data: data.map(({ date, ...rest }) => ({
+            date,
+            payload: rest,
+          })),
+          totalRecords: data.length,
+        }
+      },
+      columns: ['date', 'payload'],
+    })
+  },
+}
+
 export const display_table: IntervalActionHandler = async io => {
   const data = generateRows(200)
 
@@ -80,6 +100,9 @@ export const display_table: IntervalActionHandler = async io => {
       {
         label: 'Description',
         accessorKey: 'description',
+        renderCell: row => ({
+          label: row.description,
+        }),
       },
       'boolean',
       'date',
@@ -390,7 +413,7 @@ export const table_custom: IntervalActionHandler = async io => {
 
   const rows: { [key: string]: any }[] = []
   for (let i = 0; i < rowsCount; i++) {
-    const row: typeof rows[0] = {}
+    const row: (typeof rows)[0] = {}
     for (const field of fields) {
       switch (field.value) {
         case 'id':
@@ -745,7 +768,7 @@ export const markdown = new Page({
             {
               index: 7,
               label: 'Paragraphs',
-              value: faker.lorem.paragraphs(3),
+              value: faker.lorem.paragraphs(5, '\n\n'),
             },
           ],
           columns: [
@@ -766,6 +789,7 @@ export const markdown = new Page({
                 ][row.index] as HighlightColor,
               }),
             },
+            'index',
           ],
         }),
       ],

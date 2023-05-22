@@ -260,11 +260,23 @@ const prod = new Interval({
       backgroundable: true,
       handler: async () => {
         const first = await io.input.text('First input')
+        await ctx.loading.start({
+          label: 'Thinking...',
+          description: 'This will take 5 seconds, feel free to navigate away.',
+        })
+        await sleep(5_000)
         const second = await io.input.text('Second input')
 
         return { first, second }
       },
     },
+    ping: new Action({
+      name: 'Ping',
+      handler: async () => {
+        await prod.ping()
+        return 'Pong!'
+      },
+    }),
     actionLinks,
     echoContext,
     confirm_identity: confirmIdentity,
@@ -513,6 +525,13 @@ const interval = new Interval({
     echoContext,
     redirect_page_test,
     empty_page,
+    ping: new Action({
+      name: 'Ping',
+      handler: async () => {
+        await prod.ping()
+        return 'Pong!'
+      },
+    }),
     inputRightAfterDisplay: async () => {
       await io.display.link('Display', {
         url: '',
@@ -1577,6 +1596,12 @@ const interval = new Interval({
     },
     Render_markdown: async io => {
       await io.group([
+        io.display.markdown(`
+- one
+  - two
+    - three
+      - four
+        `),
         // contents taken from tailwind typography demo
         io.display.markdown(`
           # What to expect from here on out

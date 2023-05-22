@@ -205,34 +205,34 @@ export const tableRowValue = z.union([
   z.date(),
   z.undefined(),
   z.bigint(),
-  z.object({
-    label: z.string().optional(),
-    value: z
-      .union([
-        z.string(),
-        z.number(),
-        z.boolean(),
-        z.null(),
-        z.date(),
-        z.undefined(),
-      ])
-      .optional(),
-    href: z.string().optional(),
-    url: z.string().optional(),
-    image: imageSchema.optional(),
-    // Deprecated in favor of route
-    action: z.string().optional(),
-    route: z.string().optional(),
-    params: serializableRecord.optional(),
-    highlightColor: highlightColor.optional(),
-  }),
+  z
+    .object({
+      label: z.string().optional(),
+      value: z
+        .union([
+          z.string(),
+          z.number(),
+          z.boolean(),
+          z.null(),
+          z.date(),
+          z.undefined(),
+        ])
+        .optional(),
+      href: z.string().optional(),
+      url: z.string().optional(),
+      image: imageSchema.optional(),
+      // Deprecated in favor of route
+      action: z.string().optional(),
+      route: z.string().optional(),
+      params: serializableRecord.optional(),
+      highlightColor: highlightColor.optional(),
+    })
+    .passthrough(),
 ])
 
-export const tableRow = z
-  .record(tableRowValue)
-  // Allow arbitrary objects/interfaces with specified column mappings.
-  // If no columns specified, we'll just serialize any nested objects.
-  .or(z.record(z.any()))
+// Allow arbitrary objects/interfaces with specified column mappings.
+// If no columns specified, we'll just serialize any nested objects.
+export const tableRow = z.record(tableRowValue.or(z.any()))
 
 export const menuItem = z.intersection(
   z.object({

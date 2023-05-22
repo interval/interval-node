@@ -6,7 +6,7 @@ import superjson from '../utils/superjson'
 import { JSONValue } from 'superjson/dist/types'
 import type { DescriptionType } from 'node-datachannel'
 
-import ISocket, { TimeoutError } from './ISocket'
+import ISocket, { TimeoutError, NotConnectedError } from './ISocket'
 import {
   DuplexRPCClient,
   DuplexRPCHandlers,
@@ -846,6 +846,14 @@ export default class IntervalClient {
     this.#serverRpc.setCommunicator(ws)
 
     await this.#initializeHost()
+  }
+
+  async ping(): Promise<boolean> {
+    if (!this.#ws) throw new NotConnectedError()
+
+    await this.#ws.ping()
+
+    return true
   }
 
   #createRPCHandlers(requestId?: string): DuplexRPCHandlers<HostSchema> {

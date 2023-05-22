@@ -103,7 +103,7 @@ export function tableRowSerializer<Row extends z.infer<typeof tableRow>>({
     if (val && typeof val === 'object' && 'image' in val) {
       const image = val.image
 
-      if (image) {
+      if (image && typeof image === 'object') {
         if (image.size) {
           if (!image.width) {
             image.width = image.size
