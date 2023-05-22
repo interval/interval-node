@@ -1194,7 +1194,7 @@ export class IOClient {
          * **Usage:**
          *
          * ```typescript
-         * const { accessToken } = await io.credentials('github');
+         * const { token } = await io.credentials('github');
          * ```
          */
         credentials: this.createCredentialsIOMethod(),
