@@ -260,6 +260,11 @@ const prod = new Interval({
       backgroundable: true,
       handler: async () => {
         const first = await io.input.text('First input')
+        await ctx.loading.start({
+          label: 'Thinking...',
+          description: 'This will take 5 seconds, feel free to navigate away.',
+        })
+        await sleep(5_000)
         const second = await io.input.text('Second input')
 
         return { first, second }
