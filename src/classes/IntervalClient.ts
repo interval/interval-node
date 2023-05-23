@@ -786,7 +786,8 @@ export default class IntervalClient {
             this.#resendPendingPageLayouts()
           })
           .catch(err => {
-            this.#logger.debug('Failed resending saved calls', err)
+            this.#logger.debug('Failed reestablishing connection', err)
+            this.#isConnected = false
           })
 
         this.#log.prod(
