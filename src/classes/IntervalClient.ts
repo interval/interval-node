@@ -337,8 +337,13 @@ export default class IntervalClient {
 
     if (this.#isInitialized && !this.#reinitializeTimeout) {
       this.#reinitializeTimeout = setTimeout(async () => {
-        await this.#initializeHost()
-        this.#reinitializeTimeout = null
+        try {
+          await this.#initializeHost()
+        } catch (err) {
+          this.#logger.error('Failed to reinitialize on routes change', err)
+        } finally {
+          this.#reinitializeTimeout = null
+        }
       }, this.#reinitializeBatchTimeoutMs)
     }
   }
