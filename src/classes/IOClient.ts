@@ -311,7 +311,7 @@ export class IOClient {
             }
           })
           .catch(err => {
-            this.logger.warn('Failed resolving component immediately', err)
+            reject(err)
           })
 
         const response = {

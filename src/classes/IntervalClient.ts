@@ -537,7 +537,10 @@ export default class IntervalClient {
             .then(response => {
               toResend.delete(transactionId)
 
-              if (!response) {
+              if (
+                !response ||
+                (typeof response === 'object' && response.type === 'ERROR')
+              ) {
                 // Unsuccessful response, don't try again
                 this.#pendingIOCalls.delete(transactionId)
               }
@@ -1058,7 +1061,7 @@ export default class IntervalClient {
                 }
               }
 
-              await intervalClient.#send(
+              const response = await intervalClient.#send(
                 'SEND_IO_CALL',
                 {
                   transactionId,
@@ -1068,6 +1071,21 @@ export default class IntervalClient {
                   attemptPeerSend,
                 }
               )
+
+              if (
+                !response ||
+                (typeof response === 'object' && response.type === 'ERROR')
+              ) {
+                let message = 'Error sending IO call.'
+                if (
+                  typeof response === 'object' &&
+                  response.type === 'ERROR' &&
+                  response.message
+                ) {
+                  message = response.message
+                }
+                throw new IOError('RENDER_ERROR', message)
+              }
             }
 
             intervalClient.#transactionLoadingStates.delete(transactionId)

@@ -314,7 +314,12 @@ export const wsServerSchema = {
       ioCall: z.string(),
       skipClientCall: z.boolean().optional(),
     }),
-    returns: z.boolean(),
+    returns: z.boolean().or(
+      z.object({
+        type: z.literal('ERROR'),
+        message: z.string().optional(),
+      })
+    ),
   },
   SEND_PAGE: {
     inputs: z.object({
