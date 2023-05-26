@@ -2160,6 +2160,9 @@ const interval = new Interval({
     }),
     grids: gridsPage,
     confirm_identity: confirmIdentity,
+    credentials: async () => {
+      const creds = await io.experimental.credentials('github')
+    },
   },
 })
 
