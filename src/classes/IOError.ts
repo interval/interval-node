@@ -3,6 +3,7 @@ export type IOErrorKind =
   | 'TRANSACTION_CLOSED'
   | 'BAD_RESPONSE'
   | 'RESPONSE_HANDLER_ERROR'
+  | 'RENDER_ERROR'
 
 export default class IOError extends Error {
   kind: IOErrorKind
