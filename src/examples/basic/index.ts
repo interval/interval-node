@@ -2092,8 +2092,13 @@ const interval = new Interval({
             { label: 'Make it negative', theme: 'danger', value: 'negative' },
             { label: 'Do nothing', value: 'nothing' },
             'Think about it for a while',
-            '?',
+            'Restart',
           ])
+
+      if (singleChoice === 'Restart') {
+        await ctx.redirect({ route: 'with_choices' })
+        return
+      }
 
       if (singleReturnValue && singleChoice === 'negative') {
         singleReturnValue = -singleReturnValue
