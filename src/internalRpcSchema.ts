@@ -270,6 +270,10 @@ export const wsServerSchema = {
     }),
     returns: z.boolean(),
   },
+  __TEST_ONLY_REQUEST_DROP_CONNECTION: {
+    inputs: z.void(),
+    returns: z.boolean(),
+  },
   LEAVE_TRANSACTION: {
     inputs: z.object({
       transactionId: z.string(),
