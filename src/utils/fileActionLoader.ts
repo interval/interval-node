@@ -75,7 +75,7 @@ async function loadFolder(currentDirectory: string, logger: Logger) {
       try {
         attemptLoadRoute(await import(fullPath))
       } catch (err) {
-        logger.debug(
+        logger.warn(
           `Failed loading file at ${fullPath} as CommonJS, trying again as module.`,
           err
         )
