@@ -263,12 +263,23 @@ export class IOClient {
 
             if (result.kind === 'SET_STATE') {
               for (const [index, newState] of result.values.entries()) {
-                const prevState = components[index].getInstance().state
+                const instance = components[index].getInstance()
+                const prevState = instance.state
 
-                if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
+                if (
+                  newState &&
+                  JSON.stringify(newState) !== JSON.stringify(prevState)
+                ) {
                   this.logger.debug(`New state at ${index}`, newState)
-                  // @ts-ignore
-                  await components[index].setState(newState)
+                  try {
+                    // @ts-ignore
+                    await components[index].setState(newState)
+                  } catch (err) {
+                    this.logger.warn(
+                      `Error updating ${instance.methodName} component state, ignoring state update`,
+                      err
+                    )
+                  }
                 }
               }
               render()
