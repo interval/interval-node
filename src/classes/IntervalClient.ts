@@ -321,11 +321,11 @@ export default class IntervalClient {
   #serverRpc:
     | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
     | undefined = undefined
-  #isConnected = false
   #isInitialized = false
+  #isReconnecting = false
 
   get isConnected() {
-    return this.#isConnected
+    return this.#ws?.isOpen ?? false
   }
 
   #reinitializeTimeout: NodeJS.Timeout | null = null
@@ -424,8 +424,6 @@ export default class IntervalClient {
       dcc.peer.close()
     }
     this.#dccMap.clear()
-
-    this.#isConnected = false
   }
 
   async safelyClose(): Promise<void> {
@@ -521,7 +519,7 @@ export default class IntervalClient {
    * Resends pending IO calls upon reconnection.
    */
   async #resendPendingIOCalls(resendToTransactionIds?: string[]) {
-    if (!this.#isConnected) return
+    if (!this.isConnected) return
 
     const toResend = resendToTransactionIds
       ? new Map(
@@ -587,7 +585,7 @@ export default class IntervalClient {
    * Resends pending IO calls upon reconnection.
    */
   async #resendPendingPageLayouts(resendToPageKeys?: string[]) {
-    if (!this.#isConnected) return
+    if (!this.isConnected) return
 
     const toResend = resendToPageKeys
       ? new Map(
@@ -650,7 +648,7 @@ export default class IntervalClient {
    * Resends pending transaction loading states upon reconnection.
    */
   async #resendTransactionLoadingStates(resendToTransactionIds?: string[]) {
-    if (!this.#isConnected) return
+    if (!this.isConnected) return
 
     const toResend = resendToTransactionIds
       ? new Map(
@@ -767,39 +765,42 @@ export default class IntervalClient {
         return
       }
 
-      this.#log.error(`❗ Could not connect to Interval (code ${code})`)
+      if (this.#pingIntervalHandle) {
+        clearInterval(this.#pingIntervalHandle)
+        this.#pingIntervalHandle = undefined
+      }
+
+      // don't initialize retry process again if already started
+      if (this.#isReconnecting) return
+
+      this.#log.error(`❗ Connection to Interval closed (code ${code})`)
 
       if (reason) {
         this.#log.error('Reason:', reason)
       }
 
-      if (this.#pingIntervalHandle) {
-        clearInterval(this.#pingIntervalHandle)
-        this.#pingIntervalHandle = undefined
-      }
-      // don't initialize retry process again if already started
-      if (!this.#isConnected) return
+      // don't reconnect if the initial connection failed, likely a config problem
+      // and maintains previous behavior
+      if (!this.#isInitialized) return
 
+      this.#isReconnecting = true
       this.#log.prod('🔌 Reconnecting...')
 
-      this.#isConnected = false
-
-      while (!this.#isConnected) {
+      while (!this.isConnected) {
         this.#createSocketConnection({ instanceId: ws.id })
           .then(() => {
+            this.#isReconnecting = false
             this.#log.prod('⚡ Reconnection successful')
-            this.#isConnected = true
             this.#resendPendingIOCalls()
             this.#resendTransactionLoadingStates()
             this.#resendPendingPageLayouts()
           })
           .catch(err => {
             this.#logger.debug('Failed reestablishing connection', err)
-            this.#isConnected = false
           })
 
         this.#log.prod(
-          `Unable to connect. Retrying in ${Math.round(
+          `Unable to reconnect. Retrying in ${Math.round(
             this.#retryIntervalMs / 1000
           )}s...`
         )
@@ -810,11 +811,10 @@ export default class IntervalClient {
     await ws.connect()
 
     this.#ws = ws
-    this.#isConnected = true
 
     let lastSuccessfulPing = new Date()
     this.#pingIntervalHandle = setInterval(async () => {
-      if (!this.#isConnected) {
+      if (!this.isConnected) {
         if (this.#pingIntervalHandle) {
           clearInterval(this.#pingIntervalHandle)
           this.#pingIntervalHandle = undefined
