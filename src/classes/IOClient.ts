@@ -263,12 +263,23 @@ export class IOClient {
 
             if (result.kind === 'SET_STATE') {
               for (const [index, newState] of result.values.entries()) {
-                const prevState = components[index].getInstance().state
+                const instance = components[index].getInstance()
+                const prevState = instance.state
 
-                if (JSON.stringify(newState) !== JSON.stringify(prevState)) {
+                if (
+                  newState &&
+                  JSON.stringify(newState) !== JSON.stringify(prevState)
+                ) {
                   this.logger.debug(`New state at ${index}`, newState)
-                  // @ts-ignore
-                  await components[index].setState(newState)
+                  try {
+                    // @ts-ignore
+                    await components[index].setState(newState)
+                  } catch (err) {
+                    this.logger.warn(
+                      `Error updating ${instance.methodName} component state, ignoring state update`,
+                      err
+                    )
+                  }
                 }
               }
               render()
@@ -311,7 +322,7 @@ export class IOClient {
             }
           })
           .catch(err => {
-            this.logger.warn('Failed resolving component immediately', err)
+            reject(err)
           })
 
         const response = {
@@ -652,6 +663,14 @@ export class IOClient {
         label,
         displayResolvesImmediately: this.displayResolvesImmediately,
       })
+    }
+  }
+
+  createCredentialsIOMethod<
+    Props extends object = T_IO_PROPS<'CREDENTIALS'>
+  >() {
+    return (serviceName: string, props?: Props) => {
+      return this.createExclusiveIOMethod('CREDENTIALS')(serviceName, props)
     }
   }
 
@@ -1180,6 +1199,16 @@ export class IOClient {
           propsRequired: true,
           componentDef: spreadsheet,
         }),
+        /**
+         * Requests OAuth credentials from a third-party service.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const { token } = await io.credentials('github');
+         * ```
+         */
+        credentials: this.createCredentialsIOMethod(),
       },
     }
   }

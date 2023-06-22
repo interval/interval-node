@@ -832,6 +832,18 @@ const INPUT_SCHEMA = {
     state: z.null(),
     returns: z.array(labelValue),
   },
+  CREDENTIALS: {
+    props: z.object({
+      // optional service-specific params to pass to the API
+      params: z.optional(z.record(z.string())),
+    }),
+    state: z.null(),
+    returns: z.object({
+      token: z.string(),
+      // only returned for OAuth 1.0 APIs
+      secret: z.string().optional(),
+    }),
+  },
 }
 
 export const ioSchema = {

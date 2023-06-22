@@ -82,12 +82,16 @@ export class DataChannelSocket {
   }
 
   set onopen(cb: () => void) {
+    const handleOpen = () => {
+      this.#readyState = 'open'
+      cb()
+    }
     if ('onOpen' in this.dc) {
       // node
-      this.dc.onOpen(cb)
+      this.dc.onOpen(handleOpen)
     } else {
       // web
-      this.dc.onopen = cb
+      this.dc.onopen = handleOpen
     }
   }
 
@@ -169,7 +173,6 @@ export default class ISocket {
   private pingTimeout: number
   private isAuthenticated: boolean
   private timeouts: Set<NodeJS.Timeout>
-  private isClosed = false
   onMessage: Evt<string>
   onOpen: Evt<void>
   onError: Evt<Error>
@@ -195,7 +198,7 @@ export default class ISocket {
    */
   async connect() {
     return new Promise<void>((resolve, reject) => {
-      if (this.ws.readyState === this.ws.OPEN && this.isAuthenticated) {
+      if (this.isOpen && this.isAuthenticated) {
         return resolve()
       }
 
@@ -219,13 +222,17 @@ export default class ISocket {
     return this.send('authenticated')
   }
 
+  get isOpen() {
+    return this.ws.readyState === this.ws.OPEN
+  }
+
   /** Both **/
   /**
    * Send a `MESSAGE` containing data to the connected counterpart,
    * throwing an error if `ACK` is not received within `sendTimeout`.
    */
   async send(data: string, options: { timeoutFactor?: number } = {}) {
-    if (this.isClosed) throw new NotConnectedError()
+    if (!this.isOpen) throw new NotConnectedError()
 
     return new Promise<void>((resolve, reject) => {
       const id = v4()
@@ -254,7 +261,6 @@ export default class ISocket {
    * connection.
    */
   close(code?: number, reason?: string) {
-    this.isClosed = true
     this.onMessage.detach()
     return this.ws.close(code, reason)
   }
@@ -285,7 +291,6 @@ export default class ISocket {
     this.isAuthenticated = false
 
     this.onClose.attach(() => {
-      this.isClosed = true
       for (const timeout of this.timeouts) {
         clearTimeout(timeout)
       }
@@ -293,7 +298,6 @@ export default class ISocket {
     })
 
     this.ws.onopen = () => {
-      this.isClosed = false
       this.onOpen.post()
     }
 
@@ -314,7 +318,7 @@ export default class ISocket {
         evt.stopPropagation()
       }
 
-      if (this.isClosed) return
+      if (!this.isOpen) return
 
       const data = JSON.parse(evt.data.toString())
       const meta = MESSAGE_META.parse(data)
@@ -364,7 +368,7 @@ export default class ISocket {
    * `pong` is not received within `pingTimeout`.
    */
   async ping() {
-    if (this.isClosed) throw new NotConnectedError()
+    if (!this.isOpen) throw new NotConnectedError()
 
     const ws = this.ws
     return new Promise<void>((resolve, reject) => {

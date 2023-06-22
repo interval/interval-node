@@ -1,4 +1,5 @@
 import { z, ZodError } from 'zod'
+import { Evt } from 'evt'
 import type { DuplexMessage } from '../internalRpcSchema'
 import { DUPLEX_MESSAGE_SCHEMA } from '../internalRpcSchema'
 import { sleep } from './IntervalClient'
@@ -75,6 +76,8 @@ export class DuplexRPCClient<
   messageChunks = new Map<string, string[]>()
   #retryChunkIntervalMs: number = 100
 
+  onMessageReceived: Evt<DuplexMessage>
+
   constructor({
     communicator,
     canCall,
@@ -87,6 +90,7 @@ export class DuplexRPCClient<
     this.canCall = canCall
     this.canRespondTo = canRespondTo
     this.handlers = handlers
+    this.onMessageReceived = new Evt()
 
     if (retryChunkIntervalMs && retryChunkIntervalMs > 0) {
       this.#retryChunkIntervalMs = retryChunkIntervalMs
@@ -208,6 +212,8 @@ export class DuplexRPCClient<
     const txt = data as string
     try {
       let inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
+
+      this.onMessageReceived.post(inputParsed)
 
       if (inputParsed.kind === 'CALL_CHUNK') {
         let chunks = this.messageChunks.get(inputParsed.id)

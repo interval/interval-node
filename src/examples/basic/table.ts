@@ -302,7 +302,7 @@ export const async_table: IntervalActionHandler = async () => {
 export const select_table: IntervalActionHandler = async io => {
   faker.seed(0)
 
-  const data = generateRows(50_000)
+  const data = generateRows(500)
 
   const selected = await io.select.table('Display users', {
     data,
@@ -334,6 +334,7 @@ export const select_table: IntervalActionHandler = async io => {
         params: { email: row.email },
       },
     ],
+    initiallySelected: row => row.id % 2 === 0,
   })
 
   await io.display.table('Display users', {
