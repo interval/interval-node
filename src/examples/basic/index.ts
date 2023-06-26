@@ -330,11 +330,17 @@ const prod = new Interval({
         return heading
       },
     },
-    redirectWithoutWarningTest: async () => {
-      const text = await io.input.text('Edit text before navigating', {
-        defaultValue: 'Backspace me',
-      })
-      ctx.redirect({ action: 'actionLinks' })
+    redirectWithoutWarningTest: {
+      promptOnClose: false,
+      handler: async () => {
+        const text = await io.input.text('Edit text before navigating', {
+          defaultValue: 'Backspace me',
+        })
+        const text2 = await io.input.text('Edit text before navigating', {
+          defaultValue: 'Backspace me',
+        })
+        ctx.redirect({ action: 'actionLinks' })
+      },
     },
     ImportUsers: {
       backgroundable: true,
@@ -349,10 +355,40 @@ const prod = new Interval({
         return { name }
       },
     } as IntervalActionDefinition,
-    enter_two_numbers: async io => {
-      const num1 = await io.input.number('Enter a number')
+    enter_two_numbers: new Action({
+      handler: async io => {
+        const num1 = await io.input.number('Enter a number')
 
-      try {
+        try {
+          const num2 = await io.input.number(
+            `Enter a second number that's greater than ${num1}`,
+            {
+              min: num1 + 0.01,
+              decimals: 2,
+            }
+          )
+
+          return { num1, num2 }
+        } catch (err) {
+          if (err instanceof IOError) {
+            // Do some long cleanup work
+            await sleep(num1 * 1000)
+
+            return {
+              'Cleanup time': `${num1} seconds`,
+              'Cleanup completed': new Date(),
+            }
+          }
+
+          // Other error in host code
+          throw new Error('Something bad happened!')
+        }
+      },
+    }),
+    enter_two_numbers_no_prompt: new Action({
+      promptOnClose: false,
+      handler: async io => {
+        const num1 = await io.input.number('Enter a number')
         const num2 = await io.input.number(
           `Enter a second number that's greater than ${num1}`,
           {
@@ -362,21 +398,8 @@ const prod = new Interval({
         )
 
         return { num1, num2 }
-      } catch (err) {
-        if (err instanceof IOError) {
-          // Do some long cleanup work
-          await sleep(num1 * 1000)
-
-          return {
-            'Cleanup time': `${num1} seconds`,
-            'Cleanup completed': new Date(),
-          }
-        }
-
-        // Other error in host code
-        throw new Error('Something bad happened!')
-      }
-    },
+      },
+    }),
     enter_one_number: async (io, ctx) => {
       ctx.log('Requesting a number')
       const num = await io.input.number('Enter a number')
