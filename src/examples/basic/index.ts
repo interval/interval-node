@@ -422,24 +422,42 @@ const prod = new Interval({
       name: 'Tables',
       routes: table_actions,
     }),
+    to_page: new Page({
+      name: 'A Go to page test',
+      handler: async () => {
+        return new Layout({
+          children: [
+            io.display.table('Table', {
+              data: [{ a: 1 }],
+              rowMenuItems: row => [
+                {
+                  label: 'To async page',
+                  route: 'async_page_test',
+                },
+              ],
+            }),
+          ],
+        })
+      },
+    }),
     async_page_test: new Page({
       name: 'Async page test',
       handler: async () => {
-        await sleep(2_000)
+        await sleep(30_000)
 
-        await ctx.loading.start('Generating page...')
-
-        await sleep(2_000)
-
-        await ctx.loading.start({
-          label: 'Generating rows...',
-          itemsInQueue: 100,
-        })
-
-        for (let i = 0; i < 100; i++) {
-          await ctx.loading.completeOne()
-          await sleep(100)
-        }
+        // await ctx.loading.start('Generating page...')
+        //
+        // await sleep(2_000)
+        //
+        // await ctx.loading.start({
+        //   label: 'Generating rows...',
+        //   itemsInQueue: 100,
+        // })
+        //
+        // for (let i = 0; i < 100; i++) {
+        //   await ctx.loading.completeOne()
+        //   await sleep(100)
+        // }
 
         const allData = generateRows(100)
 
