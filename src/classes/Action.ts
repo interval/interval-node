@@ -9,7 +9,7 @@ export default class Action implements ExplicitIntervalActionDefinition {
   handler: IntervalActionHandler
   backgroundable?: boolean
   unlisted?: boolean
-  promptOnClose?: boolean
+  warnOnClose?: boolean
   name?: string
   description?: string
   access?: AccessControlDefinition

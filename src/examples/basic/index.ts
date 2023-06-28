@@ -331,7 +331,7 @@ const prod = new Interval({
       },
     },
     redirectWithoutWarningTest: {
-      promptOnClose: false,
+      warnOnClose: false,
       handler: async () => {
         const text = await io.input.text('Edit text before navigating', {
           defaultValue: 'Backspace me',
@@ -386,7 +386,7 @@ const prod = new Interval({
       },
     }),
     enter_two_numbers_no_prompt: new Action({
-      promptOnClose: false,
+      warnOnClose: false,
       handler: async io => {
         const num1 = await io.input.number('Enter a number')
         const num2 = await io.input.number(
