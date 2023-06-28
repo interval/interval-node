@@ -139,6 +139,7 @@ export default class IntervalClient {
   environment: ActionEnvironment | undefined
   #forcePeerMessages = false
 
+  #verboseMessageLogs = false
   #onError: IntervalErrorHandler | undefined
 
   constructor(interval: Interval, config: InternalConfig) {
@@ -193,6 +194,10 @@ export default class IntervalClient {
 
     if (config.onError) {
       this.#onError = config.onError
+    }
+
+    if (config.verboseMessageLogs) {
+      this.#verboseMessageLogs = config.verboseMessageLogs
     }
   }
 
@@ -760,6 +765,12 @@ export default class IntervalClient {
       }
     )
 
+    if (this.#verboseMessageLogs) {
+      ws.onMessage.attach(message => {
+        this.#logger.debug('Message received:', message)
+      })
+    }
+
     ws.onClose.attach(async ([code, reason]) => {
       if (this.#intentionallyClosed) {
         this.#intentionallyClosed = false
@@ -810,10 +821,6 @@ export default class IntervalClient {
     })
 
     await ws.connect()
-
-    ws.onMessage.attach(data => {
-      this.#logger.debug('Message received:', data)
-    })
 
     this.#ws = ws
 
