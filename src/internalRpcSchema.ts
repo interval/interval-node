@@ -282,7 +282,7 @@ export const wsServerSchema = {
   },
   REQUEST_PAGE: {
     inputs: z.object({
-      pageKey: z.string().optional(),
+      pageKey: z.string(),
       pageSlug: z.string(),
       actionMode,
       organizationEnvironmentId: z.string(),
