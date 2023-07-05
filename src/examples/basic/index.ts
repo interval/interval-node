@@ -550,6 +550,38 @@ const interval = new Interval({
         return 'Pong!'
       },
     }),
+    html: async () => {
+      await io.display.markdown('Done!')
+
+      await io.display.html('HTML', {
+        html: '<p>Hello, world!</p>',
+      })
+
+      const richText = await io.input.richText('Text', {})
+
+      await io.display.html('What you entered', {
+        html: richText,
+      })
+
+      await io.display.html('Restricted', {
+        html: `
+        <h2>Heading 2</h2>
+          <script>alert('hello, world!');</script>
+          <noscript>No script.</noscript>
+          <style>html { color: red; }</style>
+
+          <form method="POST">
+            <button onclick="window.alert">Button</button>
+          </form>
+
+          <iframe src="https://interval.com"></iframe>
+
+          <p class="text-xl" style="color: red;">Hello, in red!</p>
+          <p class="text-lg">
+          </html>drop table users;
+        `,
+      })
+    },
     inputRightAfterDisplay: async () => {
       await io.display.link('Display', {
         url: '',

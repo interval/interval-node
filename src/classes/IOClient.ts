@@ -1008,6 +1008,18 @@ export class IOClient {
          */
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
         /**
+         * Displays rendered HTML to the action user.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.html("Message body", {
+         *   html: `<p>Hello, <b>world</b>!<p>`
+         * });
+         * ```
+         */
+        html: this.createIOMethod('DISPLAY_HTML'),
+        /**
          * Displays an image to the action user.
          *
          * One of `url` or `buffer` must be provided.
