@@ -2182,6 +2182,42 @@ const interval = new Interval({
 
       return selected
     },
+    slider: async () => {
+      const { maxLength, temperature } = await io.group({
+        text: io.input.text('Text input').optional(),
+        maxLength: io.input.slider('Maximum length', {
+          min: 1,
+          max: 2048,
+          step: 1,
+          defaultValue: 512,
+        }),
+        temperature: io.input.slider('Temperature', {
+          min: 0,
+          max: 2,
+          step: 0.01,
+          defaultValue: 1,
+        }),
+        topP: io.input.slider('Top P', {
+          min: 0,
+          max: 1,
+          step: 0.01,
+          defaultValue: 1,
+          helpText:
+            'Controls diversity via nucleus sampling: 0.5 means half of all likelihood- weighted options are considered.',
+        }),
+        frequencyPenalty: io.input.slider('Frequency penalty', {
+          min: 0,
+          max: 2,
+          step: 0.01,
+          defaultValue: 2,
+          disabled: true,
+          helpText:
+            "How much to penalize new tokens based on their existing frequency in the text so far. Decreases the model's likelihood to repeat the same line verbatim.",
+        }),
+      })
+
+      return { maxLength, temperature }
+    },
     tables: new Page({
       name: 'Tables',
       routes: table_actions,

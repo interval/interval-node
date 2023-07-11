@@ -629,6 +629,18 @@ const INPUT_SCHEMA = {
     state: z.null(),
     returns: z.number(),
   },
+  INPUT_SLIDER: {
+    props: z.object({
+      min: z.number(),
+      max: z.number(),
+      step: z.optional(z.number()),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(z.number()).nullable(),
+      disabled: z.optional(z.boolean().default(false)),
+    }),
+    state: z.null(),
+    returns: z.number(),
+  },
   INPUT_URL: {
     props: z.object({
       helpText: z.optional(z.string()),
