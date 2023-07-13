@@ -94,6 +94,7 @@ export const ACTION_DEFINITION = z.object({
   description: z.string().optional(),
   backgroundable: z.boolean().optional(),
   unlisted: z.boolean().optional(),
+  warnOnClose: z.boolean().optional(),
   access: ACCESS_CONTROL_DEFINITION.optional(),
 })
 
