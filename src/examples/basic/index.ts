@@ -224,14 +224,18 @@ const actionLinks: IntervalActionHandler = async () => {
 }
 
 const echoContext = new Action(async () => {
+  const data = {
+    organization: ctx.organization,
+    action: ctx.action,
+    environment: ctx.environment,
+    params: ctx.params,
+    user: ctx.user,
+  }
+
+  console.log(data)
+
   await io.display.object('Context', {
-    data: {
-      organization: ctx.organization,
-      aciton: ctx.action,
-      environment: ctx.environment,
-      params: ctx.params,
-      user: ctx.user,
-    },
+    data,
   })
 })
 

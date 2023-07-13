@@ -78,6 +78,10 @@ export type BackwardCompatibleLoadingState = z.input<
   typeof BACKWARD_COMPATIBLE_LOADING_STATE
 >
 
+export const CTX_USER_ROLE = z.enum(['admin', 'developer', 'member'])
+
+export type CtxUserRole = z.input<typeof CTX_USER_ROLE>
+
 export const ACCESS_CONTROL_DEFINITION = z.union([
   z.literal('entire-organization'),
   z.object({
@@ -550,6 +554,16 @@ export const clientSchema = {
 
 export type ClientSchema = typeof clientSchema
 
+export const startTransactionUser = z.object({
+  email: z.string(),
+  firstName: z.string().nullable(),
+  lastName: z.string().nullable(),
+  role: CTX_USER_ROLE,
+  teams: z.array(z.string()),
+})
+
+export type StartTransactionUser = z.input<typeof startTransactionUser>
+
 export const hostSchema = {
   OPEN_PAGE: {
     inputs: z.object({
@@ -559,11 +573,7 @@ export const hostSchema = {
         slug: z.string(),
       }),
       environment: actionEnvironment,
-      user: z.object({
-        email: z.string(),
-        firstName: z.string().nullable(),
-        lastName: z.string().nullable(),
-      }),
+      user: startTransactionUser,
       params: serializableRecord,
       paramsMeta: z.any().optional(),
     }),
@@ -599,11 +609,7 @@ export const hostSchema = {
         url: z.string(),
       }),
       environment: actionEnvironment,
-      user: z.object({
-        email: z.string(),
-        firstName: z.string().nullable(),
-        lastName: z.string().nullable(),
-      }),
+      user: startTransactionUser,
       params: serializableRecord,
       paramsMeta: z.any().optional(),
     }),
