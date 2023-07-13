@@ -476,6 +476,13 @@ const DISPLAY_SCHEMA = {
     state: z.null(),
     returns: z.null(),
   },
+  DISPLAY_HTML: {
+    props: z.object({
+      html: z.string(),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
   DISPLAY_IMAGE: {
     props: imageSchema,
     state: z.null(),
