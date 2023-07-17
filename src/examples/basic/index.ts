@@ -224,14 +224,18 @@ const actionLinks: IntervalActionHandler = async () => {
 }
 
 const echoContext = new Action(async () => {
+  const data = {
+    organization: ctx.organization,
+    action: ctx.action,
+    environment: ctx.environment,
+    params: ctx.params,
+    user: ctx.user,
+  }
+
+  console.log(data)
+
   await io.display.object('Context', {
-    data: {
-      organization: ctx.organization,
-      aciton: ctx.action,
-      environment: ctx.environment,
-      params: ctx.params,
-      user: ctx.user,
-    },
+    data,
   })
 })
 
@@ -330,11 +334,17 @@ const prod = new Interval({
         return heading
       },
     },
-    redirectWithoutWarningTest: async () => {
-      const text = await io.input.text('Edit text before navigating', {
-        defaultValue: 'Backspace me',
-      })
-      ctx.redirect({ action: 'actionLinks' })
+    redirectWithoutWarningTest: {
+      warnOnClose: false,
+      handler: async () => {
+        const text = await io.input.text('Edit text before navigating', {
+          defaultValue: 'Backspace me',
+        })
+        const text2 = await io.input.text('Edit text before navigating', {
+          defaultValue: 'Backspace me',
+        })
+        ctx.redirect({ action: 'actionLinks' })
+      },
     },
     ImportUsers: {
       backgroundable: true,
@@ -349,10 +359,40 @@ const prod = new Interval({
         return { name }
       },
     } as IntervalActionDefinition,
-    enter_two_numbers: async io => {
-      const num1 = await io.input.number('Enter a number')
+    enter_two_numbers: new Action({
+      handler: async io => {
+        const num1 = await io.input.number('Enter a number')
 
-      try {
+        try {
+          const num2 = await io.input.number(
+            `Enter a second number that's greater than ${num1}`,
+            {
+              min: num1 + 0.01,
+              decimals: 2,
+            }
+          )
+
+          return { num1, num2 }
+        } catch (err) {
+          if (err instanceof IOError) {
+            // Do some long cleanup work
+            await sleep(num1 * 1000)
+
+            return {
+              'Cleanup time': `${num1} seconds`,
+              'Cleanup completed': new Date(),
+            }
+          }
+
+          // Other error in host code
+          throw new Error('Something bad happened!')
+        }
+      },
+    }),
+    enter_two_numbers_no_prompt: new Action({
+      warnOnClose: false,
+      handler: async io => {
+        const num1 = await io.input.number('Enter a number')
         const num2 = await io.input.number(
           `Enter a second number that's greater than ${num1}`,
           {
@@ -362,21 +402,8 @@ const prod = new Interval({
         )
 
         return { num1, num2 }
-      } catch (err) {
-        if (err instanceof IOError) {
-          // Do some long cleanup work
-          await sleep(num1 * 1000)
-
-          return {
-            'Cleanup time': `${num1} seconds`,
-            'Cleanup completed': new Date(),
-          }
-        }
-
-        // Other error in host code
-        throw new Error('Something bad happened!')
-      }
-    },
+      },
+    }),
     enter_one_number: async (io, ctx) => {
       ctx.log('Requesting a number')
       const num = await io.input.number('Enter a number')
@@ -422,24 +449,42 @@ const prod = new Interval({
       name: 'Tables',
       routes: table_actions,
     }),
+    to_page: new Page({
+      name: 'A Go to page test',
+      handler: async () => {
+        return new Layout({
+          children: [
+            io.display.table('Table', {
+              data: [{ a: 1 }],
+              rowMenuItems: row => [
+                {
+                  label: 'To async page',
+                  route: 'async_page_test',
+                },
+              ],
+            }),
+          ],
+        })
+      },
+    }),
     async_page_test: new Page({
       name: 'Async page test',
       handler: async () => {
-        await sleep(2_000)
+        await sleep(30_000)
 
-        await ctx.loading.start('Generating page...')
-
-        await sleep(2_000)
-
-        await ctx.loading.start({
-          label: 'Generating rows...',
-          itemsInQueue: 100,
-        })
-
-        for (let i = 0; i < 100; i++) {
-          await ctx.loading.completeOne()
-          await sleep(100)
-        }
+        // await ctx.loading.start('Generating page...')
+        //
+        // await sleep(2_000)
+        //
+        // await ctx.loading.start({
+        //   label: 'Generating rows...',
+        //   itemsInQueue: 100,
+        // })
+        //
+        // for (let i = 0; i < 100; i++) {
+        //   await ctx.loading.completeOne()
+        //   await sleep(100)
+        // }
 
         const allData = generateRows(100)
 
@@ -532,6 +577,38 @@ const interval = new Interval({
         return 'Pong!'
       },
     }),
+    html: async () => {
+      await io.display.markdown('Done!')
+
+      await io.display.html('HTML', {
+        html: '<p>Hello, world!</p>',
+      })
+
+      const richText = await io.input.richText('Text', {})
+
+      await io.display.html('What you entered', {
+        html: richText,
+      })
+
+      await io.display.html('Restricted', {
+        html: `
+        <h2>Heading 2</h2>
+          <script>alert('hello, world!');</script>
+          <noscript>No script.</noscript>
+          <style>html { color: red; }</style>
+
+          <form method="POST">
+            <button onclick="window.alert">Button</button>
+          </form>
+
+          <iframe src="https://interval.com"></iframe>
+
+          <p class="text-xl" style="color: red;">Hello, in red!</p>
+          <p class="text-lg">
+          </html>drop table users;
+        `,
+      })
+    },
     inputRightAfterDisplay: async () => {
       await io.display.link('Display', {
         url: '',
@@ -2163,6 +2240,42 @@ const interval = new Interval({
       })
 
       return selected
+    },
+    slider: async () => {
+      const { maxLength, temperature } = await io.group({
+        text: io.input.text('Text input').optional(),
+        maxLength: io.input.slider('Maximum length', {
+          min: 1,
+          max: 2048,
+          step: 1,
+          defaultValue: 512,
+        }),
+        temperature: io.input.slider('Temperature', {
+          min: 0,
+          max: 2,
+          step: 0.01,
+          defaultValue: 1,
+        }),
+        topP: io.input.slider('Top P', {
+          min: 0,
+          max: 1,
+          step: 0.01,
+          defaultValue: 1,
+          helpText:
+            'Controls diversity via nucleus sampling: 0.5 means half of all likelihood- weighted options are considered.',
+        }),
+        frequencyPenalty: io.input.slider('Frequency penalty', {
+          min: 0,
+          max: 2,
+          step: 0.01,
+          defaultValue: 2,
+          disabled: true,
+          helpText:
+            "How much to penalize new tokens based on their existing frequency in the text so far. Decreases the model's likelihood to repeat the same line verbatim.",
+        }),
+      })
+
+      return { maxLength, temperature }
     },
     tables: new Page({
       name: 'Tables',

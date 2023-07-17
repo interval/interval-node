@@ -139,6 +139,7 @@ export default class IntervalClient {
   environment: ActionEnvironment | undefined
   #forcePeerMessages = false
 
+  #verboseMessageLogs = false
   #onError: IntervalErrorHandler | undefined
 
   constructor(interval: Interval, config: InternalConfig) {
@@ -193,6 +194,10 @@ export default class IntervalClient {
 
     if (config.onError) {
       this.#onError = config.onError
+    }
+
+    if (config.verboseMessageLogs) {
+      this.#verboseMessageLogs = config.verboseMessageLogs
     }
   }
 
@@ -304,6 +309,7 @@ export default class IntervalClient {
   #ioClients = new Map<string, IOClient>()
   #ioResponseHandlers = new Map<string, (value: T_IO_RESPONSE) => void>()
   #pendingIOCalls = new Map<string, string>()
+  #openPages = new Set<string>()
   #pendingPageLayouts = new Map<string, string>()
   #transactionLoadingStates = new Map<string, LoadingState>()
   #httpRequestCompleteCallbacks = new Map<
@@ -758,6 +764,12 @@ export default class IntervalClient {
         pingTimeout: this.#config.pingTimeoutMs,
       }
     )
+
+    if (this.#verboseMessageLogs) {
+      ws.onMessage.attach(message => {
+        this.#logger.debug('Message received:', message)
+      })
+    }
 
     ws.onClose.attach(async ([code, reason]) => {
       if (this.#intentionallyClosed) {
@@ -1425,6 +1437,8 @@ export default class IntervalClient {
           peerPageKeys.add(pageKey)
         }
 
+        this.#openPages.add(pageKey)
+
         let { params, paramsMeta } = inputs
 
         if (params && paramsMeta) {
@@ -1444,6 +1458,7 @@ export default class IntervalClient {
           loading: new TransactionLoadingState({
             logger: intervalClient.#logger,
             send: async loadingState => {
+              if (!this.#openPages.has(pageKey)) return
               intervalClient.#transactionLoadingStates.set(
                 pageKey,
                 loadingState
@@ -1471,6 +1486,7 @@ export default class IntervalClient {
         const MAX_PAGE_RETRIES = 5
 
         const sendPage = async () => {
+          if (!this.#openPages.has(pageKey)) return
           let pageLayout: LayoutSchemaInput | undefined
           if (page instanceof BasicLayout) {
             pageLayout = {
@@ -1544,6 +1560,7 @@ export default class IntervalClient {
         let newPageScheduled = false
 
         const processSendPage = () => {
+          if (!this.#openPages.has(pageKey)) return
           newPageScheduled = false
           pageSendTimeout = null
           sendPagePromise = sendPage()
@@ -1560,6 +1577,7 @@ export default class IntervalClient {
         }
 
         const scheduleSendPage = () => {
+          if (!this.#openPages.has(pageKey)) return
           newPageScheduled = true
 
           if (sendPagePromise) return
@@ -1571,6 +1589,7 @@ export default class IntervalClient {
         const client = new IOClient({
           logger: this.#logger,
           send: async instruction => {
+            if (!this.#openPages.has(pageKey)) return
             renderInstruction = instruction
             scheduleSendPage()
           },
@@ -1586,8 +1605,10 @@ export default class IntervalClient {
           io: { group, display },
         } = client
 
-        this.#ioClients.set(pageKey, client)
-        this.#ioResponseHandlers.set(pageKey, client.onResponse.bind(client))
+        if (this.#openPages.has(pageKey)) {
+          this.#ioClients.set(pageKey, client)
+          this.#ioResponseHandlers.set(pageKey, client.onResponse.bind(client))
+        }
 
         const pageError = (
           error: unknown,
@@ -1785,10 +1806,13 @@ export default class IntervalClient {
                 organization: ctx.organization,
               })
 
+              if (!this.#openPages.has(pageKey)) return
+
               const pageLayout: LayoutSchemaInput = {
                 kind: 'BASIC',
                 errors,
               }
+
               await this.#send('SEND_PAGE', {
                 pageKey,
                 page: JSON.stringify(pageLayout),
@@ -1796,12 +1820,14 @@ export default class IntervalClient {
             })
         }
 
-        if (pageLocalStorage) {
-          pageLocalStorage.run({ display, ctx }, () => {
+        if (this.#openPages.has(pageKey)) {
+          if (pageLocalStorage) {
+            pageLocalStorage.run({ display, ctx }, () => {
+              handlePage()
+            })
+          } else {
             handlePage()
-          })
-        } else {
-          handlePage()
+          }
         }
 
         return {
@@ -1810,6 +1836,7 @@ export default class IntervalClient {
         }
       },
       CLOSE_PAGE: async inputs => {
+        this.#openPages.delete(inputs.pageKey)
         const client = this.#ioClients.get(inputs.pageKey)
         if (client) {
           for (const key of client.inlineActionKeys.values()) {
@@ -1828,6 +1855,7 @@ export default class IntervalClient {
 
         this.#pendingPageLayouts.delete(inputs.pageKey)
         this.#ioResponseHandlers.delete(inputs.pageKey)
+        this.#transactionLoadingStates.delete(inputs.pageKey)
 
         // Do this after a small delay so that this function can return before shutdown
         if (requestId) {

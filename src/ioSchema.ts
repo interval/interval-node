@@ -476,6 +476,13 @@ const DISPLAY_SCHEMA = {
     state: z.null(),
     returns: z.null(),
   },
+  DISPLAY_HTML: {
+    props: z.object({
+      html: z.string(),
+    }),
+    state: z.null(),
+    returns: z.null(),
+  },
   DISPLAY_IMAGE: {
     props: imageSchema,
     state: z.null(),
@@ -624,6 +631,18 @@ const INPUT_SCHEMA = {
       defaultValue: z.optional(z.number()).nullable(),
       decimals: z.optional(z.number().positive().int()),
       currency: z.optional(currencyCode),
+      disabled: z.optional(z.boolean().default(false)),
+    }),
+    state: z.null(),
+    returns: z.number(),
+  },
+  INPUT_SLIDER: {
+    props: z.object({
+      min: z.number(),
+      max: z.number(),
+      step: z.optional(z.number()),
+      helpText: z.optional(z.string()),
+      defaultValue: z.optional(z.number()).nullable(),
       disabled: z.optional(z.boolean().default(false)),
     }),
     state: z.null(),

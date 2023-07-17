@@ -11,7 +11,6 @@ import type {
   IOFunctionReturnType,
   T_IO_DISPLAY_METHOD_NAMES,
   T_IO_INPUT_METHOD_NAMES,
-  LinkProps,
   menuItem,
   buttonItem,
   ButtonTheme,
@@ -25,7 +24,7 @@ import type {
 import type {
   AccessControlDefinition,
   ActionEnvironment,
-  HostSchema,
+  CtxUserRole,
 } from './internalRpcSchema'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
 import type IOComponent from './classes/IOComponent'
@@ -66,6 +65,14 @@ export type CtxUser = {
    * The last name of the user running the action or page, if present.
    */
   lastName: string | null
+  /**
+   * The user role within the organization of the user running the action or page.
+   */
+  role: CtxUserRole
+  /**
+   * The teams the user running the action or page belongs to within the organization.
+   */
+  teams: string[]
 }
 
 export type CtxOrganization = {
@@ -197,6 +204,7 @@ export interface ExplicitIntervalActionDefinition {
   handler: IntervalActionHandler
   backgroundable?: boolean
   unlisted?: boolean
+  warnOnClose?: boolean
   name?: string
   description?: string
   access?: AccessControlDefinition

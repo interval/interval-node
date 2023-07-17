@@ -779,6 +779,19 @@ export class IOClient {
          */
         number: this.createIOMethod('INPUT_NUMBER'),
         /**
+         * Requests a numeric value within a range using a slider input.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * const amount = await io.input.range("Amount", {
+         *   helpText: "Select a number between one and ten.",
+         *   min: 1,
+         *   max: 10,
+         * });
+         */
+        slider: this.createIOMethod('INPUT_SLIDER'),
+        /**
          * Requests an email address.
          *
          * **Usage:**
@@ -1007,6 +1020,18 @@ export class IOClient {
          * ```
          */
         markdown: this.createIOMethod('DISPLAY_MARKDOWN'),
+        /**
+         * Displays rendered HTML to the action user.
+         *
+         * **Usage:**
+         *
+         * ```typescript
+         * await io.display.html("Message body", {
+         *   html: `<p>Hello, <b>world</b>!<p>`
+         * });
+         * ```
+         */
+        html: this.createIOMethod('DISPLAY_HTML'),
         /**
          * Displays an image to the action user.
          *

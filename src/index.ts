@@ -72,6 +72,7 @@ export interface InternalConfig {
   closeUnresponsiveConnectionTimeoutMs?: number
   reinitializeBatchTimeoutMs?: number
   onError?: IntervalErrorHandler
+  verboseMessageLogs?: boolean
 
   /* @internal */ getClientHandlers?: () =>
     | DuplexRPCHandlers<ClientSchema>
