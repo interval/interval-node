@@ -2,7 +2,7 @@ import { IntervalActionDefinition } from '@interval/sdk/src/types'
 import { IntervalActionHandler, Action, Page, Layout, io } from '../..'
 import { faker } from '@faker-js/faker'
 import fakeUsers from '../utils/fakeUsers'
-import { generateRows } from '../utils/helpers'
+import { generateRows, sleep } from '../utils/helpers'
 import { asyncTable } from '../utils/ioMethodWrappers'
 import dedent from 'dedent'
 import { HighlightColor } from '../../ioSchema'
@@ -242,6 +242,23 @@ export const multiple_tables: IntervalActionHandler = async io => {
     }),
   ])
 }
+
+export const multiple_async_tables = new Page({
+  name: 'Multiple async tables',
+  handler: async () => {
+    await sleep(200)
+
+    return new Layout({
+      children: [
+        asyncTable(100),
+        asyncTable(300),
+        asyncTable(800),
+        asyncTable(300),
+        asyncTable(200),
+      ],
+    })
+  },
+})
 
 export const big_payload_table = new Page({
   name: 'Big table',
