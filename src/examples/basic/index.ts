@@ -322,6 +322,7 @@ const prod = new Interval({
     helloCurrentUser: {
       name: 'Hello, current user!',
       description: '👋',
+      backgroundable: true,
       handler: async () => {
         console.log(ctx.params)
 
