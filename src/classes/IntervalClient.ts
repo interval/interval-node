@@ -132,9 +132,9 @@ export default class IntervalClient {
 
   organization:
     | {
-        name: string
-        slug: string
-      }
+      name: string
+      slug: string
+    }
     | undefined
   environment: ActionEnvironment | undefined
   #forcePeerMessages = false
@@ -261,8 +261,7 @@ export default class IntervalClient {
         )
       } catch (err) {
         this.#logger.error(
-          `Failed loading routes from filesystem at ${
-            this.#config.routesDirectory
+          `Failed loading routes from filesystem at ${this.#config.routesDirectory
           }`,
           err
         )
@@ -529,10 +528,10 @@ export default class IntervalClient {
 
     const toResend = resendToTransactionIds
       ? new Map(
-          resendToTransactionIds
-            .map(id => [id, this.#pendingIOCalls.get(id)])
-            .filter(([, state]) => !!state) as [string, string][]
-        )
+        resendToTransactionIds
+          .map(id => [id, this.#pendingIOCalls.get(id)])
+          .filter(([, state]) => !!state) as [string, string][]
+      )
       : new Map(this.#pendingIOCalls)
 
     let attemptNumber = 1
@@ -595,10 +594,10 @@ export default class IntervalClient {
 
     const toResend = resendToPageKeys
       ? new Map(
-          resendToPageKeys
-            .map(id => [id, this.#pendingPageLayouts.get(id)])
-            .filter(([, state]) => !!state) as [string, string][]
-        )
+        resendToPageKeys
+          .map(id => [id, this.#pendingPageLayouts.get(id)])
+          .filter(([, state]) => !!state) as [string, string][]
+      )
       : new Map(this.#pendingPageLayouts)
 
     let attemptNumber = 1
@@ -658,10 +657,10 @@ export default class IntervalClient {
 
     const toResend = resendToTransactionIds
       ? new Map(
-          resendToTransactionIds
-            .map(id => [id, this.#transactionLoadingStates.get(id)])
-            .filter(([, state]) => !!state) as [string, LoadingState][]
-        )
+        resendToTransactionIds
+          .map(id => [id, this.#transactionLoadingStates.get(id)])
+          .filter(([, state]) => !!state) as [string, LoadingState][]
+      )
       : new Map(this.#transactionLoadingStates)
 
     let attemptNumber = 0
@@ -849,8 +848,7 @@ export default class IntervalClient {
           new Date().getTime() - this.#closeUnresponsiveConnectionTimeoutMs
         ) {
           this.#logger.warn(
-            `No pong received in last ${
-              this.#closeUnresponsiveConnectionTimeoutMs
+            `No pong received in last ${this.#closeUnresponsiveConnectionTimeoutMs
             }ms, closing connection to Interval and retrying...`
           )
           if (this.#pingIntervalHandle) {
@@ -1495,14 +1493,14 @@ export default class IntervalClient {
                 page.title === undefined
                   ? undefined
                   : typeof page.title === 'string'
-                  ? page.title
-                  : null,
+                    ? page.title
+                    : null,
               description:
                 page.description === undefined
                   ? undefined
                   : typeof page.description === 'string'
-                  ? page.description
-                  : null,
+                    ? page.description
+                    : null,
               menuItems,
               children: renderInstruction,
               errors,
@@ -2023,8 +2021,8 @@ export default class IntervalClient {
       ? 'transactionId' in serverInputs
         ? serverInputs.transactionId
         : 'pageKey' in serverInputs
-        ? serverInputs.pageKey
-        : undefined
+          ? serverInputs.pageKey
+          : undefined
       : undefined
 
     if (sessionKey) {
