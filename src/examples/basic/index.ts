@@ -21,6 +21,7 @@ import { generateS3Urls } from '../utils/upload'
 import fs from 'fs'
 import fakeUsers from '../utils/fakeUsers'
 import dedent from 'dedent'
+import env from '../../env'
 
 const gridsPage = new Page({
   name: 'Grids',
@@ -254,7 +255,7 @@ const redirect_page_test = new Page({
 })
 
 const prod = new Interval({
-  apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
+  apiKey: env.DEMO_PROD_API_KEY,
   endpoint: 'ws://localhost:3000/websocket',
   logLevel: 'debug',
   routes: {
@@ -560,7 +561,7 @@ const prod = new Interval({
 prod.listen()
 
 const interval = new Interval({
-  apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
+  apiKey: env.DEMO_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   onError: props => {

@@ -1,7 +1,7 @@
 import Interval, { Page, ctx, io, Layout } from '../..'
-import { AnyDisplayIOPromise } from '../../types'
 import { sleep } from '../utils/helpers'
 import * as db from './db'
+import env from '../../env'
 
 const hello_app = new Page({
   name: 'App',
@@ -284,7 +284,7 @@ const interval = new Interval({
 interval.listen()
 
 const prod = new Interval({
-  apiKey: 'live_arKSsqtp1R6Mf6w16jflF4ZDDtFC7LwBaKLDDne3MZUgGyev',
+  apiKey: env.DEMO_PROD_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {

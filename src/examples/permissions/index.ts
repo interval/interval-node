@@ -1,6 +1,7 @@
 import { IntervalActionDefinition } from '@interval/sdk/src/types'
-import Interval, { Action, Layout, Page, io } from '../..'
+import Interval, { Layout, Page, io } from '../..'
 import { IntervalRouteDefinitions } from '../../types'
+import env from '../../env'
 
 const actions: Record<string, IntervalActionDefinition> = {
   engineers: {
@@ -128,7 +129,7 @@ const routes: IntervalRouteDefinitions = {
 }
 
 const interval = new Interval({
-  apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
+  apiKey: env.DEMO_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes,
@@ -137,7 +138,7 @@ const interval = new Interval({
 interval.listen()
 
 const prod = new Interval({
-  apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
+  apiKey: env.DEMO_PROD_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes,

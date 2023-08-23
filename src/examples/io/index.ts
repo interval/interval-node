@@ -1,8 +1,8 @@
 import Interval, { io, Layout, Page } from '../../index'
+import env from '../../env'
 
 const interval = new Interval({
-  // apiKey: 'alex_dev_kcLjzxNFxmGLf0aKtLVhuckt6sziQJtxFOdtM19tBrMUp5mj',
-  apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
+  apiKey: env.DEMO_PROD_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {

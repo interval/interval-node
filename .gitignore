@@ -4,5 +4,4 @@ dist
 *.tgz
 pm2.config.js
 .env
-env.ts
 */.interval.config.json

@@ -1,8 +1,9 @@
 import path from 'path'
 import Interval from '../..'
+import env from '../../env'
 
 const interval = new Interval({
-  apiKey: 'alex_dev_Bku6kYZlyhyvkCO36W5HnpwtXACI1khse8SnZ9PuwsmqdRfe',
+  apiKey: env.DEMO_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routesDirectory: path.resolve(__dirname, 'routes'),

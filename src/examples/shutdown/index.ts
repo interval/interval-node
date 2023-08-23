@@ -1,8 +1,9 @@
 import Interval from '../../index'
 import { sleep } from '../utils/helpers'
+import env from '../../env'
 
 const interval = new Interval({
-  apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
+  apiKey: env.DEMO_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {

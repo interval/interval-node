@@ -1,7 +1,8 @@
-import Interval, { Page, ctx, io, Layout } from '../..'
+import Interval, { Page, io, Layout } from '../..'
 import { IntervalRouteDefinitions } from '../../types'
 import { sleep } from '../utils/helpers'
 import * as db from './db'
+import env from '../../env'
 
 const routes: IntervalRouteDefinitions = {
   // root-level action
@@ -206,7 +207,7 @@ const routes: IntervalRouteDefinitions = {
 }
 
 const interval = new Interval({
-  apiKey: 'alex_dev_Bku6kYZlyhyvkCO36W5HnpwtXACI1khse8SnZ9PuwsmqdRfe',
+  apiKey: env.DEMO_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes,
@@ -215,7 +216,7 @@ const interval = new Interval({
 interval.listen()
 
 const prod = new Interval({
-  apiKey: 'live_arKSsqtp1R6Mf6w16jflF4ZDDtFC7LwBaKLDDne3MZUgGyev',
+  apiKey: env.DEMO_PROD_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes,

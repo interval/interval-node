@@ -1,12 +1,13 @@
 import http from 'http'
-import Interval, { Page, Layout, io } from '../../experimental'
+import Interval, { Page, Layout } from '../../experimental'
 import { asyncTable } from '../utils/ioMethodWrappers'
+import env from '../../env'
 
 const sleep = async (ms: number) =>
   new Promise(resolve => setTimeout(resolve, ms))
 
 const interval = new Interval({
-  apiKey: 'live_N47qd1BrOMApNPmVd0BiDZQRLkocfdJKzvt8W6JT5ICemrAN',
+  apiKey: env.DEMO_PROD_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {

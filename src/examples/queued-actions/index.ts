@@ -1,8 +1,8 @@
 import Interval from '../../index'
-import { DEMO_API_KEY } from '../../env'
+import env from '../../env'
 
 const interval = new Interval({
-  apiKey: DEMO_API_KEY,
+  apiKey: env.DEMO_API_KEY,
   logLevel: 'debug',
   endpoint: 'ws://localhost:3000/websocket',
   routes: {
