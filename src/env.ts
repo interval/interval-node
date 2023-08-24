@@ -1,6 +1,13 @@
 import { z } from 'zod'
+import dotenv from 'dotenv'
 
-import 'dotenv/config'
+try {
+  dotenv.config({
+    debug: true,
+  })
+} catch (err) {
+  console.error('Failed loading .env', err)
+}
 
 const schema = z.object({
   DEMO_API_KEY: z.string(),
