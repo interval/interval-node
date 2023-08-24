@@ -19,13 +19,6 @@ export const DUPLEX_MESSAGE_SCHEMA = z.discriminatedUnion('kind', [
     methodName: z.string(),
     data: z.any(),
   }),
-  z.object({
-    id: z.string(),
-    kind: z.literal('CALL_CHUNK'),
-    chunk: z.number(),
-    totalChunks: z.number(),
-    data: z.string(),
-  }),
 ])
 
 export type DuplexMessage = z.infer<typeof DUPLEX_MESSAGE_SCHEMA>
@@ -229,44 +222,6 @@ export const DECLARE_HOST = {
   ]),
 }
 
-const PEER_CANDIDATE = z.object({
-  type: z.literal('candidate'),
-  id: z.string(),
-  candidate: z.string(),
-  mid: z.string(),
-})
-
-export type PeerCandidate = z.infer<typeof PEER_CANDIDATE>
-
-const INITIALIZE_PEER_CONNECTION = {
-  inputs: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('offer'),
-      id: z.string(),
-      description: z.string(),
-    }),
-    z.object({
-      type: z.literal('answer'),
-      id: z.string(),
-      description: z.string(),
-    }),
-    PEER_CANDIDATE,
-    z.object({
-      type: z.literal('unspec'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('pranswer'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('rollback'),
-      id: z.string(),
-    }),
-  ]),
-  returns: z.void(),
-}
-
 export const wsServerSchema = {
   CONNECT_TO_TRANSACTION_AS_CLIENT: {
     inputs: z.object({
@@ -402,7 +357,6 @@ export const wsServerSchema = {
     inputs: z.undefined(),
     returns: z.boolean(),
   },
-  INITIALIZE_PEER_CONNECTION,
   INITIALIZE_HOST: {
     inputs: z.intersection(
       z.object({
@@ -549,7 +503,6 @@ export const clientSchema = {
     ),
     returns: z.boolean(),
   },
-  INITIALIZE_PEER_CONNECTION,
 }
 
 export type ClientSchema = typeof clientSchema
@@ -568,7 +521,6 @@ export const hostSchema = {
   OPEN_PAGE: {
     inputs: z.object({
       pageKey: z.string(),
-      clientId: z.string().optional(),
       page: z.object({
         slug: z.string(),
       }),
@@ -597,7 +549,6 @@ export const hostSchema = {
   START_TRANSACTION: {
     inputs: z.object({
       transactionId: z.string(),
-      clientId: z.string().optional(),
 
       displayResolvesImmediately: z.boolean().optional(),
 
@@ -628,11 +579,6 @@ export const hostSchema = {
     }),
     returns: z.void().nullable(),
   },
-  INITIALIZE_PEER_CONNECTION,
 }
 
 export type HostSchema = typeof hostSchema
-
-export type PeerConnectionInitializer = (
-  inputs: z.infer<(typeof INITIALIZE_PEER_CONNECTION)['inputs']>
-) => Promise<z.infer<(typeof INITIALIZE_PEER_CONNECTION)['returns']>>

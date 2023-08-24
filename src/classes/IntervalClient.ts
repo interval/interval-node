@@ -4,7 +4,6 @@ import { WebSocket } from 'ws'
 import fetch from 'cross-fetch'
 import superjson from '../utils/superjson'
 import { JSONValue } from 'superjson/dist/types'
-import type { DescriptionType } from 'node-datachannel'
 
 import ISocket, { TimeoutError, NotConnectedError } from './ISocket'
 import {
@@ -24,16 +23,13 @@ import {
   ActionDefinition,
   PageDefinition,
   HostSchema,
-  ClientSchema,
   WSServerSchema,
-  PeerCandidate,
 } from '../internalRpcSchema'
 import {
   ActionResultSchema,
   IOFunctionReturnType,
   IO_RESPONSE,
   LegacyLinkProps,
-  requiresServer,
   T_IO_METHOD_NAMES,
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
@@ -53,8 +49,6 @@ import type {
   IntervalPageHandler,
   IntervalErrorHandler,
 } from '../types'
-import type { DataChannelConnection } from './DataChannelConnection'
-import type { IceServer } from './DataChannelConnection'
 import TransactionLoadingState from './TransactionLoadingState'
 import { Interval, InternalConfig, IntervalError } from '..'
 import Page from './Page'
@@ -132,12 +126,11 @@ export default class IntervalClient {
 
   organization:
     | {
-      name: string
-      slug: string
-    }
+        name: string
+        slug: string
+      }
     | undefined
   environment: ActionEnvironment | undefined
-  #forcePeerMessages = false
 
   #verboseMessageLogs = false
   #onError: IntervalErrorHandler | undefined
@@ -261,7 +254,8 @@ export default class IntervalClient {
         )
       } catch (err) {
         this.#logger.error(
-          `Failed loading routes from filesystem at ${this.#config.routesDirectory
+          `Failed loading routes from filesystem at ${
+            this.#config.routesDirectory
           }`,
           err
         )
@@ -317,11 +311,6 @@ export default class IntervalClient {
   >()
 
   #ws: ISocket | undefined = undefined
-  #dccMap = new Map<string, DataChannelConnection>()
-  #pendingCandidatesMap = new Map<string, PeerCandidate[]>()
-  #peerIdMap = new Map<string, string>()
-  #peerIdToTransactionIdsMap = new Map<string, Set<string>>()
-  #peerIdToPageKeysMap = new Map<string, Set<string>>()
 
   #serverRpc:
     | DuplexRPCClient<typeof wsServerSchema, typeof hostSchema>
@@ -423,22 +412,10 @@ export default class IntervalClient {
       this.#ws.close()
       this.#ws = undefined
     }
-
-    for (const dcc of this.#dccMap.values()) {
-      dcc.ds?.close()
-      dcc.peer.close()
-    }
-    this.#dccMap.clear()
   }
 
   async safelyClose(): Promise<void> {
-    const response = await this.#send(
-      'BEGIN_HOST_SHUTDOWN',
-      {},
-      {
-        attemptPeerSend: false,
-      }
-    )
+    const response = await this.#send('BEGIN_HOST_SHUTDOWN', {})
 
     if (response.type === 'error') {
       throw new IntervalError(
@@ -528,10 +505,10 @@ export default class IntervalClient {
 
     const toResend = resendToTransactionIds
       ? new Map(
-        resendToTransactionIds
-          .map(id => [id, this.#pendingIOCalls.get(id)])
-          .filter(([, state]) => !!state) as [string, string][]
-      )
+          resendToTransactionIds
+            .map(id => [id, this.#pendingIOCalls.get(id)])
+            .filter(([, state]) => !!state) as [string, string][]
+        )
       : new Map(this.#pendingIOCalls)
 
     let attemptNumber = 1
@@ -594,10 +571,10 @@ export default class IntervalClient {
 
     const toResend = resendToPageKeys
       ? new Map(
-        resendToPageKeys
-          .map(id => [id, this.#pendingPageLayouts.get(id)])
-          .filter(([, state]) => !!state) as [string, string][]
-      )
+          resendToPageKeys
+            .map(id => [id, this.#pendingPageLayouts.get(id)])
+            .filter(([, state]) => !!state) as [string, string][]
+        )
       : new Map(this.#pendingPageLayouts)
 
     let attemptNumber = 1
@@ -657,10 +634,10 @@ export default class IntervalClient {
 
     const toResend = resendToTransactionIds
       ? new Map(
-        resendToTransactionIds
-          .map(id => [id, this.#transactionLoadingStates.get(id)])
-          .filter(([, state]) => !!state) as [string, LoadingState][]
-      )
+          resendToTransactionIds
+            .map(id => [id, this.#transactionLoadingStates.get(id)])
+            .filter(([, state]) => !!state) as [string, LoadingState][]
+        )
       : new Map(this.#transactionLoadingStates)
 
     let attemptNumber = 0
@@ -725,12 +702,6 @@ export default class IntervalClient {
       for (const key of client.inlineActionKeys.values()) {
         this.#actionHandlers.delete(key)
       }
-    }
-
-    const peerId = this.#peerIdMap.get(transactionId)
-    if (peerId) {
-      this.#peerIdMap.delete(transactionId)
-      this.#peerIdToTransactionIdsMap.get(peerId)?.delete(transactionId)
     }
 
     if (this.#resolveShutdown && this.#ioResponseHandlers.size === 0) {
@@ -848,7 +819,8 @@ export default class IntervalClient {
           new Date().getTime() - this.#closeUnresponsiveConnectionTimeoutMs
         ) {
           this.#logger.warn(
-            `No pong received in last ${this.#closeUnresponsiveConnectionTimeoutMs
+            `No pong received in last ${
+              this.#closeUnresponsiveConnectionTimeoutMs
             }ms, closing connection to Interval and retrying...`
           )
           if (this.#pingIntervalHandle) {
@@ -878,145 +850,6 @@ export default class IntervalClient {
   #createRPCHandlers(requestId?: string): DuplexRPCHandlers<HostSchema> {
     const intervalClient = this
     return {
-      INITIALIZE_PEER_CONNECTION: async inputs => {
-        if (typeof window !== 'undefined') return
-
-        try {
-          this.#logger.debug('INITIALIZE_PEER_CONNECTION:', inputs)
-          switch (inputs.type) {
-            case 'offer': {
-              const { DataChannelConnection } = await import(
-                './DataChannelConnection'
-              )
-
-              const iceConfig = await this.#interval.fetchIceConfig()
-
-              const dcc = new DataChannelConnection({
-                id: inputs.id,
-                // TypeScript an enum and not a string, though they're equivalent
-                iceServers: iceConfig.iceServers as IceServer[],
-                send: inputs =>
-                  this.#send('INITIALIZE_PEER_CONNECTION', inputs).catch(
-                    err => {
-                      this.#logger.debug(
-                        'Failed sending initialize peer connection',
-                        err
-                      )
-                    }
-                  ),
-                rpcConstructor: props => {
-                  const rpc = this.#createRPCClient(props)
-                  rpc.communicator.onOpen.attach(() => {
-                    const peerTransactionIds =
-                      this.#peerIdToTransactionIdsMap.get(inputs.id)
-                    if (peerTransactionIds) {
-                      this.#resendTransactionLoadingStates(
-                        Array.from(peerTransactionIds.values())
-                      ).catch(err => {
-                        this.#logger.warn(
-                          'Failed resending transaction loading states',
-                          err
-                        )
-                      })
-                      this.#resendPendingIOCalls(
-                        Array.from(peerTransactionIds.values())
-                      ).catch(err => {
-                        this.#logger.debug(
-                          'Failed resending pending IO calls',
-                          err
-                        )
-                      })
-                    }
-
-                    const peerPageKeys = this.#peerIdToPageKeysMap.get(
-                      inputs.id
-                    )
-                    if (peerPageKeys) {
-                      this.#resendPendingPageLayouts(
-                        Array.from(peerPageKeys.values())
-                      ).catch(err => {
-                        this.#logger.debug('Failed resending page layouts', err)
-                      })
-                    }
-                  })
-                  return rpc
-                },
-                isocketConfig: {
-                  sendTimeout: this.#config.sendTimeoutMs,
-                  connectTimeout: this.#config.connectTimeoutMs,
-                  pingTimeout: this.#config.pingTimeoutMs,
-                },
-              })
-              this.#dccMap.set(inputs.id, dcc)
-              dcc.peer.setRemoteDescription(
-                inputs.description,
-                inputs.type as DescriptionType
-              )
-              dcc.peer.onStateChange(state => {
-                this.#logger.debug('Peer state change:', state)
-                if (
-                  state === 'failed' ||
-                  state === 'closed' ||
-                  state === 'disconnected'
-                ) {
-                  this.#dccMap.delete(inputs.id)
-                }
-              })
-
-              const pendingCandidates = this.#pendingCandidatesMap.get(
-                inputs.id
-              )
-              if (pendingCandidates) {
-                for (const candidate of pendingCandidates) {
-                  dcc.peer.addRemoteCandidate(
-                    candidate.candidate,
-                    candidate.mid
-                  )
-                }
-                this.#pendingCandidatesMap.delete(inputs.id)
-              }
-
-              break
-            }
-            case 'answer': {
-              const dcc = this.#dccMap.get(inputs.id)
-
-              if (dcc) {
-                dcc.peer.setRemoteDescription(
-                  inputs.description,
-                  inputs.type as DescriptionType
-                )
-              } else {
-                this.#logger.debug(
-                  'INITIALIZE_PEER_CONNECTION:',
-                  'DCC not found for inputs',
-                  inputs
-                )
-              }
-              break
-            }
-            case 'candidate': {
-              const dcc = this.#dccMap.get(inputs.id)
-
-              if (dcc) {
-                dcc.peer.addRemoteCandidate(inputs.candidate, inputs.mid)
-              } else {
-                let pendingCandidates = this.#pendingCandidatesMap.get(
-                  inputs.id
-                )
-                if (!pendingCandidates) {
-                  pendingCandidates = []
-                  this.#pendingCandidatesMap.set(inputs.id, pendingCandidates)
-                }
-                pendingCandidates.push(inputs)
-              }
-              break
-            }
-          }
-        } catch (err) {
-          this.#logger.warn('Failed initializing peer connection', err)
-        }
-      },
       START_TRANSACTION: async inputs => {
         if (this.#resolveShutdown) {
           this.#logger.debug(
@@ -1030,21 +863,11 @@ export default class IntervalClient {
           return
         }
 
-        const { action, transactionId, clientId } = inputs
+        const { action, transactionId } = inputs
 
         if (this.#ioResponseHandlers.has(transactionId)) {
           this.#logger.debug('Transaction already started, not starting again')
           return
-        }
-
-        if (clientId) {
-          this.#peerIdMap.set(transactionId, clientId)
-          let set = this.#peerIdToTransactionIdsMap.get(clientId)
-          if (!set) {
-            set = new Set()
-            this.#peerIdToTransactionIdsMap.set(clientId, set)
-          }
-          set.add(transactionId)
         }
 
         const actionHandler = intervalClient.#actionHandlers.get(action.slug)
@@ -1068,25 +891,10 @@ export default class IntervalClient {
                 toRender: ioCall,
               })
             } else {
-              let attemptPeerSend = true
-              for (const renderMethod of ioRenderInstruction.toRender) {
-                const methodName = renderMethod.methodName as T_IO_METHOD_NAMES
-                if (requiresServer(methodName)) {
-                  attemptPeerSend = false
-                  break
-                }
-              }
-
-              const response = await intervalClient.#send(
-                'SEND_IO_CALL',
-                {
-                  transactionId,
-                  ioCall,
-                },
-                {
-                  attemptPeerSend,
-                }
-              )
+              const response = await intervalClient.#send('SEND_IO_CALL', {
+                transactionId,
+                ioCall,
+              })
 
               if (
                 !response ||
@@ -1372,7 +1180,7 @@ export default class IntervalClient {
           return { type: 'ERROR' as const, message: error.message }
         }
 
-        const { pageKey, clientId } = inputs
+        const { pageKey } = inputs
         const pageHandler = this.#pageHandlers.get(inputs.page.slug)
 
         if (!pageHandler) {
@@ -1396,43 +1204,6 @@ export default class IntervalClient {
           }
 
           return { type: 'ERROR' as const, message: error.message }
-        }
-
-        const prevClientId = this.#peerIdMap.get(pageKey)
-
-        // if page is already opened but a new instance of the same client connects (peer connection) resend them the previous call
-        if (this.#pendingPageLayouts.has(pageKey)) {
-          if (clientId === prevClientId) {
-            this.#logger.debug('Resending previous page to new peer', pageKey)
-            this.#resendPendingPageLayouts([pageKey]).catch(err => {
-              this.#logger.debug(
-                'Failed resending page body to pageKey',
-                pageKey,
-                err
-              )
-            })
-            return {
-              type: 'SUCCESS' as const,
-              pageKey,
-            }
-          }
-
-          // This client ID is not validated for this existing page.
-          // return error and have client request with a new pageKey
-          return {
-            type: 'ERROR' as const,
-            message: 'Unauthorized client, please request a new page',
-          }
-        }
-
-        if (clientId) {
-          this.#peerIdMap.set(pageKey, clientId)
-          let peerPageKeys = this.#peerIdToPageKeysMap.get(clientId)
-          if (!peerPageKeys) {
-            peerPageKeys = new Set()
-            this.#peerIdToPageKeysMap.set(clientId, peerPageKeys)
-          }
-          peerPageKeys.add(pageKey)
         }
 
         this.#openPages.add(pageKey)
@@ -1493,14 +1264,14 @@ export default class IntervalClient {
                 page.title === undefined
                   ? undefined
                   : typeof page.title === 'string'
-                    ? page.title
-                    : null,
+                  ? page.title
+                  : null,
               description:
                 page.description === undefined
                   ? undefined
                   : typeof page.description === 'string'
-                    ? page.description
-                    : null,
+                  ? page.description
+                  : null,
               menuItems,
               children: renderInstruction,
               errors,
@@ -1845,12 +1616,6 @@ export default class IntervalClient {
           this.#ioClients.delete(inputs.pageKey)
         }
 
-        const peerId = this.#peerIdMap.get(inputs.pageKey)
-        if (peerId) {
-          this.#peerIdMap.delete(inputs.pageKey)
-          this.#peerIdToPageKeysMap.get(peerId)?.delete(inputs.pageKey)
-        }
-
         this.#pendingPageLayouts.delete(inputs.pageKey)
         this.#ioResponseHandlers.delete(inputs.pageKey)
         this.#transactionLoadingStates.delete(inputs.pageKey)
@@ -1965,7 +1730,6 @@ export default class IntervalClient {
 
       this.organization = response.organization
       this.environment = response.environment
-      this.#forcePeerMessages = response.forcePeerMessages ?? false
 
       if (isInitialInitialization) {
         this.#log.prod(
@@ -1978,210 +1742,11 @@ export default class IntervalClient {
     return response
   }
 
-  async #sendToClientPeer<MethodName extends keyof ClientSchema>(
-    rpc: NonNullable<DataChannelConnection['rpc']>,
-    methodName: MethodName,
-    inputs: z.input<ClientSchema[MethodName]['inputs']>
-  ) {
-    const NUM_P2P_TRIES = 3
-    for (let i = 0; i <= NUM_P2P_TRIES; i++) {
-      try {
-        return await rpc.send(methodName, inputs)
-      } catch (err) {
-        if (err instanceof TimeoutError) {
-          this.#log.debug(
-            `Peer RPC call timed out, retrying in ${Math.round(
-              this.#retryIntervalMs / 1000
-            )}s...`
-          )
-          this.#log.debug(err)
-          sleep(this.#retryIntervalMs)
-        } else {
-          throw err
-        }
-      }
-    }
-
-    throw new TimeoutError()
-  }
-
-  /**
-   * @returns undefined if was unsent, null if was sent but should send via server anyway,
-   * and true/false if was sent but should not send. This is obviously pretty bad code, should be fixed.
-   */
-  async #attemptPeerSend<MethodName extends keyof WSServerSchema>(
-    methodName: MethodName,
-    serverInputs: z.input<WSServerSchema[MethodName]['inputs']>
-  ): Promise<
-    z.input<WSServerSchema[MethodName]['returns']> | undefined | null
-  > {
-    const hostInstanceId = this.#ws?.id
-    let dcc: DataChannelConnection | undefined
-    const sessionKey = serverInputs
-      ? 'transactionId' in serverInputs
-        ? serverInputs.transactionId
-        : 'pageKey' in serverInputs
-          ? serverInputs.pageKey
-          : undefined
-      : undefined
-
-    if (sessionKey) {
-      const key = this.#peerIdMap.get(sessionKey)
-      if (key) {
-        dcc = this.#dccMap.get(key)
-      }
-    }
-
-    if (hostInstanceId && dcc?.rpc) {
-      this.#logger.debug(
-        'Sending with peer connection',
-        methodName,
-        serverInputs
-      )
-
-      switch (methodName) {
-        case 'SEND_LOG': {
-          const inputs = serverInputs as z.input<
-            WSServerSchema['SEND_LOG']['inputs']
-          >
-
-          await this.#sendToClientPeer(dcc.rpc, 'LOG', {
-            ...inputs,
-            index: inputs.index as number,
-            timestamp: inputs.timestamp as number,
-          })
-
-          // send to backend too
-          return null
-        }
-        case 'SEND_PAGE': {
-          const inputs = serverInputs as z.input<
-            WSServerSchema['SEND_PAGE']['inputs']
-          >
-          return await this.#sendToClientPeer(dcc.rpc, 'RENDER_PAGE', {
-            ...inputs,
-            hostInstanceId,
-          })
-        }
-        case 'SEND_IO_CALL': {
-          const inputs = serverInputs as z.input<
-            WSServerSchema['SEND_IO_CALL']['inputs']
-          >
-          const response = await this.#sendToClientPeer(dcc.rpc, 'RENDER', {
-            transactionId: inputs.transactionId,
-            toRender: inputs.ioCall,
-          })
-
-          if (this.#forcePeerMessages) {
-            return response
-          } else {
-            // send to backend too
-            return null
-          }
-        }
-        case 'MARK_TRANSACTION_COMPLETE': {
-          const inputs = serverInputs as z.input<
-            WSServerSchema['MARK_TRANSACTION_COMPLETE']['inputs']
-          >
-          await this.#sendToClientPeer(dcc.rpc, 'TRANSACTION_COMPLETED', {
-            transactionId: inputs.transactionId,
-            resultStatus: inputs.resultStatus ?? 'SUCCESS',
-            result: inputs.result,
-          })
-
-          // send to backend too
-          return null
-        }
-        case 'SEND_REDIRECT': {
-          const inputs = serverInputs as z.input<
-            WSServerSchema['SEND_REDIRECT']['inputs']
-          >
-
-          if ('url' in inputs) {
-            await this.#sendToClientPeer(dcc.rpc, 'REDIRECT', {
-              transactionId: inputs.transactionId,
-              url: inputs.url,
-            })
-          } else if ('route' in inputs) {
-            await this.#sendToClientPeer(dcc.rpc, 'REDIRECT', {
-              transactionId: inputs.transactionId,
-              route: inputs.route,
-              params: inputs.params,
-            })
-          } else {
-            await this.#sendToClientPeer(dcc.rpc, 'REDIRECT', {
-              transactionId: inputs.transactionId,
-              route: inputs.action,
-              params: inputs.params,
-            })
-          }
-
-          // send to backend too
-          return null
-        }
-        case 'SEND_LOADING_CALL': {
-          const inputs = serverInputs as z.input<
-            WSServerSchema['SEND_LOADING_CALL']['inputs']
-          >
-          const response = await this.#sendToClientPeer(
-            dcc.rpc,
-            'LOADING_STATE',
-            {
-              ...inputs,
-            }
-          )
-
-          if (this.#forcePeerMessages) {
-            return response
-          } else {
-            // send to backend too
-            return null
-          }
-        }
-        default:
-          this.#logger.debug(
-            'Unsupported peer method',
-            methodName,
-            'sending via server'
-          )
-      }
-    } else {
-      if (
-        this.#forcePeerMessages &&
-        ['SEND_LOADING_CALL', 'SEND_IO_CALL', 'SEND_PAGE'].includes(methodName)
-      )
-        this.#logger.debug(
-          'No peer connection established, skipping',
-          methodName,
-          serverInputs
-        )
-    }
-
-    return undefined
-  }
-
   async #send<MethodName extends keyof WSServerSchema>(
     methodName: MethodName,
-    inputs: z.input<WSServerSchema[MethodName]['inputs']>,
-    { attemptPeerSend = true }: { attemptPeerSend?: boolean } = {}
+    inputs: z.input<WSServerSchema[MethodName]['inputs']>
   ) {
     if (!this.#serverRpc) throw new IntervalError('serverRpc not initialized')
-
-    let skipClientCall = false
-
-    try {
-      if (attemptPeerSend) {
-        const peerResponse = await this.#attemptPeerSend(methodName, inputs)
-
-        if (peerResponse != null) {
-          return peerResponse
-        } else if (peerResponse === null) {
-          skipClientCall = true
-        }
-      }
-    } catch (err) {
-      this.#logger.debug('Error from peer RPC', err)
-    }
 
     for (
       let attemptNumber = 1;
@@ -2190,16 +1755,9 @@ export default class IntervalClient {
     ) {
       try {
         this.#logger.debug('Sending via server', methodName, inputs)
-        return await this.#serverRpc.send(
-          methodName,
-          {
-            ...inputs,
-            skipClientCall,
-          },
-          {
-            timeoutFactor: attemptNumber,
-          }
-        )
+        return await this.#serverRpc.send(methodName, inputs, {
+          timeoutFactor: attemptNumber,
+        })
       } catch (err) {
         const sleepTimeBeforeRetrying = this.#retryIntervalMs * attemptNumber
 

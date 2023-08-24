@@ -3,7 +3,6 @@ import { Evt } from 'evt'
 import type { DuplexMessage } from '../internalRpcSchema'
 import { DUPLEX_MESSAGE_SCHEMA } from '../internalRpcSchema'
 import { sleep } from './IntervalClient'
-import IntervalError from './IntervalError'
 import ISocket, { TimeoutError } from './ISocket'
 
 let count = 0
@@ -36,18 +35,6 @@ interface CreateDuplexRPCClientProps<
   canRespondTo: ResponderSchema
   handlers: DuplexRPCHandlers<ResponderSchema>
   retryChunkIntervalMs?: number
-}
-
-function getSizeBytes(str: string): number {
-  if (typeof Blob !== 'undefined') {
-    return new Blob([str]).size
-  } else if (typeof Buffer !== 'undefined') {
-    return Buffer.from(str).byteLength
-  } else {
-    throw new IntervalError(
-      'Unsupported runtime, must have either Buffer or Blob global'
-    )
-  }
 }
 
 /**
@@ -123,43 +110,7 @@ export class DuplexRPCClient<
       methodName: methodName as string, // ??
     }
 
-    const totalData = JSON.stringify(callerData)
-    const totalSize = getSizeBytes(totalData)
-    const maxMessageSize = this.communicator.maxMessageSize
-    if (maxMessageSize === undefined || totalSize < maxMessageSize) {
-      return totalData
-    }
-
-    // console.debug('Chunking!')
-    // console.debug('Max size:', maxMessageSize)
-
-    let chunkStart = 0
-    const chunks: string[] = []
-
-    const MESSAGE_OVERHEAD_SIZE = 4096 // magic number from experimentation
-    while (chunkStart < totalData.length) {
-      const chunkEnd = chunkStart + maxMessageSize - MESSAGE_OVERHEAD_SIZE
-      chunks.push(totalData.substring(chunkStart, chunkEnd))
-      chunkStart = chunkEnd
-    }
-
-    const totalChunks = chunks.length
-    return chunks.map((data, chunk) => {
-      const chunkData: DuplexMessage = {
-        id,
-        kind: 'CALL_CHUNK',
-        totalChunks,
-        chunk,
-        data,
-      }
-
-      const chunkString = JSON.stringify(chunkData)
-
-      // console.debug('Data size:', getSizeBytes(data))
-      // console.debug('Chunk size:', getSizeBytes(chunkString))
-
-      return chunkString
-    })
+    return JSON.stringify(callerData)
   }
 
   public setCommunicator(newCommunicator: ISocket): void {
@@ -214,31 +165,6 @@ export class DuplexRPCClient<
       let inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(txt))
 
       this.onMessageReceived.post(inputParsed)
-
-      if (inputParsed.kind === 'CALL_CHUNK') {
-        let chunks = this.messageChunks.get(inputParsed.id)
-        if (!chunks) {
-          chunks = Array(inputParsed.totalChunks)
-          this.messageChunks.set(inputParsed.id, chunks)
-        }
-        chunks[inputParsed.chunk] = inputParsed.data
-        let complete = true
-        for (let i = 0; i < inputParsed.totalChunks; i++) {
-          complete = complete && !!chunks[i]
-        }
-        if (complete) {
-          const combinedData = chunks.join('')
-          try {
-            inputParsed = DUPLEX_MESSAGE_SCHEMA.parse(JSON.parse(combinedData))
-          } catch (err) {
-            console.error(
-              '[DuplexRPCClient] Failed reconstructing chunked call:',
-              err
-            )
-            throw err
-          }
-        }
-      }
 
       if (inputParsed.kind === 'CALL') {
         try {

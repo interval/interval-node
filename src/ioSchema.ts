@@ -428,11 +428,6 @@ export function supportsMultiple(methodName: T_IO_METHOD_NAMES): boolean {
   return schema && 'supportsMultiple' in schema && schema.supportsMultiple
 }
 
-export function requiresServer(methodName: T_IO_METHOD_NAMES): boolean {
-  const schema = ioSchema[methodName]
-  return schema && 'requiresServer' in schema && schema.requiresServer
-}
-
 export const metaItemSchema = z.object({
   label: z.string(),
   value: primitiveValue.or(z.bigint()).nullish().optional(),
@@ -792,7 +787,6 @@ const INPUT_SCHEMA = {
     state: z.null(),
     returns: z.boolean(),
     exclusive: z.literal(true),
-    requiresServer: true,
   },
   SELECT_TABLE: {
     props: z.object({
