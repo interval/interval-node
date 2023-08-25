@@ -2038,6 +2038,19 @@ const interval = new Interval({
               : undefined,
           }
         },
+        single: async io => {
+          const file = await io.input.file('Upload an image!', {
+            helpText:
+              'Will be uploaded to Interval and expire after the action finishes running.',
+            allowedExtensions: ['.gif', '.jpg', '.jpeg', '.png'],
+          })
+
+          await io.display.image(file.name, {
+            url: await file.url(),
+          })
+
+          return file.name
+        },
         multiple: async io => {
           const files = await io.input
             .file('Upload an image!', {
