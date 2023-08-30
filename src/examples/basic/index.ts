@@ -256,7 +256,7 @@ const redirect_page_test = new Page({
 
 const prod = new Interval({
   apiKey: env.DEMO_PROD_API_KEY,
-  endpoint: 'ws://localhost:3000/websocket',
+  endpoint: 'ws://localhost:3002',
   logLevel: 'debug',
   routes: {
     sidebar_depth,
@@ -563,7 +563,7 @@ prod.listen()
 const interval = new Interval({
   apiKey: env.DEMO_API_KEY,
   logLevel: 'debug',
-  endpoint: 'ws://localhost:3000/websocket',
+  endpoint: 'ws://localhost:3002',
   onError: props => {
     console.debug('onError', props)
   },
