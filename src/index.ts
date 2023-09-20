@@ -31,7 +31,6 @@ import type {
 } from './types'
 import IntervalError from './classes/IntervalError'
 import IntervalClient, {
-  DEFAULT_WEBSOCKET_ENDPOINT,
   getHttpEndpoint,
   actionLocalStorage,
   pageLocalStorage,
@@ -51,14 +50,14 @@ export type {
 }
 
 export interface InternalConfig {
-  apiKey?: string
+  apiKey: string
+  endpoint: string
   routes?: IntervalRouteDefinitions
   routesDirectory?: string
   // TODO: Mark as deprecated soon, remove soon afterward
   actions?: Record<string, IntervalActionDefinition>
   // TODO: Mark as deprecated soon, remove soon afterward
   groups?: Record<string, Page>
-  endpoint?: string
   logLevel?: LogLevel
   retryIntervalMs?: number
   retryChunkIntervalMs?: number
@@ -176,9 +175,7 @@ export default class Interval {
     this.#apiKey = config.apiKey
     this.#logger = new Logger(config.logLevel)
 
-    this.#httpEndpoint = getHttpEndpoint(
-      config.endpoint ?? DEFAULT_WEBSOCKET_ENDPOINT
-    )
+    this.#httpEndpoint = getHttpEndpoint(config.endpoint)
 
     this.routes = new Routes(
       this,

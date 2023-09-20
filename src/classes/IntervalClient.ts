@@ -82,8 +82,6 @@ initAsyncLocalStorage()
 
 export { actionLocalStorage, pageLocalStorage }
 
-export const DEFAULT_WEBSOCKET_ENDPOINT = 'wss://interval.com/websocket'
-
 export function getHttpEndpoint(wsEndpoint: string) {
   const url = new URL(wsEndpoint)
   url.protocol = url.protocol.replace('ws', 'http')
@@ -103,7 +101,7 @@ interface SetupConfig {
 export default class IntervalClient {
   #interval: Interval
   #apiKey: string | undefined
-  #endpoint: string = DEFAULT_WEBSOCKET_ENDPOINT
+  #endpoint: string
   #httpEndpoint: string
   #logger: Logger
   #completeHttpRequestDelayMs: number = 3000
@@ -140,10 +138,7 @@ export default class IntervalClient {
     this.#apiKey = config.apiKey
     this.#logger = new Logger(config.logLevel)
     this.#config = config
-
-    if (config.endpoint) {
-      this.#endpoint = config.endpoint
-    }
+    this.#endpoint = config.endpoint
 
     if (config.retryIntervalMs && config.retryIntervalMs > 0) {
       this.#retryIntervalMs = config.retryIntervalMs
