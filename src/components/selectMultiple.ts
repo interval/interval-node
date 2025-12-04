@@ -8,7 +8,7 @@ import {
 import Logger from '../classes/Logger'
 
 type SelectMultipleProps<
-  Option extends z.infer<typeof labelValue> | z.infer<typeof primitiveValue>
+  Option extends z.infer<typeof labelValue> | z.infer<typeof primitiveValue>,
 > = Omit<T_IO_PROPS<'SELECT_MULTIPLE'>, 'options' | 'defaultValue'> & {
   options: Option[]
   defaultValue?: Option[]
@@ -16,7 +16,7 @@ type SelectMultipleProps<
 
 export default function selectMultiple(logger: Logger) {
   return <
-    Option extends z.infer<typeof labelValue> | z.infer<typeof primitiveValue>
+    Option extends z.infer<typeof labelValue> | z.infer<typeof primitiveValue>,
   >(
     props: SelectMultipleProps<Option>
   ) => {

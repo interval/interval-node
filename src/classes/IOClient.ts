@@ -68,7 +68,7 @@ interface ClientConfig {
 }
 
 export type IOClientRenderReturnValues<
-  Components extends [AnyIOComponent, ...AnyIOComponent[]]
+  Components extends [AnyIOComponent, ...AnyIOComponent[]],
 > = {
   choice?: string
   returnValue: {
@@ -79,7 +79,7 @@ export type IOClientRenderReturnValues<
 }
 
 export type IOClientRenderValidator<
-  Components extends [AnyIOComponent, ...AnyIOComponent[]]
+  Components extends [AnyIOComponent, ...AnyIOComponent[]],
 > =
   | IOPromiseValidator<IOClientRenderReturnValues<Components>>
   | WithChoicesIOPromiseValidator<
@@ -130,7 +130,7 @@ export class IOClient {
    * or throws an IOError of kind `CANCELED` if canceled.
    */
   async renderComponents<
-    Components extends [AnyIOComponent, ...AnyIOComponent[]]
+    Components extends [AnyIOComponent, ...AnyIOComponent[]],
   >({
     components,
     validator: groupValidator,
@@ -242,7 +242,9 @@ export class IOClient {
                 validationErrorMessage = await groupValidator({
                   choice: result.choice as string,
                   returnValue: result.values,
-                } as IOClientRenderReturnValues<typeof components> & { choice: string })
+                } as IOClientRenderReturnValues<typeof components> & {
+                  choice: string
+                })
 
                 if (validationErrorMessage) {
                   render()
@@ -376,7 +378,7 @@ export class IOClient {
     IOPromises extends
       | [MaybeOptionalGroupIOPromise, ...MaybeOptionalGroupIOPromise[]]
       | Record<string, MaybeOptionalGroupIOPromise>
-      | MaybeOptionalGroupIOPromise[]
+      | MaybeOptionalGroupIOPromise[],
   >(promises: IOPromises, props?: GroupConfig) {
     const promiseValues = Array.isArray(promises)
       ? promises
@@ -417,7 +419,7 @@ export class IOClient {
     MethodName extends T_IO_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
     Output = T_IO_RETURNS<MethodName>,
-    DefaultValue = Output
+    DefaultValue = Output,
   >(
     methodName: MethodName,
     inputProps?: Props,
@@ -474,7 +476,7 @@ export class IOClient {
   createIOMethod<
     MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
+    Output = T_IO_RETURNS<MethodName>,
   >(
     methodName: MethodName,
     config?: {
@@ -485,7 +487,7 @@ export class IOClient {
   createIOMethod<
     MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
+    Output = T_IO_RETURNS<MethodName>,
   >(
     methodName: MethodName,
     config: {
@@ -500,7 +502,7 @@ export class IOClient {
   createIOMethod<
     MethodName extends T_IO_DISPLAY_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
+    Output = T_IO_RETURNS<MethodName>,
   >(
     methodName: MethodName,
     config?: {
@@ -511,7 +513,7 @@ export class IOClient {
   createIOMethod<
     MethodName extends T_IO_DISPLAY_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
+    Output = T_IO_RETURNS<MethodName>,
   >(
     methodName: MethodName,
     config: {
@@ -522,7 +524,7 @@ export class IOClient {
   createIOMethod<
     MethodName extends T_IO_INPUT_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
+    Output = T_IO_RETURNS<MethodName>,
   >(
     methodName: MethodName,
     config?: {
@@ -533,7 +535,7 @@ export class IOClient {
   createIOMethod<
     MethodName extends T_IO_INPUT_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
+    Output = T_IO_RETURNS<MethodName>,
   >(
     methodName: MethodName,
     config: {
@@ -544,7 +546,7 @@ export class IOClient {
   createIOMethod<
     MethodName extends T_IO_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
+    Output = T_IO_RETURNS<MethodName>,
   >(
     methodName: MethodName,
     {
@@ -636,7 +638,7 @@ export class IOClient {
   createExclusiveIOMethod<
     MethodName extends T_IO_INPUT_METHOD_NAMES,
     Props extends object = T_IO_PROPS<MethodName>,
-    Output = T_IO_RETURNS<MethodName>
+    Output = T_IO_RETURNS<MethodName>,
   >(
     methodName: MethodName,
     {
@@ -667,7 +669,7 @@ export class IOClient {
   }
 
   createCredentialsIOMethod<
-    Props extends object = T_IO_PROPS<'CREDENTIALS'>
+    Props extends object = T_IO_PROPS<'CREDENTIALS'>,
   >() {
     return (serviceName: string, props?: Props) => {
       return this.createExclusiveIOMethod('CREDENTIALS')(serviceName, props)

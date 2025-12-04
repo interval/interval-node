@@ -1,31 +1,6 @@
-import type { z } from 'zod'
 import type { Evt } from 'evt'
-import type {
-  T_IO_RENDER_INPUT,
-  T_IO_RESPONSE,
-  T_IO_PROPS,
-  T_IO_RETURNS,
-  T_IO_STATE,
-  T_IO_Schema,
-  T_IO_METHOD_NAMES,
-  IOFunctionReturnType,
-  T_IO_DISPLAY_METHOD_NAMES,
-  T_IO_INPUT_METHOD_NAMES,
-  menuItem,
-  buttonItem,
-  ButtonTheme,
-  serializableRecord,
-  ImageSize,
-  SerializableRecord,
-  LegacyLinkProps,
-  T_IO_MULTIPLEABLE_METHOD_NAMES,
-  HighlightColor,
-} from './ioSchema'
-import type {
-  AccessControlDefinition,
-  ActionEnvironment,
-  CtxUserRole,
-} from './internalRpcSchema'
+import type { z } from 'zod'
+import type Action from './classes/Action'
 import type { IOClient, IOClientRenderValidator } from './classes/IOClient'
 import type IOComponent from './classes/IOComponent'
 import type {
@@ -33,20 +8,46 @@ import type {
   ComponentReturnValue,
   MaybeMultipleComponentReturnValue,
 } from './classes/IOComponent'
-import type {
-  IOPromise,
-  OptionalIOPromise,
-  ExclusiveIOPromise,
-  DisplayIOPromise,
-  InputIOPromise,
-  MultipleableIOPromise,
-} from './classes/IOPromise'
 import type IOError from './classes/IOError'
-import type TransactionLoadingState from './classes/TransactionLoadingState'
-import type { Layout } from './classes/Layout'
+import type {
+  DisplayIOPromise,
+  ExclusiveIOPromise,
+  InputIOPromise,
+  IOPromise,
+  MultipleableIOPromise,
+  OptionalIOPromise,
+} from './classes/IOPromise'
+import type { BasicLayoutConfig, Layout } from './classes/Layout'
 import type Page from './classes/Page'
-import type { BasicLayoutConfig } from './classes/Layout'
-import type Action from './classes/Action'
+import type TransactionLoadingState from './classes/TransactionLoadingState'
+import type {
+  AccessControlDefinition,
+  ActionEnvironment,
+  CtxUserRole,
+  SendOrganizationInvitationProps,
+  SendOrganizationInvitationResponse,
+} from './internalRpcSchema'
+import type {
+  buttonItem,
+  ButtonTheme,
+  HighlightColor,
+  ImageSize,
+  IOFunctionReturnType,
+  LegacyLinkProps,
+  menuItem,
+  serializableRecord,
+  SerializableRecord,
+  T_IO_DISPLAY_METHOD_NAMES,
+  T_IO_INPUT_METHOD_NAMES,
+  T_IO_METHOD_NAMES,
+  T_IO_MULTIPLEABLE_METHOD_NAMES,
+  T_IO_PROPS,
+  T_IO_RENDER_INPUT,
+  T_IO_RESPONSE,
+  T_IO_RETURNS,
+  T_IO_Schema,
+  T_IO_STATE,
+} from './ioSchema'
 
 export type Prettify<T> = {
   [K in keyof T]: T[K]
@@ -149,6 +150,15 @@ export type ActionCtx = {
    * ```
    */
   redirect: RedirectFn
+
+  /**
+   * Invite an user to the current organization.
+   *
+   * ```typescript
+   * await ctx.inviteUserToOrganization({ email: 'foo@example.com', role: 'ACTION_RUNNER' })
+   * ```
+   */
+  inviteUserToOrganization: InviteUserToOrganizationFn
   /**
    * Basic information about the organization.
    */
@@ -228,7 +238,7 @@ export type IntervalPageHandler = (
 export type RequiredPropsIOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
   Props,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   label: string,
   props: Props
@@ -237,7 +247,7 @@ export type RequiredPropsIOComponentFunction<
 export type RequiredPropsExclusiveIOComponentFunction<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   label: string,
   props: Props
@@ -246,7 +256,7 @@ export type RequiredPropsExclusiveIOComponentFunction<
 export type IOComponentFunction<
   MethodName extends T_IO_METHOD_NAMES,
   Props,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   label: string,
   props?: Prettify<Props>
@@ -255,7 +265,7 @@ export type IOComponentFunction<
 export type InputIOComponentFunction<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   label: string,
   props?: Prettify<Props>
@@ -264,7 +274,7 @@ export type InputIOComponentFunction<
 export type RequiredPropsInputIOComponentFunction<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   label: string,
   props: Prettify<Props>
@@ -273,7 +283,7 @@ export type RequiredPropsInputIOComponentFunction<
 export type MultipleableInputIOComponentFunction<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   label: string,
   props?: Prettify<Props>
@@ -282,7 +292,7 @@ export type MultipleableInputIOComponentFunction<
 export type RequiredPropsMultipleableInputIOComponentFunction<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   label: string,
   props: Prettify<Props>
@@ -291,7 +301,7 @@ export type RequiredPropsMultipleableInputIOComponentFunction<
 export type DisplayIOComponentFunction<
   MethodName extends T_IO_DISPLAY_METHOD_NAMES,
   Props,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   label: string,
   props?: Prettify<Props>
@@ -300,7 +310,7 @@ export type DisplayIOComponentFunction<
 export type RequiredPropsDisplayIOComponentFunction<
   MethodName extends T_IO_DISPLAY_METHOD_NAMES,
   Props,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   label: string,
   props: Prettify<Props>
@@ -309,7 +319,7 @@ export type RequiredPropsDisplayIOComponentFunction<
 export type ExclusiveIOComponentFunction<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   label: string,
   props?: Prettify<Props>
@@ -319,7 +329,7 @@ export type ComponentRenderReturn<MethodName extends T_IO_METHOD_NAMES> = {
   choice?: string
   returnValue: [
     MaybeMultipleComponentReturnValue<MethodName>,
-    ...MaybeMultipleComponentReturnValue<MethodName>[]
+    ...MaybeMultipleComponentReturnValue<MethodName>[],
   ]
 }
 
@@ -344,8 +354,8 @@ export type ComponentsRendererReturn<Components> = {
 export type ComponentsRenderer<
   Components extends [AnyIOComponent, ...AnyIOComponent[]] = [
     AnyIOComponent,
-    ...AnyIOComponent[]
-  ]
+    ...AnyIOComponent[],
+  ],
 > = ({
   components,
   validator,
@@ -381,16 +391,20 @@ export type RedirectConfig = LegacyLinkProps & {
 
 export type RedirectFn = (props: RedirectConfig) => Promise<void>
 
+export type InviteUserToOrganizationFn = (
+  props: SendOrganizationInvitationProps
+) => Promise<SendOrganizationInvitationResponse>
+
 export type ResponseHandlerFn = (fn: T_IO_RESPONSE) => void
 
 export type Executor<
   MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (resolve: (output: Output) => void, reject?: (err: IOError) => void) => void
 
 export type OptionalExecutor<
   MethodName extends T_IO_METHOD_NAMES,
-  Output = ComponentReturnValue<MethodName>
+  Output = ComponentReturnValue<MethodName>,
 > = (
   resolve: (output: Output | undefined) => void,
   reject?: (err: IOError) => void
@@ -444,7 +458,7 @@ export type IOComponentDefinition<
   MethodName extends T_IO_METHOD_NAMES,
   Props,
   Output,
-  DefaultValue = Output
+  DefaultValue = Output,
 > = (
   this: IOClient,
   props: Props,

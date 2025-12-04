@@ -1,11 +1,17 @@
-import { IntervalActionDefinition } from '@interval/sdk/src/types'
-import { IntervalActionHandler, Action, Page, Layout, io } from '../..'
 import { faker } from '@faker-js/faker'
+import dedent from 'dedent'
+import {
+  Action,
+  IntervalActionDefinition,
+  IntervalActionHandler,
+  io,
+  Layout,
+  Page,
+} from '../..'
+import { HighlightColor } from '../../ioSchema'
 import fakeUsers from '../utils/fakeUsers'
 import { generateRows, sleep } from '../utils/helpers'
 import { asyncTable } from '../utils/ioMethodWrappers'
-import dedent from 'dedent'
-import { HighlightColor } from '../../ioSchema'
 
 export const no_pagination: IntervalActionHandler = async io => {
   const data = generateRows(5)
@@ -706,7 +712,7 @@ export const markdown = new Page({
                 - ${faker.random.word()}
                 - ${faker.random.word()}
                 - ${faker.lorem.paragraph()}
-              
+
               And a [link](https://www.google.com/) at the end.
               `,
             },
@@ -743,7 +749,7 @@ export const markdown = new Page({
                   console.log('foo is not bar')
                 }
                 ~~~
-                
+
                 Copy and paste that into your editor and you'll be good to go!`,
             },
             {
@@ -779,7 +785,7 @@ export const markdown = new Page({
               This is a horizontal rule:
 
               ---
-              
+
               ${faker.lorem.paragraph()}
               `,
             },

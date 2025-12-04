@@ -1,43 +1,43 @@
-import { z } from 'zod'
 import fetch from 'cross-fetch'
-import Routes from './classes/Routes'
+import { Evt } from 'evt'
+import { z } from 'zod'
+import Action from './classes/Action'
+import { DuplexRPCHandlers } from './classes/DuplexRPCClient'
+import IntervalClient, {
+  actionLocalStorage,
+  getHttpEndpoint,
+  pageLocalStorage,
+} from './classes/IntervalClient'
+import IntervalError from './classes/IntervalError'
 import IOError from './classes/IOError'
+import { NotConnectedError, TimeoutError } from './classes/ISocket'
+import { BasicLayout } from './classes/Layout'
 import Logger, { LogLevel } from './classes/Logger'
 import Page from './classes/Page'
+import Routes from './classes/Routes'
 import {
-  NOTIFY,
   ClientSchema,
-  HostSchema,
-  ICE_CONFIG,
-  IceConfig,
-  ENQUEUE_ACTION,
   DEQUEUE_ACTION,
+  ENQUEUE_ACTION,
+  HostSchema,
+  IceConfig,
+  ICE_CONFIG,
+  NOTIFY,
 } from './internalRpcSchema'
-import { DuplexRPCHandlers } from './classes/DuplexRPCClient'
-import { NotConnectedError, TimeoutError } from './classes/ISocket'
 import { SerializableRecord } from './ioSchema'
 import type {
   ActionCtx,
   ActionLogFn,
-  IO,
+  IntervalActionDefinition,
   IntervalActionHandler,
   IntervalActionStore,
-  NotifyConfig,
-  IntervalRouteDefinitions,
-  IntervalPageStore,
-  PageCtx,
-  IntervalActionDefinition,
   IntervalErrorHandler,
+  IntervalPageStore,
+  IntervalRouteDefinitions,
+  IO,
+  NotifyConfig,
+  PageCtx,
 } from './types'
-import IntervalError from './classes/IntervalError'
-import IntervalClient, {
-  getHttpEndpoint,
-  actionLocalStorage,
-  pageLocalStorage,
-} from './classes/IntervalClient'
-import Action from './classes/Action'
-import { BasicLayout } from './classes/Layout'
-import { Evt } from 'evt'
 import superjson from './utils/superjson'
 
 export type {
@@ -47,6 +47,16 @@ export type {
   IntervalActionHandler,
   IntervalActionDefinition,
   IntervalActionStore,
+}
+export {
+  Interval,
+  IOError,
+  IntervalError,
+  NotConnectedError,
+  TimeoutError,
+  Action,
+  Page,
+  BasicLayout as Layout,
 }
 
 export interface InternalConfig {
@@ -159,6 +169,7 @@ export const ctx: ActionCtx & PageCtx = {
   get page() { return getPageStore().ctx.page },
   get notify() { return getActionStore().ctx.notify },
   get redirect() { return getSomeStore().ctx.redirect },
+  get inviteUserToOrganization() { return getActionStore().ctx.inviteUserToOrganization },
 }
 
 export default class Interval {
@@ -460,15 +471,4 @@ export default class Interval {
       params,
     }
   }
-}
-
-export {
-  Interval,
-  IOError,
-  IntervalError,
-  NotConnectedError,
-  TimeoutError,
-  Action,
-  Page,
-  BasicLayout as Layout,
 }

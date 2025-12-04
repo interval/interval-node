@@ -4,7 +4,7 @@ import { fakeDb, getImageUrl } from '../utils/helpers'
 const editEmailForUser: IntervalActionHandler = async io => {
   console.log("Let's say hello...")
 
-  type User = Awaited<ReturnType<typeof fakeDb['find']>>[0]
+  type User = Awaited<ReturnType<(typeof fakeDb)['find']>>[0]
 
   const resp = await io.group([
     io.display.heading('Edit email address for user'),

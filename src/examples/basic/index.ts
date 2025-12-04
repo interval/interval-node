@@ -1,26 +1,26 @@
-import Interval, { IOError, io, ctx, Action, Page, Layout } from '../../index'
+import dedent from 'dedent'
+import fs from 'fs'
+import Interval, { Action, ctx, io, IOError, Layout, Page } from '../..'
 import IntervalClient from '../../classes/IntervalClient'
+import type { EventualMetaItem } from '../../components/displayMetadata'
+import env from '../../env'
 import {
   IntervalActionDefinition,
   IntervalActionHandler,
   NotificationDeliveryInstruction,
 } from '../../types'
-import editEmailForUser from './editEmail'
+import fakeUsers from '../utils/fakeUsers'
 import {
   fakeDb,
+  generateRows,
   mapToIntervalUser,
   sleep,
-  generateRows,
 } from '../utils/helpers'
-import type { EventualMetaItem } from '../../components/displayMetadata'
-import * as table_actions from './table'
-import * as grid_actions from './grid'
-import unauthorized from './unauthorized'
 import { generateS3Urls } from '../utils/upload'
-import fs from 'fs'
-import fakeUsers from '../utils/fakeUsers'
-import dedent from 'dedent'
-import env from '../../env'
+import editEmailForUser from './editEmail'
+import * as grid_actions from './grid'
+import * as table_actions from './table'
+import unauthorized from './unauthorized'
 
 const gridsPage = new Page({
   name: 'Grids',
@@ -810,8 +810,16 @@ const interval = new Interval({
           level: 2,
           description: 'A section heading here',
           menuItems: [
-            { label: 'Link', url: 'https://interval.com', theme: 'primary' },
-            { label: 'Danger', action: 'disabled_inputs', theme: 'danger' },
+            {
+              label: 'Link',
+              url: 'https://interval.com',
+              theme: 'primary',
+            },
+            {
+              label: 'Danger',
+              action: 'disabled_inputs',
+              theme: 'danger',
+            },
           ],
         }),
         io.input.text('Text input'),
@@ -985,7 +993,9 @@ const interval = new Interval({
           io.input.number('Number input', { defaultValue: null }).optional(),
           io.input.number('Number input', { defaultValue: 100 }),
           io.input.email('Email input').optional(),
-          io.input.email('Email input', { defaultValue: 'hi@interval.com' }),
+          io.input.email('Email input', {
+            defaultValue: 'hi@interval.com',
+          }),
           io.input
             .richText('Rich text input', { defaultValue: null })
             .optional(),
@@ -1284,7 +1294,7 @@ const interval = new Interval({
         }),
         io.display.markdown(
           `**Code in Markdown**
-          
+
           ~~~ts
           const foo: string = 'bar'
           if (foo === 'bar') {
@@ -1484,7 +1494,9 @@ const interval = new Interval({
         io.input.text('Text input'),
       ])
 
-      await io.display.object('Result', { data: { date, time, datetime } })
+      await io.display.object('Result', {
+        data: { date, time, datetime },
+      })
 
       return datetime
     },
@@ -1927,7 +1939,10 @@ const interval = new Interval({
       ]
 
       const selected = await io.select.single('Select an error', {
-        options: errors.map((e, i) => ({ label: e.name, value: i.toString() })),
+        options: errors.map((e, i) => ({
+          label: e.name,
+          value: i.toString(),
+        })),
       })
 
       throw errors[Number(selected.value)]
@@ -2180,7 +2195,11 @@ const interval = new Interval({
           .number('Enter a number')
           .optional()
           .withChoices([
-            { label: 'Make it negative', theme: 'danger', value: 'negative' },
+            {
+              label: 'Make it negative',
+              theme: 'danger',
+              value: 'negative',
+            },
             { label: 'Do nothing', value: 'nothing' },
             'Think about it for a while',
             'Restart',

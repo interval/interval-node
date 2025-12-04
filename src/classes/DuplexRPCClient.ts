@@ -1,5 +1,5 @@
-import { z, ZodError } from 'zod'
 import { Evt } from 'evt'
+import { z, ZodError } from 'zod'
 import type { DuplexMessage } from '../internalRpcSchema'
 import { DUPLEX_MESSAGE_SCHEMA } from '../internalRpcSchema'
 import { sleep } from './IntervalClient'
@@ -13,8 +13,8 @@ function generateId() {
 
 export interface MethodDef {
   [key: string]: {
-    inputs: z.ZodFirstPartySchemaTypes | z.ZodDiscriminatedUnion<any, any, any>
-    returns: z.ZodFirstPartySchemaTypes | z.ZodDiscriminatedUnion<any, any, any>
+    inputs: z.ZodFirstPartySchemaTypes | z.ZodDiscriminatedUnion<any, any>
+    returns: z.ZodFirstPartySchemaTypes | z.ZodDiscriminatedUnion<any, any>
   }
 }
 
@@ -28,7 +28,7 @@ export type DuplexRPCHandlers<ResponderSchema extends MethodDef> = {
 
 interface CreateDuplexRPCClientProps<
   CallerSchema extends MethodDef,
-  ResponderSchema extends MethodDef
+  ResponderSchema extends MethodDef,
 > {
   communicator: ISocket
   canCall: CallerSchema
@@ -49,7 +49,7 @@ interface CreateDuplexRPCClientProps<
  */
 export class DuplexRPCClient<
   CallerSchema extends MethodDef,
-  ResponderSchema extends MethodDef
+  ResponderSchema extends MethodDef,
 > {
   communicator: ISocket
   canCall: CallerSchema

@@ -138,7 +138,7 @@ export const table_custom: IntervalActionHandler = async io => {
 
   const rows: { [key: string]: any }[] = []
   for (let i = 0; i < rowsCount; i++) {
-    const row: typeof rows[0] = {}
+    const row: (typeof rows)[0] = {}
     for (const field of fields) {
       switch (field.value) {
         case 'id':
@@ -199,7 +199,7 @@ export const table_custom: IntervalActionHandler = async io => {
 }
 
 export const table_custom_columns: IntervalActionHandler = async io => {
-  type Charge = typeof charges[0]
+  type Charge = (typeof charges)[0]
   const selections = await io.select
     .table('Select from this table', {
       data: [
@@ -226,8 +226,8 @@ export const table_custom_columns: IntervalActionHandler = async io => {
               row.name === 'Dan Philibin'
                 ? 'b49db41314a645edabee-1c5eae1255df'
                 : row.name === 'Jacob Mischka'
-                ? `https://dashboard.stripe.com/${row.id}`
-                : 'This is a long string of multiline text that is linked in a table column',
+                  ? `https://dashboard.stripe.com/${row.id}`
+                  : 'This is a long string of multiline text that is linked in a table column',
             url: `https://dashboard.stripe.com/${row.id}`,
           }),
         },

@@ -1,6 +1,5 @@
-import { Action } from '@interval/sdk/src/experimental'
-import { IntervalActionHandler, io } from '../..'
 import { faker } from '@faker-js/faker'
+import { Action, IntervalActionHandler, io } from '../..'
 import { sleep } from '../utils/helpers'
 
 export const dogs = new Action({

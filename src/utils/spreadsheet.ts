@@ -2,11 +2,11 @@ import { z } from 'zod'
 import { ioSchema } from '../ioSchema'
 
 export function extractColumns<
-  Props extends z.infer<typeof ioSchema['INPUT_SPREADSHEET']['props']>,
-  Columns extends Props['columns']
+  Props extends z.infer<(typeof ioSchema)['INPUT_SPREADSHEET']['props']>,
+  Columns extends Props['columns'],
 >(columns: Columns) {
   type OutputType = {
-    [key in keyof Columns]: typeof COLUMN_DEFS[Columns[key]]
+    [key in keyof Columns]: (typeof COLUMN_DEFS)[Columns[key]]
   }
 
   const outputSchemaDef: any = {}

@@ -107,9 +107,12 @@ export default class ISocket {
     return new Promise<void>((resolve, reject) => {
       const id = v4()
 
-      const failTimeout = setTimeout(() => {
-        reject(new TimeoutError())
-      }, this.sendTimeout * (options.timeoutFactor ?? 1))
+      const failTimeout = setTimeout(
+        () => {
+          reject(new TimeoutError())
+        },
+        this.sendTimeout * (options.timeoutFactor ?? 1)
+      )
 
       this.timeouts.add(failTimeout)
 

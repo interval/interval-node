@@ -71,7 +71,12 @@ export type BackwardCompatibleLoadingState = z.input<
   typeof BACKWARD_COMPATIBLE_LOADING_STATE
 >
 
-export const CTX_USER_ROLE = z.enum(['admin', 'developer', 'member'])
+export const CTX_USER_ROLE = z.enum([
+  'admin',
+  'developer',
+  'member',
+  'readonly_viewer',
+])
 
 export type CtxUserRole = z.input<typeof CTX_USER_ROLE>
 
@@ -81,6 +86,30 @@ export const ACCESS_CONTROL_DEFINITION = z.union([
     teams: z.array(z.string()).optional(),
   }),
 ])
+
+export const SEND_ORGANIZATION_INVITATION_PROPS = z.object({
+  userEmail: z.string(),
+  userRole: CTX_USER_ROLE.optional(),
+  email: z
+    .object({
+      subject: z.string().optional(),
+      body: z.string().optional(),
+      preheader: z.string().optional(),
+    })
+    .optional(),
+})
+export type SendOrganizationInvitationProps = z.infer<
+  typeof SEND_ORGANIZATION_INVITATION_PROPS
+>
+
+export const SEND_ORGANIZATION_INVITATION_RESPONSE = z.enum([
+  'SUCCESS',
+  'FAILURE',
+  'USER_EXISTS',
+])
+export type SendOrganizationInvitationResponse = z.infer<
+  typeof SEND_ORGANIZATION_INVITATION_RESPONSE
+>
 
 export type AccessControlDefinition = z.infer<typeof ACCESS_CONTROL_DEFINITION>
 
@@ -341,6 +370,12 @@ export const wsServerSchema = {
       legacyLinkSchema
     ),
     returns: z.boolean(),
+  },
+  SEND_ORGANIZATION_INVITATION: {
+    inputs: SEND_ORGANIZATION_INVITATION_PROPS.extend({
+      transactionId: z.string(),
+    }),
+    returns: SEND_ORGANIZATION_INVITATION_RESPONSE,
   },
   MARK_TRANSACTION_COMPLETE: {
     inputs: z.object({

@@ -10,7 +10,7 @@ import Logger from '../classes/Logger'
 type SelectSingleProps<
   Option extends
     | z.infer<typeof richSelectOption>
-    | z.infer<typeof primitiveValue>
+    | z.infer<typeof primitiveValue>,
 > = Omit<T_IO_PROPS<'SELECT_SINGLE'>, 'options' | 'defaultValue'> & {
   options: Option[]
   defaultValue?: Option
@@ -20,7 +20,7 @@ export default function selectSingle(logger: Logger) {
   return <
     Option extends
       | z.infer<typeof richSelectOption>
-      | z.infer<typeof primitiveValue>
+      | z.infer<typeof primitiveValue>,
   >(
     props: SelectSingleProps<Option>
   ) => {

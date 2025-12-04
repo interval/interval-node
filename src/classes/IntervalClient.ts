@@ -1,28 +1,23 @@
-import { z, ZodError } from 'zod'
+import fetch from 'cross-fetch'
+import { JSONValue } from 'superjson/dist/types'
 import { v4 } from 'uuid'
 import { WebSocket } from 'ws'
-import fetch from 'cross-fetch'
+import { z, ZodError } from 'zod'
 import superjson from '../utils/superjson'
-import { JSONValue } from 'superjson/dist/types'
 
-import ISocket, { TimeoutError, NotConnectedError } from './ISocket'
+import { InternalConfig, Interval, IntervalError } from '..'
+import * as pkg from '../../package.json'
 import {
-  DuplexRPCClient,
-  DuplexRPCHandlers,
-  MethodDef,
-} from './DuplexRPCClient'
-import IOError from './IOError'
-import Logger from './Logger'
-import {
-  wsServerSchema,
-  hostSchema,
-  TRANSACTION_RESULT_SCHEMA_VERSION,
-  ActionEnvironment,
-  LoadingState,
-  DECLARE_HOST,
   ActionDefinition,
-  PageDefinition,
+  ActionEnvironment,
+  DECLARE_HOST,
+  hostSchema,
   HostSchema,
+  LoadingState,
+  PageDefinition,
+  SendOrganizationInvitationProps,
+  TRANSACTION_RESULT_SCHEMA_VERSION,
+  wsServerSchema,
   WSServerSchema,
 } from '../internalRpcSchema'
 import {
@@ -30,35 +25,40 @@ import {
   IOFunctionReturnType,
   IO_RESPONSE,
   LegacyLinkProps,
-  T_IO_METHOD_NAMES,
   T_IO_RENDER_INPUT,
   T_IO_RESPONSE,
 } from '../ioSchema'
-import { IOClient } from './IOClient'
-import * as pkg from '../../package.json'
-import { deserializeDates } from '../utils/deserialize'
 import type {
   ActionCtx,
-  PageCtx,
+  InternalButtonItem,
   IntervalActionHandler,
   IntervalActionStore,
-  IntervalPageStore,
-  InternalButtonItem,
-  PageError,
-  IntervalRouteDefinitions,
-  IntervalPageHandler,
   IntervalErrorHandler,
+  IntervalPageHandler,
+  IntervalPageStore,
+  IntervalRouteDefinitions,
+  PageCtx,
+  PageError,
 } from '../types'
-import TransactionLoadingState from './TransactionLoadingState'
-import { Interval, InternalConfig, IntervalError } from '..'
-import Page from './Page'
+import { deserializeDates } from '../utils/deserialize'
 import Action from './Action'
 import {
-  Layout,
+  DuplexRPCClient,
+  DuplexRPCHandlers,
+  MethodDef,
+} from './DuplexRPCClient'
+import { IOClient } from './IOClient'
+import IOError from './IOError'
+import ISocket, { NotConnectedError, TimeoutError } from './ISocket'
+import {
   BasicLayout,
-  LayoutSchemaInput,
   BasicLayoutConfig,
+  Layout,
+  LayoutSchemaInput,
 } from './Layout'
+import Logger from './Logger'
+import Page from './Page'
+import TransactionLoadingState from './TransactionLoadingState'
 
 import type { AsyncLocalStorage } from 'async_hooks'
 let actionLocalStorage: AsyncLocalStorage<IntervalActionStore> | undefined
@@ -240,9 +240,8 @@ export default class IntervalClient {
 
     if (typeof window === 'undefined' && this.#config.routesDirectory) {
       try {
-        const { loadRoutesFromFileSystem } = await import(
-          '../utils/fileActionLoader'
-        )
+        const { loadRoutesFromFileSystem } =
+          await import('../utils/fileActionLoader')
         fileSystemRoutes = await loadRoutesFromFileSystem(
           this.#config.routesDirectory,
           this.#logger
@@ -971,6 +970,8 @@ export default class IntervalClient {
           }),
           redirect: (props: LegacyLinkProps) =>
             intervalClient.#sendRedirect(transactionId, props),
+          inviteUserToOrganization: (props: SendOrganizationInvitationProps) =>
+            intervalClient.#inviteUserToOrganization(transactionId, props),
         }
 
         this.#ioClients.set(transactionId, client)
@@ -1259,14 +1260,14 @@ export default class IntervalClient {
                 page.title === undefined
                   ? undefined
                   : typeof page.title === 'string'
-                  ? page.title
-                  : null,
+                    ? page.title
+                    : null,
               description:
                 page.description === undefined
                   ? undefined
                   : typeof page.description === 'string'
-                  ? page.description
-                  : null,
+                    ? page.description
+                    : null,
               menuItems,
               children: renderInstruction,
               errors,
@@ -1828,12 +1829,34 @@ export default class IntervalClient {
     }
 
     const response = await this.#send('SEND_REDIRECT', {
-      transactionId,
       ...props,
+      transactionId,
     })
 
     if (!response) {
       throw new IntervalError('Failed sending redirect')
     }
+  }
+
+  async #inviteUserToOrganization(
+    transactionId: string,
+    props: SendOrganizationInvitationProps
+  ) {
+    if (this.#config.getClientHandlers) {
+      throw new IntervalError(
+        `The ctx.inviteUserToOrganization method isn't supported in demo mode`
+      )
+    }
+
+    const response = await this.#send('SEND_ORGANIZATION_INVITATION', {
+      ...props,
+      transactionId,
+    })
+
+    if (response === 'FAILURE') {
+      throw new IntervalError('Failed sending redirect')
+    }
+
+    return response
   }
 }

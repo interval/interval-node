@@ -59,7 +59,7 @@ export function deserializeDates<V extends any>(
 export function stripUndefined<
   K extends string | number | symbol,
   V,
-  T extends Record<K, V> | undefined
+  T extends Record<K, V> | undefined,
 >(obj: T): T {
   if (!obj) return obj
 
