@@ -6,6 +6,7 @@ export default function displayLink(
   } & (
     | {
         url: string
+        download?: string
       }
     | {
         route: string
@@ -14,6 +15,7 @@ export default function displayLink(
     // deprecated in favor of `route`
     // TODO: Add TS deprecated flag soon
     | {
+        /** @deprecated Use `route` instead. */
         action: string
         params?: SerializableRecord
       }
