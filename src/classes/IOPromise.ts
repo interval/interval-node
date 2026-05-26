@@ -33,7 +33,7 @@ import IntervalError from './IntervalError'
 interface IOPromiseProps<
   MethodName extends T_IO_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>,
 > {
   renderer: ComponentRenderer<MethodName>
   methodName: MethodName
@@ -59,7 +59,7 @@ interface IOPromiseProps<
 export class IOPromise<
   MethodName extends T_IO_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>,
 > {
   /* @internal */ methodName: MethodName
   /* @internal */ renderer: ComponentRenderer<MethodName>
@@ -147,9 +147,10 @@ export class IOPromise<
 export class DisplayIOPromise<
   MethodName extends T_IO_DISPLAY_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>,
 > extends IOPromise<MethodName, Props, ComponentOutput> {
   withChoices<Choice extends string>(
+    this: DisplayIOPromise<MethodName, Props, ComponentOutput>,
     choiceButtons: ChoiceButtonConfigOrShorthand<Choice>[]
   ): WithChoicesIOPromise<
     MethodName,
@@ -168,7 +169,7 @@ export class DisplayIOPromise<
 export class InputIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>,
 > extends IOPromise<MethodName, Props, ComponentOutput> {
   get component() {
     return new IOComponent({
@@ -235,7 +236,11 @@ export class InputIOPromise<
       : this
   }
 
-  withChoices<Choice extends string>(
+  withChoices<
+    Choice extends string,
+    T extends InputIOPromise<MethodName, Props, ComponentOutput>,
+  >(
+    this: T,
     choiceButtons: ChoiceButtonConfigOrShorthand<Choice>[]
   ): WithChoicesIOPromise<
     MethodName,
@@ -258,7 +263,7 @@ export class InputIOPromise<
 export class OptionalIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>,
 > extends InputIOPromise<MethodName, Props, ComponentOutput | undefined> {
   then(
     resolve: (output: ComponentOutput | undefined) => void,
@@ -336,7 +341,7 @@ export class MultipleableIOPromise<
   ComponentOutput = ComponentReturnValue<MethodName>,
   DefaultValue = T_IO_PROPS<MethodName> extends { defaultValue?: any }
     ? ComponentOutput | null
-    : never
+    : never,
 > extends InputIOPromise<MethodName, Props, ComponentOutput> {
   defaultValueGetter:
     | ((defaultValue: DefaultValue) => T_IO_RETURNS<MethodName>)
@@ -405,7 +410,11 @@ export class MultipleableIOPromise<
     })
   }
 
-  withChoices<Choice extends string>(
+  withChoices<
+    Choice extends string,
+    T extends InputIOPromise<MethodName, Props, ComponentOutput>,
+  >(
+    this: T,
     choices: ChoiceButtonConfigOrShorthand<Choice>[]
   ): WithChoicesIOPromise<
     MethodName,
@@ -424,7 +433,7 @@ export class MultipleableIOPromise<
 export class MultipleIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>,
 > extends InputIOPromise<MethodName, Props, ComponentOutput[]> {
   getSingleValue:
     | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
@@ -559,7 +568,7 @@ export class MultipleIOPromise<
 export class OptionalMultipleIOPromise<
   MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>,
 > extends OptionalIOPromise<MethodName, Props, ComponentOutput[]> {
   getSingleValue:
     | ((response: ComponentReturnValue<MethodName>) => ComponentOutput)
@@ -666,12 +675,9 @@ export class WithChoicesIOPromise<
   MethodName extends T_IO_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
   ComponentOutput = ComponentReturnValue<MethodName>,
-  InnerPromise extends IOPromise<
-    MethodName,
-    Props,
-    ComponentOutput
-  > = IOPromise<MethodName, Props, ComponentOutput>,
-  Choice extends string = string
+  InnerPromise extends IOPromise<MethodName, Props, ComponentOutput> =
+    IOPromise<MethodName, Props, ComponentOutput>,
+  Choice extends string = string,
 > {
   innerPromise: InnerPromise
   choiceButtons: ChoiceButtonConfig[]
@@ -711,8 +717,8 @@ export class WithChoicesIOPromise<
           this.innerPromise instanceof OptionalMultipleIOPromise
             ? result
             : this.innerPromise instanceof OptionalIOPromise
-            ? ioSchema[methodName].returns.optional().parse(result)
-            : ioSchema[methodName].returns.parse(result)
+              ? ioSchema[methodName].returns.optional().parse(result)
+              : ioSchema[methodName].returns.parse(result)
 
         // Need a cast here because can't really prove statically, the checks above should be correct though
         resolve({
@@ -791,7 +797,7 @@ export class WithChoicesIOPromise<
   optional<
     MethodName extends T_IO_INPUT_METHOD_NAMES,
     Props extends T_IO_PROPS<MethodName>,
-    ComponentOutput = ComponentReturnValue<MethodName>
+    ComponentOutput = ComponentReturnValue<MethodName>,
   >(
     this: WithChoicesIOPromise<
       MethodName,
@@ -811,7 +817,7 @@ export class WithChoicesIOPromise<
   optional<
     MethodName extends T_IO_INPUT_METHOD_NAMES,
     Props extends T_IO_PROPS<MethodName>,
-    ComponentOutput = ComponentReturnValue<MethodName>
+    ComponentOutput = ComponentReturnValue<MethodName>,
   >(
     this: WithChoicesIOPromise<
       MethodName,
@@ -831,7 +837,7 @@ export class WithChoicesIOPromise<
   optional<
     MethodName extends T_IO_INPUT_METHOD_NAMES,
     Props extends T_IO_PROPS<MethodName>,
-    ComponentOutput = ComponentReturnValue<MethodName>
+    ComponentOutput = ComponentReturnValue<MethodName>,
   >(
     this: WithChoicesIOPromise<
       MethodName,
@@ -859,7 +865,7 @@ export class WithChoicesIOPromise<
   optional<
     MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
     Props extends T_IO_PROPS<MethodName>,
-    ComponentOutput = ComponentReturnValue<MethodName>
+    ComponentOutput = ComponentReturnValue<MethodName>,
   >(
     this: WithChoicesIOPromise<
       MethodName,
@@ -879,7 +885,7 @@ export class WithChoicesIOPromise<
   optional<
     MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
     Props extends T_IO_PROPS<MethodName>,
-    ComponentOutput = ComponentReturnValue<MethodName>
+    ComponentOutput = ComponentReturnValue<MethodName>,
   >(
     this: WithChoicesIOPromise<
       MethodName,
@@ -899,7 +905,7 @@ export class WithChoicesIOPromise<
   optional<
     MethodName extends T_IO_MULTIPLEABLE_METHOD_NAMES,
     Props extends T_IO_PROPS<MethodName>,
-    ComponentOutput = ComponentReturnValue<MethodName>
+    ComponentOutput = ComponentReturnValue<MethodName>,
   >(
     this: WithChoicesIOPromise<
       MethodName,
@@ -927,7 +933,7 @@ export class WithChoicesIOPromise<
   optional<
     MethodName extends T_IO_INPUT_METHOD_NAMES,
     Props extends T_IO_PROPS<MethodName>,
-    ComponentOutput = ComponentReturnValue<MethodName>
+    ComponentOutput = ComponentReturnValue<MethodName>,
   >(
     this: WithChoicesIOPromise<
       MethodName,
@@ -980,7 +986,7 @@ export class WithChoicesIOPromise<
     ComponentOutput = ComponentReturnValue<MethodName>,
     DefaultValue = T_IO_PROPS<MethodName> extends { defaultValue?: any }
       ? ComponentOutput | null
-      : never
+      : never,
   >(
     this: WithChoicesIOPromise<
       MethodName,
@@ -1039,7 +1045,7 @@ export class WithChoicesIOPromise<
 export class ExclusiveIOPromise<
   MethodName extends T_IO_INPUT_METHOD_NAMES,
   Props extends T_IO_PROPS<MethodName> = T_IO_PROPS<MethodName>,
-  ComponentOutput = ComponentReturnValue<MethodName>
+  ComponentOutput = ComponentReturnValue<MethodName>,
 > extends IOPromise<MethodName, Props, ComponentOutput> {
   get component() {
     return new IOComponent({
@@ -1083,7 +1089,7 @@ export class ExclusiveIOPromise<
 export type IOGroupReturnValues<
   IOPromises extends
     | Record<string, MaybeOptionalGroupIOPromise>
-    | [MaybeOptionalGroupIOPromise, ...MaybeOptionalGroupIOPromise[]]
+    | [MaybeOptionalGroupIOPromise, ...MaybeOptionalGroupIOPromise[]],
 > = {
   [Idx in keyof IOPromises]: IOPromises[Idx] extends
     | GroupIOPromise
@@ -1095,8 +1101,8 @@ export type IOGroupReturnValues<
 export type IOGroupComponents<
   IOPromises extends [
     MaybeOptionalGroupIOPromise,
-    ...MaybeOptionalGroupIOPromise[]
-  ]
+    ...MaybeOptionalGroupIOPromise[],
+  ],
 > = {
   [Idx in keyof IOPromises]: IOPromises[Idx] extends
     | GroupIOPromise
@@ -1111,7 +1117,7 @@ export type IOPromiseValidator<ComponentOutput> = (
 
 export type WithChoicesIOPromiseValidator<
   Choice extends string,
-  ComponentOutput
+  ComponentOutput,
 > = (props: {
   choice: Choice
   returnValue: ComponentOutput
@@ -1124,11 +1130,11 @@ export class IOGroupPromise<
   ReturnValues = IOPromises extends Record<string, MaybeOptionalGroupIOPromise>
     ? { [K in keyof IOPromises]: ReturnType<IOPromises[K]['getValue']> }
     : IOPromises extends [
-        MaybeOptionalGroupIOPromise,
-        ...MaybeOptionalGroupIOPromise[]
-      ]
-    ? IOGroupReturnValues<IOPromises>
-    : unknown[]
+          MaybeOptionalGroupIOPromise,
+          ...MaybeOptionalGroupIOPromise[],
+        ]
+      ? IOGroupReturnValues<IOPromises>
+      : unknown[],
 > {
   /* @internal */ promises: IOPromises
   /* @internal */ renderer: ComponentsRenderer
@@ -1158,7 +1164,7 @@ export class IOGroupPromise<
   /* @internal */ get components(): [AnyIOComponent, ...AnyIOComponent[]] {
     return this.promiseValues.map(p => p.component) as unknown as [
       AnyIOComponent,
-      ...AnyIOComponent[]
+      ...AnyIOComponent[],
     ]
   }
 
@@ -1237,7 +1243,11 @@ export class IOGroupPromise<
     }
   }
 
-  withChoices<Choice extends string>(
+  withChoices<
+    Choice extends string,
+    T extends IOGroupPromise<IOPromises, ReturnValues>,
+  >(
+    this: T,
     choices: ChoiceButtonConfigOrShorthand<Choice>[]
   ): WithChoicesIOGroupPromise<IOPromises, ReturnValues, typeof this, Choice> {
     return new WithChoicesIOGroupPromise<
@@ -1260,16 +1270,14 @@ export class WithChoicesIOGroupPromise<
   ReturnValues = IOPromises extends Record<string, MaybeOptionalGroupIOPromise>
     ? { [K in keyof IOPromises]: ReturnType<IOPromises[K]['getValue']> }
     : IOPromises extends [
-        MaybeOptionalGroupIOPromise,
-        ...MaybeOptionalGroupIOPromise[]
-      ]
-    ? IOGroupReturnValues<IOPromises>
-    : unknown[],
-  InnerPromise extends IOGroupPromise<
-    IOPromises,
-    ReturnValues
-  > = IOGroupPromise<IOPromises, ReturnValues>,
-  Choice extends string = string
+          MaybeOptionalGroupIOPromise,
+          ...MaybeOptionalGroupIOPromise[],
+        ]
+      ? IOGroupReturnValues<IOPromises>
+      : unknown[],
+  InnerPromise extends IOGroupPromise<IOPromises, ReturnValues> =
+    IOGroupPromise<IOPromises, ReturnValues>,
+  Choice extends string = string,
 > {
   #innerPromise: InnerPromise
   #choiceButtons: ChoiceButtonConfig[] | undefined
