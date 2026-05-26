@@ -1,5 +1,11 @@
-import { IntervalActionDefinition } from '@interval/sdk/src/types'
-import { IntervalActionHandler, Action, Page, Layout, io } from '../..'
+import {
+  IntervalActionHandler,
+  IntervalActionDefinition,
+  Action,
+  Page,
+  Layout,
+  io,
+} from '../..'
 import { faker } from '@faker-js/faker'
 import fakeUsers from '../utils/fakeUsers'
 import { generateRows, sleep } from '../utils/helpers'
@@ -706,7 +712,7 @@ export const markdown = new Page({
                 - ${faker.random.word()}
                 - ${faker.random.word()}
                 - ${faker.lorem.paragraph()}
-              
+
               And a [link](https://www.google.com/) at the end.
               `,
             },
@@ -743,7 +749,7 @@ export const markdown = new Page({
                   console.log('foo is not bar')
                 }
                 ~~~
-                
+
                 Copy and paste that into your editor and you'll be good to go!`,
             },
             {
@@ -779,7 +785,7 @@ export const markdown = new Page({
               This is a horizontal rule:
 
               ---
-              
+
               ${faker.lorem.paragraph()}
               `,
             },

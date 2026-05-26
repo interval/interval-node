@@ -838,25 +838,25 @@ const interval = new Interval({
       return sheet[0]
     },
     optional: async io => {
-      await io.input.text('Text').optional()
-      await io.input.email('Email').optional()
-      await io.input.number('Number').optional()
-      await io.input.richText('Rich text').optional()
-      await io.input.date('Date').optional()
-      await io.input.time('Time').optional()
-      await io.input.datetime('Datetime').optional()
+      const s = await io.input.text('Text').optional()
+      const e = await io.input.email('Email').optional()
+      const n = await io.input.number('Number').optional()
+      const r = await io.input.richText('Rich text').optional()
+      const d = await io.input.date('Date').optional()
+      const t = await io.input.time('Time').optional()
+      const dt = await io.input.datetime('Datetime').optional()
 
-      await io.select
+      const single = await io.select
         .single('Select single', {
           options: [],
         })
         .optional()
-      await io.select
+      const multiple = await io.select
         .single('Select multiple', {
           options: [],
         })
         .optional()
-      await io
+      const search = await io
         .search('Search', {
           async onSearch() {
             return []
@@ -1284,7 +1284,7 @@ const interval = new Interval({
         }),
         io.display.markdown(
           `**Code in Markdown**
-          
+
           ~~~ts
           const foo: string = 'bar'
           if (foo === 'bar') {
