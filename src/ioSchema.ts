@@ -300,6 +300,7 @@ export const buttonItem = z.intersection(
 export const linkSchema = z.union([
   z.object({
     url: z.string(),
+    download: z.string().optional(),
   }),
   z.object({
     route: z.string(),
@@ -313,6 +314,7 @@ export type LinkProps = z.infer<typeof linkSchema>
 export const legacyLinkSchema = z.union([
   linkSchema,
   z.object({
+    /** @deprecated Use `route` instead. */
     action: z.string(),
     params: serializableRecord.optional(),
   }),
@@ -491,6 +493,7 @@ const DISPLAY_SCHEMA = {
       z.union([
         z.object({
           href: z.string(),
+          download: z.string().optional(),
         }),
         legacyLinkSchema,
       ])
